@@ -1,1 +1,1 @@
-# Magma
+# MagmaCraft
