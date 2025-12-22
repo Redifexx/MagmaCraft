@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Server.h"
+#include "Client.h"
 #include "Layer.h"
 #include <SDL3/SDL.h>
 #include "imgui.h"
@@ -37,5 +39,8 @@ namespace Magma
 			Camera* m_Camera;
 			Texture* m_Texture;
 			SDL_Window* m_Window;
+			Server* m_Server;
+			Client* m_Client;
+			bool m_Host; //server true, client false
 	};
 }

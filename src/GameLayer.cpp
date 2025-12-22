@@ -58,6 +58,8 @@ void GameLayer::OnAttach()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
 	m_ShaderProgram->SetUniform("u_Texture", 0);
+
+	m_Host = true;
 }
 
 void GameLayer::OnUpdate(float dt)
@@ -153,6 +155,20 @@ void GameLayer::OnImGuiRender()
 	ImGui::Text("Use E, Q to move up and down.");
 	ImGui::Text("Use F to begin audio.");
 	ImGui::Text("Use G to end audio.");
+	ImGui::Checkbox("Server Host?", &m_Host);
+	if (m_Host)
+	{
+		if (ImGui::Button("Start Server") && m_Server == nullptr)
+		{
+			m_Server = new Server();
+			m_Server->Bind();
+		}
+		if (m_Server != nullptr && m_Server->GetBound())
+		{
+			m_Server->Update();
+		}
+	}
+	
 	ImGui::End();
 }
 
