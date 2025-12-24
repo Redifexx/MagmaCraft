@@ -38,13 +38,11 @@ target_include_directories(imgui PRIVATE "${CMAKE_SOURCE_DIR}/external/imgui/bac
 target_link_libraries(imgui PUBLIC SDL3::SDL3 OpenGL::GL)
 
 include(FetchContent)
-
 FetchContent_Declare(
     enet
     GIT_REPOSITORY https://github.com/lsalzman/enet.git
     GIT_TAG        master
 )
-
 FetchContent_MakeAvailable(enet)
 
 # Executable
@@ -58,8 +56,6 @@ add_executable(MagmaFramework
      "resources/app-icon.rc"
 )
 
-target_compile_definitions(MagmaFramework PUBLIC WIN32_LEAN_AND_MEAN)
-target_link_libraries(MagmaFramework PRIVATE ws2_32)
 
 # Inject the project root directory as a definition named "MAGMA_ROOT_DIR"
 target_compile_definitions(MagmaFramework PUBLIC "MAGMA_ROOT_DIR=\"${CMAKE_SOURCE_DIR}/\"")
@@ -69,7 +65,7 @@ target_include_directories(MagmaFramework PUBLIC
     "external/imgui"
 )
 
-target_link_libraries(MagmaFramework PRIVATE enet)
+target_include_directories(MagmaFramework PRIVATE ${enet_SOURCE_DIR}/include)
 
 # Link libraries
 target_link_libraries(MagmaFramework PUBLIC
@@ -82,6 +78,7 @@ target_link_libraries(MagmaFramework PUBLIC
     freeimage::FreeImage      # Image Loading
     miniaudio::miniaudio      # Audio
     Tracy::TracyClient        # CPU Profiling
+    enet
 )
 
 target_compile_features(MagmaFramework PRIVATE cxx_std_20)

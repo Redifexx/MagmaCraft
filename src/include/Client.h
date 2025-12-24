@@ -1,9 +1,6 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-
 #include <iostream>
-#include <WS2tcpip.h> // window sockets
 #include <string.h>	
 
 namespace Magma
@@ -19,8 +16,6 @@ namespace Magma
 			bool GetBound() { return m_Bound; };
 
 		private:
-			SOCKET m_Out;
-			sockaddr_in m_ServerHint;
 			bool m_Bound;
 	};
 }

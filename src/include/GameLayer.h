@@ -1,7 +1,6 @@
 #pragma once
+#include <enet/enet.h>
 
-#include "Server.h"
-#include "Client.h"
 #include "Layer.h"
 #include <SDL3/SDL.h>
 #include "imgui.h"
@@ -29,6 +28,11 @@ namespace Magma
 			void OnResize(int width, int height);
 			void SetWindow(SDL_Window* window) { m_Window = window; }
 
+			// test functions
+			void ServerFunction();
+			void ClientFunction();
+			void SendMessage(const char* data, size_t s, ENetPeer* to);
+
 		private:
 			std::vector<Model*> m_Models;
 			ShaderProgram* m_ShaderProgram;
@@ -39,8 +43,6 @@ namespace Magma
 			Camera* m_Camera;
 			Texture* m_Texture;
 			SDL_Window* m_Window;
-			Server* m_Server;
-			Client* m_Client;
 			bool m_Host; //server true, client false
 			std::string m_ClientMsg;
 	};
