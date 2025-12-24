@@ -37,6 +37,16 @@ target_include_directories(imgui PRIVATE "${CMAKE_SOURCE_DIR}/external/imgui/bac
 
 target_link_libraries(imgui PUBLIC SDL3::SDL3 OpenGL::GL)
 
+include(FetchContent)
+
+FetchContent_Declare(
+    enet
+    GIT_REPOSITORY https://github.com/lsalzman/enet.git
+    GIT_TAG        master
+)
+
+FetchContent_MakeAvailable(enet)
+
 # Executable
 file(GLOB_RECURSE MAGMA_SOURCES "src/*.cpp")
 file(GLOB_RECURSE EXTERN_SOURCES "external/*.cpp")
@@ -58,6 +68,8 @@ target_include_directories(MagmaFramework PUBLIC
     "src/include"
     "external/imgui"
 )
+
+target_link_libraries(MagmaFramework PRIVATE enet)
 
 # Link libraries
 target_link_libraries(MagmaFramework PUBLIC

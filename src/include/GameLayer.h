@@ -42,5 +42,6 @@ namespace Magma
 			Server* m_Server;
 			Client* m_Client;
 			bool m_Host; //server true, client false
+			std::string m_ClientMsg;
 	};
 }

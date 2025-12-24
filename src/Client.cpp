@@ -36,7 +36,7 @@ void Client::Bind()
 	m_Bound = true;
 }
 
-bool Client::SendMessage(std::string msg)
+bool Client::SendServerMessage(std::string msg)
 {
 	// write out to that socket
 	int sendOk = sendto(m_Out, msg.c_str(), msg.size() + 1, 0, (sockaddr*)&m_ServerHint, sizeof(m_ServerHint));

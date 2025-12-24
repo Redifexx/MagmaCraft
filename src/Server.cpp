@@ -45,21 +45,24 @@ void Server::Update()
 
 	char buf[1024];
 
-	ZeroMemory(buf, 1024);
-
-	// wait for message
-	int bytesIn = recvfrom(m_In, buf, 1024, 0, (sockaddr*)&client, &clientLength);
-	if (bytesIn == SOCKET_ERROR)
+	while (true)
 	{
-		std::cout << "Error receiving from client " << WSAGetLastError() << std::endl;
-		return;
+		ZeroMemory(buf, 1024);
+
+		// wait for message
+		int bytesIn = recvfrom(m_In, buf, 1024, 0, (sockaddr*)&client, &clientLength);
+		if (bytesIn == SOCKET_ERROR)
+		{
+			std::cout << "Error receiving from client " << WSAGetLastError() << std::endl;
+			return;
+		}
+
+		// display message and client info
+		char clientIp[256];
+		ZeroMemory(clientIp, 256);
+
+		inet_ntop(AF_INET, &client.sin_addr, clientIp, 256);
+
+		std::cout << "Message Received from  " << clientIp << " : " << buf << std::endl;
 	}
-
-	// display message and client info
-	char clientIp[256];
-	ZeroMemory(clientIp, 256);
-
-	inet_ntop(AF_INET, &client.sin_addr, clientIp, 256);
-
-	std::cout << "Message Received from  " << clientIp << " : " << buf << std::endl;
 }

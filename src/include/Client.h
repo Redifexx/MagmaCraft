@@ -15,7 +15,7 @@ namespace Magma
 			~Client();
 
 			void Bind();
-			bool SendMessage(std::string msg);
+			bool SendServerMessage(std::string msg);
 			bool GetBound() { return m_Bound; };
 
 		private:

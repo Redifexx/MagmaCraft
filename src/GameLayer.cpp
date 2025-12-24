@@ -148,7 +148,7 @@ void GameLayer::OnDetach()
 void GameLayer::OnImGuiRender()
 {
 	// --- IMGUI RENDERING ----
-
+	static char buf[256] = "";
 	ImGui::Begin("Sample Debug Menu");
 	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 	ImGui::Text("Use WASD to nagivate.");
@@ -156,16 +156,29 @@ void GameLayer::OnImGuiRender()
 	ImGui::Text("Use F to begin audio.");
 	ImGui::Text("Use G to end audio.");
 	ImGui::Checkbox("Server Host?", &m_Host);
-	if (m_Host)
+	if (ImGui::Button("Start Network"))
 	{
-		if (ImGui::Button("Start Server") && m_Server == nullptr)
+		if (m_Host)
 		{
 			m_Server = new Server();
 			m_Server->Bind();
-		}
-		if (m_Server != nullptr && m_Server->GetBound())
-		{
 			m_Server->Update();
+		}
+		else
+		{
+			m_Client = new Client();
+			m_Client->Bind();
+		}
+	}
+	if (!m_Host)
+	{
+		if (ImGui::InputText("txt", buf, sizeof(buf)))
+		{
+			m_ClientMsg = buf;
+		}
+		if (ImGui::Button("Send Message to Server"))
+		{
+			m_Client->SendServerMessage(m_ClientMsg);
 		}
 	}
 	
