@@ -1,5 +1,7 @@
 #pragma once
-
+#include <enet/enet.h>
+#include <iostream>
+#include <map>
 
 // thank you Sloan Kelly on youtube
 
@@ -11,11 +13,12 @@ namespace Magma
 			Server();
 			~Server();
 
-			void Bind();
 			void Update();
-			bool GetBound() { return m_Bound; };
 
 		private:
-			bool m_Bound;
+			ENetAddress m_ServerHint;
+			ENetHost* m_Host;
+			int m_MaxClients = 10;
+			std::map<UINT16, ENetPeer*> m_Clients;
 	};
 }
