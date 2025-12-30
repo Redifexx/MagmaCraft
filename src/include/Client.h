@@ -1,4 +1,5 @@
 #pragma once
+#include <enet/enet.h>
 
 #include <iostream>
 #include <string.h>	
@@ -11,11 +12,14 @@ namespace Magma
 			Client();
 			~Client();
 
-			void Bind();
+			void SetServerHint(const char* hostName, enet_uint16 port);
+			bool ConnectToServer();
+
 			bool SendServerMessage(std::string msg);
-			bool GetBound() { return m_Bound; };
 
 		private:
-			bool m_Bound;
+			ENetHost* m_Client;
+			ENetPeer* m_Server;
+			ENetAddress m_ServerHint;
 	};
 }

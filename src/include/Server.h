@@ -17,7 +17,7 @@ namespace Magma
 
 		private:
 			ENetAddress m_ServerHint;
-			ENetHost* m_Host;
+			ENetHost* m_Server;
 			int m_MaxClients = 10;
 			std::map<UINT16, ENetPeer*> m_Clients;
 	};

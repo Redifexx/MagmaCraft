@@ -4,36 +4,50 @@ using namespace Magma;
 
 Client::Client()
 {
-	//WSADATA data;
-	//WORD version = MAKEWORD(2, 2);
-	//int ws0k = WSAStartup(version, &data);
-	//if (ws0k != 0)
-	//{
-	//	std::cout << "Can't start winsock! " << ws0k << std::endl;
-	//	return;
-	//}
+	m_Client = nullptr;
+	m_Server = nullptr;
 
-	m_Bound = false;
+	m_Client = enet_host_create(NULL /* CREATE A CLIENT HOST */,
+		1 /* only allow outgoing connection */,
+		2 /* allow up to 2 channels to be used, 0 & 1 */,
+		0 /* assume any amount of incoming bandwidth */,
+		0 /* assume any amount of outgoing bandwidth */
+	);
+
+	if (m_Client == NULL)
+	{
+		std::cout << "An error occurred while trying to create an ENetclient host.\n";
+		return;
+	}
 }
 
 Client::~Client()
 {
-	// close that socket
-	//closesocket(m_Out);
-	//WSACleanup();
+	enet_host_destroy(m_Client);
+	delete m_Client;
+	delete m_Server;
 }
 
-void Client::Bind()
+void Client::SetServerHint(const char* hostName, enet_uint16 port)
 {
-	// create hint structure for server
-	//m_ServerHint.sin_family = AF_INET;
-	//m_ServerHint.sin_port = htons(54000);
-	//inet_pton(AF_INET, "127.0.0.1", &m_ServerHint.sin_addr);
-	//
-	//// socket creation
-	//m_Out = socket(AF_INET, SOCK_DGRAM, 0);
-	//
-	m_Bound = true;
+	enet_address_set_host(&m_ServerHint, hostName);
+	m_ServerHint.port = port;
+}
+
+bool Client::ConnectToServer()
+{
+	m_Server = enet_host_connect(m_Client, &m_ServerHint, 2, 0);
+
+	if (m_Server == nullptr)
+	{
+		std::cout << "Wasn't able to initialize connection\n";
+
+		// don't forget
+		enet_host_destroy(m_Client);
+		return false;
+	}
+	std::cout << "Successful connection at: " << m_ServerHint.host << "::" << m_ServerHint.port << std::endl;
+	return true;
 }
 
 bool Client::SendServerMessage(std::string msg)
