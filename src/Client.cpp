@@ -49,17 +49,3 @@ bool Client::ConnectToServer()
 	std::cout << "Successful connection at: " << m_ServerHint.host << "::" << m_ServerHint.port << std::endl;
 	return true;
 }
-
-bool Client::SendServerMessage(std::string msg)
-{
-	// write out to that socket
-	//int sendOk = sendto(m_Out, msg.c_str(), msg.size() + 1, 0, (sockaddr*)&m_ServerHint, sizeof(m_ServerHint));
-	//
-	//if (sendOk == SOCKET_ERROR)
-	//{
-	//	std::cout << "Client: Socket Didn't work." << WSAGetLastError() << std::endl;
-	//	return false;
-	//}
-
-	return true;
-}

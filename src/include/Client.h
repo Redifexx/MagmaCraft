@@ -15,8 +15,6 @@ namespace Magma
 			void SetServerHint(const char* hostName, enet_uint16 port);
 			bool ConnectToServer();
 
-			bool SendServerMessage(std::string msg);
-
 		private:
 			ENetHost* m_Client;
 			ENetPeer* m_Server;
