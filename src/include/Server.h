@@ -14,11 +14,11 @@ namespace Magma
 			~Server();
 
 			void Update();
-
+			void SendPacket(const char* data, bool isReliable);
 		private:
 			ENetAddress m_ServerHint;
 			ENetHost* m_Server;
-			int m_MaxClients = 10;
+			int m_MaxClients = 16;
 			std::map<UINT16, ENetPeer*> m_Clients;
 	};
 }

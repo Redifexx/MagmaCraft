@@ -14,6 +14,8 @@ namespace Magma
 
 			void SetServerHint(const char* hostName, enet_uint16 port);
 			bool ConnectToServer();
+			void Update();
+			void SendPacket(const char* data, bool isReliable);
 
 		private:
 			ENetHost* m_Client;

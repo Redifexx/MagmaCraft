@@ -14,6 +14,8 @@
 #include <glm/glm.hpp>
 #include "Input.h"
 #include "Window.h"
+#include <Client.h>
+#include <Server.h>
 
 namespace Magma
 {
@@ -28,11 +30,6 @@ namespace Magma
 			void OnResize(int width, int height);
 			void SetWindow(SDL_Window* window) { m_Window = window; }
 
-			// test functions
-			void ServerFunction();
-			void ClientFunction();
-			void SendMessage(const char* data, size_t s, ENetPeer* to);
-
 		private:
 			std::vector<Model*> m_Models;
 			ShaderProgram* m_ShaderProgram;
@@ -43,7 +40,9 @@ namespace Magma
 			Camera* m_Camera;
 			Texture* m_Texture;
 			SDL_Window* m_Window;
+			Client* m_Client;
+			Server* m_Server;
 			bool m_Host; //server true, client false
-			std::string m_ClientMsg;
+			char m_ClientMsg[256] = "";
 	};
 }

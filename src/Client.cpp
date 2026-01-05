@@ -49,3 +49,32 @@ bool Client::ConnectToServer()
 	std::cout << "Successful connection at: " << m_ServerHint.host << "::" << m_ServerHint.port << std::endl;
 	return true;
 }
+
+void Client::Update()
+{
+	ENetEvent event;
+	while (enet_host_service(m_Client, &event, 0) > 0)
+	{
+		switch (event.type)
+		{
+			case ENET_EVENT_TYPE_CONNECT:
+				std::cout << "Connection to server succeeded.\n";
+				break;
+			case ENET_EVENT_TYPE_RECEIVE:
+				std::cout << (char*)event.packet->data << std::endl;
+				enet_packet_destroy(event.packet);
+				break;
+			case ENET_EVENT_TYPE_DISCONNECT:
+				std::cout << "Disconnected from server.\n";
+				break;
+		}
+	}
+}
+
+void Client::SendPacket(const char* data, bool isReliable)
+{
+	ENetPacket* packet = enet_packet_create(data, strlen(data) + 1, (isReliable ? ENET_PACKET_FLAG_RELIABLE : 0));
+	enet_peer_send(m_Server, 0, packet);
+	std::cout << "[" << data << "] sent to " << m_Server->address.host << ":" << m_Server->incomingPeerID << std::endl;
+	enet_host_flush(m_Client);
+}

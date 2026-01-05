@@ -1,4 +1,5 @@
 #include "Server.h"
+#include <string>
 
 using namespace Magma;
 
@@ -39,23 +40,41 @@ void Server::Update()
 				printf("A new client connected from %x:%u.\n",
 					event.peer->address.host,
 					event.peer->address.port);
-
+				std::cout << "Welcome Player " << event.peer->address.host << "!" << std::endl;
 				m_Clients[event.peer->incomingPeerID] = event.peer;
+				std::cout << "Client Count : [" << m_Clients.size() << "/" << m_MaxClients << "]" << std::endl;
 				break;
 
 			case ENET_EVENT_TYPE_RECEIVE:
-				printf("A packet of length %u containing %s was received on channel %u.\n",
-					event.packet->dataLength,
-					event.packet->data,
-					event.channelID);
+			{
+				std::string msg = "Player " + std::to_string(event.peer->address.host)
+					+ ":" + std::to_string(event.peer->incomingPeerID) + " wrote: " + reinterpret_cast<const char*>(event.packet->data);
+				std::cout << msg << std::endl;
+				SendPacket(msg.c_str(), true);
+				//event.packet->dataLength
+				//event.packet->data
+				//event.channelID
 				/* clean up the packet after usage */
 				enet_packet_destroy(event.packet);
+			}
 				break;
 
 			case ENET_EVENT_TYPE_DISCONNECT:
-				printf("client disconnected.\n");
+				std::cout << "Player " << event.peer->address.host << " disconnected." << std::endl;
 				m_Clients.erase(event.peer->incomingPeerID);
 				break;
 		}
 	}
+}
+
+void Server::SendPacket(const char* data, bool isReliable)
+{
+	ENetPacket* packet = enet_packet_create(data, strlen(data) + 1, (isReliable ? ENET_PACKET_FLAG_RELIABLE : 0));
+
+	for (const auto& [id, peer] : m_Clients)
+	{
+		enet_peer_send(peer, 0, packet);
+		std::cout << "[" << data << "] sent to " << peer->address.host << ":" << peer->incomingPeerID << std::endl;
+	}
+	enet_host_flush(m_Server);
 }
