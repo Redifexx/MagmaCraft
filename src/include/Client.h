@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string.h>	
+#include <vector>
 
 namespace Magma
 {
@@ -16,7 +17,9 @@ namespace Magma
 			bool ConnectToServer();
 			void Update();
 			void SendPacket(const char* data, bool isReliable);
+			bool IsConnected() const;
 
+			std::vector<std::string> m_MessageBuffer;
 		private:
 			ENetHost* m_Client;
 			ENetPeer* m_Server;

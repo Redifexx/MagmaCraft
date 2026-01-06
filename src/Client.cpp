@@ -23,9 +23,10 @@ Client::Client()
 
 Client::~Client()
 {
-	enet_host_destroy(m_Client);
-	delete m_Client;
-	delete m_Server;
+	if (m_Client != nullptr)
+	{
+		enet_host_destroy(m_Client);
+	}
 }
 
 void Client::SetServerHint(const char* hostName, enet_uint16 port)
@@ -36,22 +37,21 @@ void Client::SetServerHint(const char* hostName, enet_uint16 port)
 
 bool Client::ConnectToServer()
 {
+	if (!m_Client) return false;
 	m_Server = enet_host_connect(m_Client, &m_ServerHint, 2, 0);
 
 	if (m_Server == nullptr)
 	{
 		std::cout << "Wasn't able to initialize connection\n";
-
-		// don't forget
-		enet_host_destroy(m_Client);
 		return false;
 	}
-	std::cout << "Successful connection at: " << m_ServerHint.host << "::" << m_ServerHint.port << std::endl;
 	return true;
 }
 
 void Client::Update()
 {
+	if (!m_Client) return;
+
 	ENetEvent event;
 	while (enet_host_service(m_Client, &event, 0) > 0)
 	{
@@ -62,10 +62,18 @@ void Client::Update()
 				break;
 			case ENET_EVENT_TYPE_RECEIVE:
 				std::cout << (char*)event.packet->data << std::endl;
+
+				m_MessageBuffer.push_back(std::string((char*)event.packet->data));
+				if (m_MessageBuffer.size() > 128)
+				{
+					m_MessageBuffer.erase(m_MessageBuffer.begin());
+				}
+
 				enet_packet_destroy(event.packet);
 				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
 				std::cout << "Disconnected from server.\n";
+				m_Server = nullptr;
 				break;
 		}
 	}
@@ -77,4 +85,9 @@ void Client::SendPacket(const char* data, bool isReliable)
 	enet_peer_send(m_Server, 0, packet);
 	std::cout << "[" << data << "] sent to " << m_Server->address.host << ":" << m_Server->incomingPeerID << std::endl;
 	enet_host_flush(m_Client);
+}
+
+bool Client::IsConnected() const
+{
+	return m_Server != nullptr && m_Server->state == ENET_PEER_STATE_CONNECTED;
 }

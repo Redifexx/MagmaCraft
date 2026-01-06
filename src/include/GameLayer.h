@@ -19,6 +19,14 @@
 
 namespace Magma
 {
+	enum class ConnectionState
+	{
+		DISCONNECTED,
+		CONNECTING,
+		CONNECTED,
+		FAILED
+	};
+
 	// This is where the main loop game logic should go
 	class GameLayer : public Layer
 	{
@@ -40,9 +48,22 @@ namespace Magma
 			Camera* m_Camera;
 			Texture* m_Texture;
 			SDL_Window* m_Window;
+
+			// maybe turn into a network manager class later
 			Client* m_Client;
 			Server* m_Server;
 			bool m_Host; //server true, client false
-			char m_ClientMsg[256] = "";
+			bool m_NetworkInitialized = false;
+
+			// ConnectionStuff
+			ConnectionState m_ConnectionState = ConnectionState::DISCONNECTED;
+			float m_ConnectionTimer = 0.0f;
+			const float CONNECTION_TIMEOUT = 5.0f;
+			bool m_AutoConnect = true;
+
+			char m_NetworkMsg[256] = "";
+			char m_ServerAddressBuf[256] = "";
+			char m_ServerportBuf[256] = "";
+			char m_ChatLog[1024 * 16] = ""; // big buffer for chat log
 	};
 }

@@ -20,6 +20,7 @@ void GameLayer::OnAttach()
 		return;
 	}
 
+	/*
 	while (true)
 	{
 		std::cout << "S_erver or C_lien?: ";
@@ -51,6 +52,7 @@ void GameLayer::OnAttach()
 			}
 		}
 	}
+	*/
 	
 	// ---- GAME INITIALIZATION ----
 
@@ -104,14 +106,7 @@ void GameLayer::OnAttach()
 void GameLayer::OnUpdate(float dt)
 {
 	// ---- GAME UPDATE LOGIC ----
-	if (m_Host)
-	{
-		m_Server->Update();
-	}
-	else
-	{
-		m_Client->Update();
-	}
+
 
 	// Basic input handling for Camera movement (Input.h)
 	// Should probably be handled by a manager class
@@ -176,6 +171,32 @@ void GameLayer::OnUpdate(float dt)
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();
+
+	// Network Update Logic
+	if (m_NetworkInitialized && m_Host)
+	{
+		m_Server->Update();
+	}
+
+	if (m_NetworkInitialized && !m_Host)
+	{
+		m_Client->Update();
+		if (m_ConnectionState == ConnectionState::CONNECTING)
+		{
+			if (m_Client->IsConnected())
+			{
+				m_ConnectionState = ConnectionState::CONNECTED;
+			}
+			else
+			{
+				m_ConnectionTimer -= dt;
+				if (m_ConnectionTimer <= 0.0f)
+				{
+					m_ConnectionState = ConnectionState::FAILED;
+				}
+			}
+		}
+	}
 }
 
 void GameLayer::OnDetach()
@@ -202,12 +223,117 @@ void GameLayer::OnImGuiRender()
 	ImGui::Text("Use E, Q to move up and down.");
 	ImGui::Text("Use F to begin audio.");
 	ImGui::Text("Use G to end audio.");
-	if (!m_Host)
+
+	if (!m_NetworkInitialized)
 	{
-		ImGui::InputText("Client Message", m_ClientMsg, IM_ARRAYSIZE(m_ClientMsg));
-		if (ImGui::Button("Send Message"))
+		if (ImGui::Button("Start Server"))
 		{
-			m_Client->SendPacket(m_ClientMsg, true);
+			m_Server = new Server();
+			m_Host = true;
+			m_NetworkInitialized = true;
+		}
+		if (ImGui::Button("Start Client"))
+		{
+			m_Client = new Client();
+			m_Host = false;
+			m_NetworkInitialized = true;
+		}
+	}
+	else
+	{
+		if (!m_Host)
+		{
+			ImGui::Text("CLIENT");
+			if ((m_ConnectionState == ConnectionState::DISCONNECTED) || (m_ConnectionState == ConnectionState::FAILED))
+			{
+				ImGui::Checkbox("Auto", &m_AutoConnect);
+				if (!m_AutoConnect)
+				{
+					ImGui::InputText("Server Address", m_ServerAddressBuf, IM_ARRAYSIZE(m_ServerAddressBuf));
+					ImGui::InputText("Server Port", m_ServerportBuf, IM_ARRAYSIZE(m_ServerportBuf));
+				}
+				else
+				{
+					strcpy_s(m_ServerAddressBuf, "localhost");
+					strcpy_s(m_ServerportBuf, "1233");
+				}
+				if (ImGui::Button("Connect"))
+				{
+					std::string address = std::string(m_ServerAddressBuf);
+					enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
+					m_Client->SetServerHint(address.c_str(), port);
+
+					if (m_Client->ConnectToServer())
+					{
+						m_ConnectionState = ConnectionState::CONNECTING;
+						m_ConnectionTimer = CONNECTION_TIMEOUT;
+					}
+
+					if (m_ConnectionState == ConnectionState::FAILED)
+					{
+						ImGui::TextColored(ImVec4(1, 0, 0, 1), "Connection Timed Out!");
+					}
+				}
+			}
+			else if (m_ConnectionState == ConnectionState::CONNECTING)
+			{
+				ImGui::Text("Connecting... %.1f s", m_ConnectionTimer);
+			}
+			else if (m_ConnectionState == ConnectionState::CONNECTED)
+			{
+				ImGui::Text("Connected to %s:%s", m_ServerAddressBuf, m_ServerportBuf);
+
+				if (ImGui::BeginChild("Chat", ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar))
+				{
+					for (const auto& msg : m_Client->m_MessageBuffer)
+					{
+						ImGui::TextWrapped("%s", msg.c_str());
+					}
+
+					if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+					{
+						ImGui::SetScrollHereY(1.0f);
+					}
+
+					ImGui::EndChild();
+				}
+				ImGui::InputText("Msg", m_NetworkMsg, IM_ARRAYSIZE(m_NetworkMsg));
+				if (ImGui::Button("Send"))
+				{
+					m_Client->SendPacket(m_NetworkMsg, true);
+				}
+
+			}
+		}
+		else
+		{
+			ImGui::Text("SERVER");
+
+			ImGui::Text("[%d/%d] Users", m_Server->GetClientCount(), m_Server->GetMaxClients());
+
+			if (ImGui::BeginChild("Chat", ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar))
+			{
+				if (!m_Server->m_MessageBuffer.empty())
+				{
+					for (const auto& msg : m_Server->m_MessageBuffer)
+					{
+						ImGui::TextWrapped("%s", msg.c_str());
+					}
+				}
+
+				if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+				{
+					ImGui::SetScrollHereY(1.0f);
+				}
+
+				ImGui::EndChild();
+			}
+			ImGui::InputText("Msg", m_NetworkMsg, IM_ARRAYSIZE(m_NetworkMsg));
+			if (ImGui::Button("Send"))
+			{
+				m_Server->SendPacket(m_NetworkMsg, true);
+			}
+
 		}
 	}
 	ImGui::End();

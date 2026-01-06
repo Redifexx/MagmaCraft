@@ -31,6 +31,10 @@ Server::~Server()
 
 void Server::Update()
 {
+	if (m_Server == nullptr) {
+		printf("CRITICAL ERROR: ENetHost is NULL! Server failed to start.\n");
+		return;
+	}
 	ENetEvent event;
 	while (enet_host_service(m_Server, &event, 0) > 0)
 	{
@@ -49,8 +53,14 @@ void Server::Update()
 			{
 				std::string msg = "Player " + std::to_string(event.peer->address.host)
 					+ ":" + std::to_string(event.peer->incomingPeerID) + " wrote: " + reinterpret_cast<const char*>(event.packet->data);
-				std::cout << msg << std::endl;
 				SendPacket(msg.c_str(), true);
+
+				m_MessageBuffer.push_back(std::string((char*)event.packet->data));
+				if (m_MessageBuffer.size() > 128)
+				{
+					m_MessageBuffer.erase(m_MessageBuffer.begin());
+				}
+
 				//event.packet->dataLength
 				//event.packet->data
 				//event.channelID
