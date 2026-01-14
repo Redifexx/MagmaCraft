@@ -18,6 +18,11 @@ add_library(miniaudio INTERFACE)
 target_include_directories(miniaudio INTERFACE ${MINIAUDIO_INCLUDE_DIR})
 add_library(miniaudio::miniaudio ALIAS miniaudio)
 
+add_library(FastNoiseLite INTERFACE)
+target_include_directories(FastNoiseLite INTERFACE 
+    "${CMAKE_SOURCE_DIR}/external/FastNoiseLite"
+)
+
 add_library(imgui STATIC
     "${CMAKE_SOURCE_DIR}/external/imgui/imgui.cpp"
     "${CMAKE_SOURCE_DIR}/external/imgui/imgui_draw.cpp"
@@ -78,7 +83,8 @@ target_link_libraries(MagmaFramework PUBLIC
     freeimage::FreeImage      # Image Loading
     miniaudio::miniaudio      # Audio
     Tracy::TracyClient        # CPU Profiling
-    enet
+    enet                      # Networking
+    FastNoiseLite             # Noise Generation
 )
 
 target_compile_features(MagmaFramework PRIVATE cxx_std_20)
