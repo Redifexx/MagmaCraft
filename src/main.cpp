@@ -70,6 +70,7 @@ int main(int argc, char* argv[])
 
         int w_, h_;
 		window.GetWindowSize(w_, h_);
+
         glViewport(0, 0, w_, h_);
         glClearColor(0.143f, 0.265f, 0.310f, 1.0f);
         glEnable(GL_DEPTH_TEST);
