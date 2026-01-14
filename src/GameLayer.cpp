@@ -20,40 +20,6 @@ void GameLayer::OnAttach()
 		return;
 	}
 
-	/*
-	while (true)
-	{
-		std::cout << "S_erver or C_lien?: ";
-		char c = 0;
-		if (std::cin >> c)
-		{
-			if (std::tolower(c) == 's')
-			{
-				//ServerFunction();
-				m_Server = new Server();
-				m_Host = true;
-				break;
-			}
-			if (std::tolower(c) == 'c')
-			{
-				//ClientFunction();
-				m_Client = new Client();
-				m_Client->SetServerHint("localhost", 1233);
-				if (m_Client->ConnectToServer())
-				{
-					std::cout << "Connected to server!" << std::endl;
-				}
-				else
-				{
-					std::cout << "Failed to connect to server." << std::endl;
-				}
-				m_Host = false;
-				break;
-			}
-		}
-	}
-	*/
-	
 	// ---- GAME INITIALIZATION ----
 
 	// Model setup (Model.h)
