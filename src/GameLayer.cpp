@@ -23,10 +23,8 @@ void GameLayer::OnAttach()
 	// ---- GAME INITIALIZATION ----
 
 	// Model setup (Model.h)
-	m_Models.push_back(new Model("resources/models/radio.fbx"));
+	// make model read raw vertices
 	m_ModelMatrix = glm::mat4(1.0f);
-	m_ModelMatrix = glm::scale(m_ModelMatrix, glm::vec3(0.1f, 0.1f, 0.1f));
-	m_ModelMatrix = glm::rotate(m_ModelMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 	// Shader setup (Shader.h & ShaderProgram.h)
 	std::string vertpath = "resources/shaders/basic.vert";
@@ -49,11 +47,6 @@ void GameLayer::OnAttach()
 		std::cerr << "Failed to link shader program!" << std::endl;
 		return;
 	}
-	
-	// Texture setup
-	m_Texture = new Texture("resources/textures/radio.png");
-	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	// Camera setup (Camera.h)
 	m_Camera = new Camera(glm::vec3(0.0f, 0.0f, 5.0f));
@@ -64,9 +57,9 @@ void GameLayer::OnAttach()
 	m_ShaderProgram->SetUniform("u_Model", m_ModelMatrix);
 	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
-	m_ShaderProgram->SetUniform("u_Texture", 0);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
+	//m_ShaderProgram->SetUniform("u_Texture", 0);
 }
 
 void GameLayer::OnUpdate(float dt)
@@ -96,14 +89,21 @@ void GameLayer::OnUpdate(float dt)
 
 	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_F))
 	{
-		Magma::AudioEngine::PlayGlobal("R:/Code/Magma/resources/audio/wind.mp3", 0.1f, true);
-		Magma::AudioEngine::PlayAtLocation("resources/audio/pickitup.mp3", glm::vec3(0.0f, 0.0f, 0.0f), 1.5f, true);
+		//Magma::AudioEngine::PlayGlobal("R:/Code/Magma/resources/audio/wind.mp3", 0.1f, true);
+		//Magma::AudioEngine::PlayAtLocation("resources/audio/pickitup.mp3", glm::vec3(0.0f, 0.0f, 0.0f), 1.5f, true);
 	}
 
 	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_G))
 		Magma::AudioEngine::StopGlobal();
 
 	// Mouse look
+	ImGuiIO& io = ImGui::GetIO();
+	// Setup Window Cursor Lock
+	if (!io.WantCaptureMouse && Magma::Input::IsMouseButtonPressed(SDL_BUTTON_LEFT))
+	{
+		SDL_SetWindowRelativeMouseMode(m_Window, true);
+	}
+
 	if (SDL_GetWindowRelativeMouseMode(m_Window)) // check if cursor is captured
 	{
 		float mouseX = Magma::Input::GetMouseDelta().x;
@@ -122,13 +122,7 @@ void GameLayer::OnUpdate(float dt)
 
 	// Shader uniforms update and model drawing
 	m_ShaderProgram->Use();
-	m_ModelMatrix = glm::rotate(m_ModelMatrix, glm::radians(40.0f * dt), glm::vec3(0.0f, 0.0f, 1.0f));
-	m_ShaderProgram->SetUniform("u_Model", m_ModelMatrix);
 	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
-	m_ShaderProgram->SetUniform("u_Texture", 0);
 
 	for (Model* model : m_Models)
 	{
@@ -179,52 +173,122 @@ void GameLayer::OnDetach()
 	delete m_Texture;
 }
 
+static const char* logoArt = R"(
+___  ___  ___  _____ ___  ___  ___  _____ ______  ___  ______ _____ 
+|  \/  | / _ \|  __ \|  \/  | / _ \/  __ \| ___ \/ _ \ |  ___|_   _|
+| .  . |/ /_\ \ |  \/| .  . |/ /_\ \ /  \/| |_/ / /_\ \| |_    | |  
+| |\/| ||  _  | | __ | |\/| ||  _  | |    |    /|  _  ||  _|   | |  
+| |  | || | | | |_\ \| |  | || | | | \__/\| |\ \| | | || |     | |  
+\_|  |_/\_| |_/\____/\_|  |_/\_| |_/\____/\_| \_\_| |_/\_|     \_/  
+)";
+
 void GameLayer::OnImGuiRender()
 {
 	// --- IMGUI RENDERING ----
 	static char buf[256] = "";
-	ImGui::Begin("Sample Debug Menu");
-	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-	ImGui::Text("Use WASD to nagivate.");
-	ImGui::Text("Use E, Q to move up and down.");
-	ImGui::Text("Use F to begin audio.");
-	ImGui::Text("Use G to end audio.");
-
-	if (!m_NetworkInitialized)
+	ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
+	ImGui::Begin("MagmaCraft");
+	ImGui::TextUnformatted(logoArt);
+	ImGui::Text("by Gio Perez Colon");
+	switch (m_MenuState)
 	{
-		if (ImGui::Button("Start Server"))
-		{
-			m_Server = new Server();
-			m_Host = true;
-			m_NetworkInitialized = true;
-		}
-		if (ImGui::Button("Start Client"))
-		{
-			m_Client = new Client();
-			m_Host = false;
-			m_NetworkInitialized = true;
-		}
-	}
-	else
-	{
-		if (!m_Host)
-		{
-			ImGui::Text("CLIENT");
-			if ((m_ConnectionState == ConnectionState::DISCONNECTED) || (m_ConnectionState == ConnectionState::FAILED))
+		case (MenuState::MAIN_MENU):
+			if (ImGui::Button("Singleplayer"))
 			{
-				ImGui::Checkbox("Auto", &m_AutoConnect);
-				if (!m_AutoConnect)
+				m_MenuState = MenuState::SINGLEPLAYER;
+			}
+			if (ImGui::Button("Multiplayer"))
+			{
+				m_MenuState = MenuState::MULTIPLAYER;
+			}
+			break;
+
+		case (MenuState::SINGLEPLAYER):
+			if (ImGui::Button("Create World"))
+			{
+				m_MenuState = MenuState::CREATE_WORLD;
+			}
+			if (ImGui::Button("Back"))
+			{
+				m_MenuState = MenuState::MAIN_MENU;
+			}
+			break;
+
+		case (MenuState::MULTIPLAYER):
+			if (ImGui::Button("Host Game"))
+			{
+				m_MenuState = MenuState::HOST_GAME;
+			}
+			if (ImGui::Button("Join Game"))
+			{
+				m_MenuState = MenuState::JOIN_GAME;
+			}
+			if (ImGui::Button("Back"))
+			{
+				m_MenuState = MenuState::MAIN_MENU;
+			}
+			break;
+
+		case (MenuState::CREATE_WORLD):
+			ImGui::Checkbox("Auto Seed", &m_AutoSeed);
+			if (!m_AutoSeed)
+			{
+				ImGui::InputText("Seed", m_SeedBuf, IM_ARRAYSIZE(m_SeedBuf));
+			}
+			if (m_AutoSeed || IM_ARRAYSIZE(m_SeedBuf) > 0)
+			{
+				if (ImGui::Button("Create"))
 				{
-					ImGui::InputText("Server Address", m_ServerAddressBuf, IM_ARRAYSIZE(m_ServerAddressBuf));
-					ImGui::InputText("Server Port", m_ServerportBuf, IM_ARRAYSIZE(m_ServerportBuf));
+					m_MenuState = MenuState::SINGLEPLAYER;
+					if (m_NetworkRole == NetworkRole::SERVER)
+					{
+						// initialize server
+						m_Server = new Server();
+						m_Host = true;
+						m_NetworkInitialized = true;
+					}
 				}
-				else
-				{
-					strcpy_s(m_ServerAddressBuf, "localhost");
-					strcpy_s(m_ServerportBuf, "1233");
-				}
+			}
+			if (ImGui::Button("Back"))
+			{
+				m_MenuState = MenuState::SINGLEPLAYER;
+			}
+			break;
+
+		case (MenuState::HOST_GAME):
+			// Hosting options would go here
+			if (ImGui::Button("Create World"))
+			{
+				m_NetworkRole = NetworkRole::SERVER;
+				m_MenuState = MenuState::CREATE_WORLD;
+			}
+			if (ImGui::Button("Back"))
+			{
+				m_MenuState = MenuState::MULTIPLAYER;
+			}
+			break;
+		case (MenuState::JOIN_GAME):
+			// Joining options would go here
+			ImGui::Checkbox("Localhost", &m_AutoConnect);
+			if (!m_AutoConnect)
+			{
+				ImGui::InputText("Server Address", m_ServerAddressBuf, IM_ARRAYSIZE(m_ServerAddressBuf));
+				ImGui::InputText("Server Port", m_ServerportBuf, IM_ARRAYSIZE(m_ServerportBuf));
+			}
+			else
+			{
+				strcpy_s(m_ServerAddressBuf, "localhost");
+				strcpy_s(m_ServerportBuf, "1233");
+			}
+			if ((m_AutoConnect || (IM_ARRAYSIZE(m_ServerAddressBuf) > 0) && (IM_ARRAYSIZE(m_ServerportBuf) > 0)) && m_ConnectionState != ConnectionState::CONNECTING)
+			{
 				if (ImGui::Button("Connect"))
 				{
+					m_Client = new Client();
+					m_Host = false;
+					m_NetworkInitialized = true;
+
 					std::string address = std::string(m_ServerAddressBuf);
 					enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
 					m_Client->SetServerHint(address.c_str(), port);
@@ -247,6 +311,8 @@ void GameLayer::OnImGuiRender()
 			}
 			else if (m_ConnectionState == ConnectionState::CONNECTED)
 			{
+				m_MenuState = MenuState::IN_GAME;
+				// remnants of earlier code, can be removed
 				ImGui::Text("Connected to %s:%s", m_ServerAddressBuf, m_ServerportBuf);
 
 				if (ImGui::BeginChild("Chat", ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar))
@@ -270,37 +336,21 @@ void GameLayer::OnImGuiRender()
 				}
 
 			}
-		}
-		else
-		{
-			ImGui::Text("SERVER");
 
-			ImGui::Text("[%d/%d] Users", m_Server->GetClientCount(), m_Server->GetMaxClients());
-
-			if (ImGui::BeginChild("Chat", ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar))
+			if (ImGui::Button("Back"))
 			{
-				if (!m_Server->m_MessageBuffer.empty())
-				{
-					for (const auto& msg : m_Server->m_MessageBuffer)
-					{
-						ImGui::TextWrapped("%s", msg.c_str());
-					}
-				}
-
-				if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-				{
-					ImGui::SetScrollHereY(1.0f);
-				}
-
-				ImGui::EndChild();
+				m_MenuState = MenuState::MULTIPLAYER;
 			}
-			ImGui::InputText("Msg", m_NetworkMsg, IM_ARRAYSIZE(m_NetworkMsg));
-			if (ImGui::Button("Send"))
-			{
-				m_Server->SendPacket(m_NetworkMsg, true);
-			}
+			break;
 
-		}
+		case (MenuState::IN_GAME):
+			// In-game menu options would go here
+			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+			glm::vec3 pos = m_Camera->GetPosition();
+			ImGui::Text("X: %.1f", pos[0]);
+			ImGui::Text("Y: %.1f", pos[1]);
+			ImGui::Text("Z: %.1f", pos[2]);
+			break;
 	}
 	ImGui::End();
 }

@@ -2,6 +2,7 @@
 
 #include "FastNoiseLite.h"
 
+// Generates Chunks and Writes them to Files
 namespace Craft
 {
 	class WorldGenerator

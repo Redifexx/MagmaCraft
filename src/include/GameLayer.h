@@ -27,6 +27,24 @@ namespace Magma
 		FAILED
 	};
 
+	enum class MenuState
+	{
+		MAIN_MENU,
+		SINGLEPLAYER,
+		MULTIPLAYER,
+		CREATE_WORLD,
+		HOST_GAME,
+		JOIN_GAME,
+		IN_GAME
+	};
+
+	enum class NetworkRole
+	{
+		SOLO,
+		SERVER,
+		CLIENT
+	};
+
 	// This is where the main loop game logic should go
 	class GameLayer : public Layer
 	{
@@ -41,6 +59,10 @@ namespace Magma
 		private:
 			std::vector<Model*> m_Models;
 			ShaderProgram* m_ShaderProgram;
+			MenuState m_MenuState = MenuState::MAIN_MENU;
+			char m_SeedBuf[32] = "";
+			bool m_AutoSeed = true;
+			NetworkRole m_NetworkRole = NetworkRole::SOLO;
 
 			// Demo Variables
 			// These should ideally be part of another class or system

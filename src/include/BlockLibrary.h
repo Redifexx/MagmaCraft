@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <string>
+#include <cstdint>
 
 namespace Craft
 {
@@ -18,6 +20,6 @@ namespace Craft
 
 		BlockLibrary();
 
-		const BlockData& GetBlockData(uint8_t id) { return blockTypes[id] }
+		const BlockData& GetBlockData(uint8_t id) { return blockTypes[id]; }
 	};
 }

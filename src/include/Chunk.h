@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cstdint>
+
 // Data Representation of a chunk
 namespace Craft
 {
-	// 1 byte
 	using BlockID = uint8_t;
 
 	const int CHUNK_WIDTH = 16;

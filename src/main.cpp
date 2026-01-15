@@ -76,12 +76,6 @@ int main(int argc, char* argv[])
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Setup Window Cursor Lock
-		if (Magma::Input::IsMouseButtonPressed(SDL_BUTTON_LEFT))
-		{
-			SDL_SetWindowRelativeMouseMode(window.GetSDLWindow(), true);
-		}
-
 		if (Magma::Input::IsKeyPressed(SDL_SCANCODE_ESCAPE))
 		{
 			SDL_SetWindowRelativeMouseMode(window.GetSDLWindow(), false);
