@@ -7,6 +7,14 @@
 
 namespace Magma
 {
+	enum class ConnectionState
+	{
+		DISCONNECTED,
+		CONNECTING,
+		CONNECTED,
+		FAILED
+	};
+
 	class Client
 	{
 		public:
@@ -15,14 +23,17 @@ namespace Magma
 
 			void SetServerHint(const char* hostName, enet_uint16 port);
 			bool ConnectToServer();
-			void Update();
-			void SendPacket(const char* data, bool isReliable);
 			bool IsConnected() const;
+			ConnectionState GetConnectionState() const { return m_ConnectionState; }
+			void SetConnectionState(ConnectionState state) { m_ConnectionState = state; }
 
-			std::vector<std::string> m_MessageBuffer;
+			float m_ConnectionTimer = 0.0f;
+			const float CONNECTION_TIMEOUT = 5.0f;
+
 		private:
 			ENetHost* m_Client;
 			ENetPeer* m_Server;
 			ENetAddress m_ServerHint;
+			ConnectionState m_ConnectionState = ConnectionState::DISCONNECTED;
 	};
 }

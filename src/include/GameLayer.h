@@ -20,13 +20,6 @@
 
 namespace Magma
 {
-	enum class ConnectionState
-	{
-		DISCONNECTED,
-		CONNECTING,
-		CONNECTED,
-		FAILED
-	};
 
 	enum class MenuState
 	{

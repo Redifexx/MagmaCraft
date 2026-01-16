@@ -19,6 +19,7 @@ void PacketWriter::WriteData(const void* data, size_t size)
 
 bool NetworkManager::Begin()
 {
+	m_IsRunning = true;
 	switch (m_NetworkRole)
 	{
 		case NetworkRole::SOLO:
@@ -40,6 +41,7 @@ bool NetworkManager::Begin()
 			return true;
 
 		default:
+			m_IsRunning = false;
 			return false;
 	}
 }
@@ -74,14 +76,85 @@ void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkZ)
 
 	// send
 	enet_peer_send(peer, 0, packet);
+	enet_host_flush(peer);
 }
 
-void NetworkManager::Update()
+void NetworkManager::Update(float dt)
 {
 	// Implementation for updating network state and handling incoming packets
+	ENetEvent event;
+
+	// Handle Server Events
+	if (m_NetworkRole == NetworkRole::SERVER || m_NetworkRole == NetworkRole::SOLO)
+	{
+		while (enet_host_service(m_Server, &event, 0) > 0)
+		{
+			switch (event.type)
+			{
+			case ENET_EVENT_TYPE_CONNECT:
+				printf("A new client connected from %x:%u.\n",
+					event.peer->address.host,
+					event.peer->address.port);
+				std::cout << "Welcome Player " << event.peer->address.host << "!" << std::endl;
+				m_Clients[event.peer->incomingPeerID] = event.peer;
+				std::cout << "Client Count : [" << m_Server->GetClientCount() << "/" << m_Server->GetMaxClients() << "]" << std::endl;
+				break;
+			case ENET_EVENT_TYPE_RECEIVE:
+				std::cout << (char*)event.packet->data << std::endl;
+				HandlePacket(event.packet, event.peer);
+				enet_packet_destroy(event.packet);
+				break;
+			case ENET_EVENT_TYPE_DISCONNECT:
+				std::cout << "Player " << event.peer->address.host << " disconnected." << std::endl;
+				m_Clients.erase(event.peer->incomingPeerID);
+				break;
+			}
+		}
+	}
+
+	// Handle Client Events
+	if (m_NetworkRole == NetworkRole::CLIENT || m_NetworkRole == NetworkRole::SOLO)
+	{
+		while (enet_host_service(m_Client, &event, 0) > 0)
+		{
+			switch (event.type)
+			{
+				case ENET_EVENT_TYPE_CONNECT:
+					std::cout << "Connected to server." << std::endl;
+					break;
+				case ENET_EVENT_TYPE_RECEIVE:
+					std::cout << (char*)event.packet->data << std::endl;
+					HandlePacket(event.packet, event.peer);
+					enet_packet_destroy(event.packet);
+					break;
+				case ENET_EVENT_TYPE_DISCONNECT:
+					std::cout << "Disconnected from server.\n";
+					m_Server = nullptr;
+					break;
+			}
+		}
+
+		if (m_Client->GetConnectionState() == Craft::ConnectionState::CONNECTING)
+		{
+			if (m_Client->IsConnected())
+			{
+				m_Client->SetConnectionState(Craft::ConnectionState::CONNECTED);
+			}
+			else
+			{
+				m_Client->m_ConnectionTimer -= dt;
+				if (m_Client->m_ConnectionTimer <= 0.0f)
+				{
+					m_Client->SetConnectionState(Craft::ConnectionState::FAILED);
+				}
+			}
+		}
+	}
 }
 
 void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 {
 	// Implementation for handling received packets
+
+
 }

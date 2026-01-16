@@ -67,11 +67,10 @@ void GameLayer::OnAttach()
 	//m_ShaderProgram->SetUniform("u_Texture", 0);
 }
 
+// ---- GAME UPDATE LOGIC ----
 void GameLayer::OnUpdate(float dt)
 {
-	// ---- GAME UPDATE LOGIC ----
-
-
+	// ---- INPUT ----
 	// Basic input handling for Camera movement (Input.h)
 	// Should probably be handled by a manager class
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_W))
@@ -123,12 +122,14 @@ void GameLayer::OnUpdate(float dt)
 	}
 
 
-	// World Update Logic
+	// ---- WORLD UPDATE ----
 
 
+	// ---- AUDIO UPDATE ----
 	// Audio Listener Update
 	Magma::AudioEngine::UpdateListener(m_Camera->GetPosition(), m_Camera->GetFront(), m_Camera->GetUp());
 
+	// ---- RENDERING ----
 	// Shader uniforms update and model drawing
 	m_ShaderProgram->Use();
 	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
@@ -141,30 +142,10 @@ void GameLayer::OnUpdate(float dt)
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();
 
-	// Network Update Logic
-	if (m_NetworkInitialized && m_Host)
+	// ---- NETWORK UPDATE ----
+	if (m_NetworkManager->IsRunning())
 	{
-		m_Server->Update();
-	}
-
-	if (m_NetworkInitialized && !m_Host)
-	{
-		m_Client->Update();
-		if (m_ConnectionState == ConnectionState::CONNECTING)
-		{
-			if (m_Client->IsConnected())
-			{
-				m_ConnectionState = ConnectionState::CONNECTED;
-			}
-			else
-			{
-				m_ConnectionTimer -= dt;
-				if (m_ConnectionTimer <= 0.0f)
-				{
-					m_ConnectionState = ConnectionState::FAILED;
-				}
-			}
-		}
+		m_NetworkManager->Update(dt);
 	}
 }
 
@@ -267,7 +248,7 @@ void GameLayer::OnImGuiRender()
 					{
 						worldName = std::string(m_WorldNameBuf);
 					}
-					NetworkManager->GetWorldManager()->CreateWorld(worldName, std::stoi(m_SeedBuf));
+					m_NetworkManager->GetWorldManager()->CreateWorld(worldName, std::stoi(m_SeedBuf));
 					m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
 				}
 			}
@@ -281,7 +262,7 @@ void GameLayer::OnImGuiRender()
 			// Hosting options would go here
 			if (ImGui::Button("Create World"))
 			{
-				m_NetworkManager->SetRole(NetworkRole::SERVER);
+				m_NetworkManager->SetRole(Craft::NetworkRole::SERVER);
 				m_MenuState = MenuState::CREATE_WORLD;
 			}
 			if (ImGui::Button("Back"))
@@ -315,29 +296,22 @@ void GameLayer::OnImGuiRender()
 
 					std::string address = std::string(m_ServerAddressBuf);
 					enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
-					m_NetworkManager->GetClint()->SetServerHint(address.c_str(), port);
+					m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
+					m_NetworkManager->GetClient()->ConnectToServer();
 
-					if (m_NetworkManager->GetClint()->->ConnectToServer())
-					{
-						m_ConnectionState = ConnectionState::CONNECTING;
-						m_ConnectionTimer = CONNECTION_TIMEOUT;
-					}
-
-					if (m_ConnectionState == ConnectionState::FAILED)
+					if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::FAILED)
 					{
 						ImGui::TextColored(ImVec4(1, 0, 0, 1), "Connection Timed Out!");
 					}
 				}
 			}
-			else if (m_ConnectionState == ConnectionState::CONNECTING)
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTING)
 			{
 				ImGui::Text("Connecting... %.1f s", m_ConnectionTimer);
 			}
-			else if (m_ConnectionState == ConnectionState::CONNECTED)
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTED)
 			{
 				m_MenuState = MenuState::IN_GAME;
-				
-
 			}
 
 			if (ImGui::Button("Back"))

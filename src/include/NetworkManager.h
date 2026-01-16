@@ -45,24 +45,26 @@ namespace Craft
 			void End();
 
 			// Send
-			void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkZ);
+			void SendChunkData(ENetPeer* peer, int chunkX, int chunkZ);
 
 			// Receive
-			void Update();
+			void Update(float dt);
 			void HandlePacket(ENetPacket* packet, ENetPeer* peer);
 
-			void GetNetworkRole() const { return m_Role; }
+			NetworkRole GetNetworkRole() const { return m_Role; }
 			void SetNetworkRole(NetworkRole role) { m_Role = role; }
 
 			Server* GetServer() const { return m_Server; }
 			Client* GetClient() const { return m_Client; }
+			bool IsRunning() const { return m_IsRunning; }
 			WorldManager* GetWorldManager() const { return m_WorldManager; }
 			WorldRenderer* GetWorldRenderer() const { return m_WorldRenderer; }
 
 		private:
-			m_Server* = nullptr;
-			m_Client* = nullptr;
+			Server* m_Server = nullptr;
+			Client* m_Client = nullptr;
 			NetworkRole m_Role = NetworkRole::NONE;
+			bool m_IsRunning = false;
 
 			// World Classes
 			WorldManager* m_WorldManager = nullptr;

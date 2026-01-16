@@ -15,12 +15,9 @@ namespace Magma
 			Server();
 			~Server();
 
-			void Update();
-			void SendPacket(const char* data, bool isReliable);
 			int GetClientCount() const { return static_cast<int>(m_Clients.size()); }
 			int GetMaxClients() const { return m_MaxClients; }
 
-			std::vector<std::string> m_MessageBuffer;
 		private:
 			ENetAddress m_ServerHint;
 			ENetHost* m_Server;
