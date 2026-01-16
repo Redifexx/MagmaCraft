@@ -36,14 +36,8 @@ namespace Magma
 		CREATE_WORLD,
 		HOST_GAME,
 		JOIN_GAME,
+		LOADING,
 		IN_GAME
-	};
-
-	enum class NetworkRole
-	{
-		SOLO,
-		SERVER,
-		CLIENT
 	};
 
 	// This is where the main loop game logic should go
@@ -63,8 +57,10 @@ namespace Magma
 			MenuState m_MenuState = MenuState::MAIN_MENU;
 			char m_SeedBuf[32] = "";
 			bool m_AutoSeed = true;
-			NetworkRole m_NetworkRole = NetworkRole::SOLO;
 			Craft::WorldManager* m_WorldManager = nullptr;
+			char m_WorldNameBuf[32] = "";
+			Craft::NetworkManger* m_NetworkManager = nullptr;
+
 
 			// Demo Variables
 			// These should ideally be part of another class or system

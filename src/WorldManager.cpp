@@ -36,7 +36,7 @@ void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
 			m_WorldGenerator->GenerateChunk(chunk, spawnChunkX + x, spawnChunkZ + z);
 
 			// Save or store the generated chunk as needed
-
+			SaveChunkToFile(chunk, spawnChunkX + x, spawnChunkZ + z);
 		}
 	}
 }

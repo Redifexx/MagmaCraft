@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <AudioEngine.h>
 #include "WorldManager.h"
+#include "NetworkManager.h"
 
 using namespace Magma;
 
@@ -50,7 +51,7 @@ void GameLayer::OnAttach()
 	}
 
 	// Camera setup (Camera.h)
-	m_Camera = new Camera(glm::vec3(0.0f, 0.0f, 5.0f));
+	m_Camera = new Camera(glm::vec3(0.0f, 64.0f, 0.0f));
 	m_Camera->SetPerspective(true);
 
 	// Initial shader uniforms setup
@@ -60,6 +61,7 @@ void GameLayer::OnAttach()
 
 	// World Manager Setup
 	m_WorldManager = new Craft::WorldManager();
+	m_NetworkManager = new Craft::NetworkManager();
 
 	//glActiveTexture(GL_TEXTURE0);
 	//glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
@@ -120,6 +122,10 @@ void GameLayer::OnUpdate(float dt)
 		m_Camera->SetPitch(camPitch);
 		m_Camera->UpdateCameraVectors();
 	}
+
+
+	// World Update Logic
+
 
 	// Audio Listener Update
 	Magma::AudioEngine::UpdateListener(m_Camera->GetPosition(), m_Camera->GetFront(), m_Camera->GetUp());
@@ -235,6 +241,7 @@ void GameLayer::OnImGuiRender()
 			break;
 
 		case (MenuState::CREATE_WORLD):
+			ImGui::InputText("World Name", m_WorldNameBuf, IM_ARRAYSIZE(m_WorldNameBuf));
 			ImGui::Checkbox("Auto Seed", &m_AutoSeed);
 			if (!m_AutoSeed)
 			{
@@ -244,14 +251,27 @@ void GameLayer::OnImGuiRender()
 			{
 				if (ImGui::Button("Create"))
 				{
-					m_MenuState = MenuState::IN_GAME;
-					if (m_NetworkRole == NetworkRole::SERVER)
+					if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::SERVER)
 					{
 						// initialize server
 						m_Server = new Server();
 						m_Host = true;
 						m_NetworkInitialized = true;
 					}
+					else
+					{
+						m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SOLO);
+					}
+
+					m_MenuState = MenuState::LOADING;
+					// Create world
+					std::string worldName = "New World";
+					if (IM_ARRAYSIZE(m_WorldNameBuf) > 0)
+					{
+						worldName = std::string(m_WorldNameBuf);
+					}
+					m_WorldManager->CreateWorld(worldName, std::stoi(m_SeedBuf));
+					m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
 				}
 			}
 			if (ImGui::Button("Back"))
@@ -264,13 +284,18 @@ void GameLayer::OnImGuiRender()
 			// Hosting options would go here
 			if (ImGui::Button("Create World"))
 			{
-				m_NetworkRole = NetworkRole::SERVER;
+				m_NetworkManager->SetRole(NetworkRole::SERVER);
 				m_MenuState = MenuState::CREATE_WORLD;
 			}
 			if (ImGui::Button("Back"))
 			{
 				m_MenuState = MenuState::MULTIPLAYER;
 			}
+			break;
+
+		case (MenuState::LOADING):
+			ImGui::Text("Loading world...");
+			// wont work until we have async loading
 			break;
 		case (MenuState::JOIN_GAME):
 			// Joining options would go here

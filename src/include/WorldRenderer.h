@@ -18,7 +18,6 @@ namespace Craft
 
 			void SetChunkRenderDistance(uint8_t distance) { m_ChunkRenderDistance = distance; }
 
-
 		private:
 			// will determine chunk buffer size
 			// will be cached from server
