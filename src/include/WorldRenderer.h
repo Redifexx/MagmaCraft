@@ -16,6 +16,8 @@ namespace Craft
 
 			void RequestChunksAroundPlayer(const glm::vec3& playerPosition);
 
+			void SetChunkRenderDistance(uint8_t distance) { m_ChunkRenderDistance = distance; }
+
 
 		private:
 			// will determine chunk buffer size

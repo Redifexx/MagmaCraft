@@ -244,7 +244,7 @@ void GameLayer::OnImGuiRender()
 			{
 				if (ImGui::Button("Create"))
 				{
-					m_MenuState = MenuState::SINGLEPLAYER;
+					m_MenuState = MenuState::IN_GAME;
 					if (m_NetworkRole == NetworkRole::SERVER)
 					{
 						// initialize server
