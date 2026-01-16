@@ -59,8 +59,7 @@ void GameLayer::OnAttach()
 	m_ShaderProgram->SetUniform("u_Model", m_ModelMatrix);
 	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
 
-	// World Manager Setup
-	m_WorldManager = new Craft::WorldManager();
+	// Network Manager Setup
 	m_NetworkManager = new Craft::NetworkManager();
 
 	//glActiveTexture(GL_TEXTURE0);
@@ -254,9 +253,7 @@ void GameLayer::OnImGuiRender()
 					if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::SERVER)
 					{
 						// initialize server
-						m_Server = new Server();
-						m_Host = true;
-						m_NetworkInitialized = true;
+						m_NetworkManager->Begin();
 					}
 					else
 					{
@@ -270,7 +267,7 @@ void GameLayer::OnImGuiRender()
 					{
 						worldName = std::string(m_WorldNameBuf);
 					}
-					m_WorldManager->CreateWorld(worldName, std::stoi(m_SeedBuf));
+					NetworkManager->GetWorldManager()->CreateWorld(worldName, std::stoi(m_SeedBuf));
 					m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
 				}
 			}
@@ -314,15 +311,13 @@ void GameLayer::OnImGuiRender()
 			{
 				if (ImGui::Button("Connect"))
 				{
-					m_Client = new Client();
-					m_Host = false;
-					m_NetworkInitialized = true;
+					m_NetworkManager->Begin();
 
 					std::string address = std::string(m_ServerAddressBuf);
 					enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
-					m_Client->SetServerHint(address.c_str(), port);
+					m_NetworkManager->GetClint()->SetServerHint(address.c_str(), port);
 
-					if (m_Client->ConnectToServer())
+					if (m_NetworkManager->GetClint()->->ConnectToServer())
 					{
 						m_ConnectionState = ConnectionState::CONNECTING;
 						m_ConnectionTimer = CONNECTION_TIMEOUT;
@@ -341,28 +336,7 @@ void GameLayer::OnImGuiRender()
 			else if (m_ConnectionState == ConnectionState::CONNECTED)
 			{
 				m_MenuState = MenuState::IN_GAME;
-				// remnants of earlier code, can be removed
-				ImGui::Text("Connected to %s:%s", m_ServerAddressBuf, m_ServerportBuf);
-
-				if (ImGui::BeginChild("Chat", ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar))
-				{
-					for (const auto& msg : m_Client->m_MessageBuffer)
-					{
-						ImGui::TextWrapped("%s", msg.c_str());
-					}
-
-					if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-					{
-						ImGui::SetScrollHereY(1.0f);
-					}
-
-					ImGui::EndChild();
-				}
-				ImGui::InputText("Msg", m_NetworkMsg, IM_ARRAYSIZE(m_NetworkMsg));
-				if (ImGui::Button("Send"))
-				{
-					m_Client->SendPacket(m_NetworkMsg, true);
-				}
+				
 
 			}
 
@@ -373,6 +347,7 @@ void GameLayer::OnImGuiRender()
 			break;
 
 		case (MenuState::IN_GAME):
+
 			// In-game menu options would go here
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			glm::vec3 pos = m_Camera->GetPosition();

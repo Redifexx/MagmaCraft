@@ -28,9 +28,15 @@ namespace Craft
 			// Generates initial world data around player spawn
 			void InitializeWorld(glm::vec3 spawnPoint);
 
-			std::vector<uint8_t> CompressChunk(const Chunk& chunk);
+			void CompressChunk(const Chunk& chunk, std::vector<uint_8>& compressedData);
+			void DecompressChunk(const std::vector<uint8_t>& compressedData, Chunk& chunk);
+			
+			std::vector<uint8_t> GetChunkCompressed(int chunkX, int chunkZ);
 
 			void SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ);
+
+			bool LoadChunkFromFile(Chunk& chunk, int chunkX, int chunkZ);
+			bool LoadChunkFromFileCompressed(std::vector<uint8_t>& compressedData, int chunkX, int chunkZ);
 
 			// player class to later be passed in
 			void UpdateWorldAroundPlayer(const glm::vec3& playerPosition);
