@@ -16,6 +16,7 @@
 #include "Window.h"
 #include <Client.h>
 #include <Server.h>
+#include "WorldManager.h"
 
 namespace Magma
 {
@@ -63,6 +64,7 @@ namespace Magma
 			char m_SeedBuf[32] = "";
 			bool m_AutoSeed = true;
 			NetworkRole m_NetworkRole = NetworkRole::SOLO;
+			Craft::WorldManager* m_WorldManager = nullptr;
 
 			// Demo Variables
 			// These should ideally be part of another class or system

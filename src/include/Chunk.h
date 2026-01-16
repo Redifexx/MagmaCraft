@@ -18,5 +18,6 @@ namespace Craft
 			BlockID blocks[CHUNK_VOLUME];
 
 			BlockID GetBlock(int x, int y, int z) const;
+			void SetBlock(int x, int y, int z, BlockID block);
 	};
 }

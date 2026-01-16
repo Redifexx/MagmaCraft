@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FastNoiseLite.h"
+#include "Chunk.h"
 
 // Generates Chunks and Writes them to Files
 namespace Craft
@@ -9,7 +10,7 @@ namespace Craft
 	{
 		public:
 			WorldGenerator(int seed);
-			void GenerateChunk(Chunk& chunk, int chunkX, chunkZ);
+			void GenerateChunk(Chunk& chunk, int chunkX, int chunkZ);
 		private:
 			FastNoiseLite m_Noise;
 	};

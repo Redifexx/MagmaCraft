@@ -7,6 +7,7 @@
 #include "Texture.h"
 #include <filesystem>
 #include <AudioEngine.h>
+#include "WorldManager.h"
 
 using namespace Magma;
 
@@ -56,6 +57,9 @@ void GameLayer::OnAttach()
 	m_ShaderProgram->Use();
 	m_ShaderProgram->SetUniform("u_Model", m_ModelMatrix);
 	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
+
+	// World Manager Setup
+	m_WorldManager = new Craft::WorldManager();
 
 	//glActiveTexture(GL_TEXTURE0);
 	//glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());

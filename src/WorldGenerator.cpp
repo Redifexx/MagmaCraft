@@ -1,4 +1,5 @@
 #include "WorldGenerator.h"
+#include "Chunk.h"
 
 using namespace Craft;
 
