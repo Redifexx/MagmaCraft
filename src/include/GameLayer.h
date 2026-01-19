@@ -50,8 +50,8 @@ namespace Magma
 			ShaderProgram* m_ShaderProgram;
 			MenuState m_MenuState = MenuState::MAIN_MENU;
 
-			Craft::NetworkManager* m_NetworkManager = nullptr;
-			Craft::WorldStreamer* m_WorldStreamer = nullptr;
+			std::shared_ptr<Craft::NetworkManager> m_NetworkManager = nullptr;
+			std::unique_ptr<Craft::WorldStreamer> m_WorldStreamer = nullptr;
 
 			// Text Input Buffers
 			char m_SeedBuf[32] = "";

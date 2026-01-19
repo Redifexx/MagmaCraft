@@ -60,8 +60,8 @@ void GameLayer::OnAttach()
 	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
 
 	// Network Manager Setup
-	m_NetworkManager = new Craft::NetworkManager();
-	m_WorldStreamer = new Craft::WorldStreamer(m_NetworkManager);
+	m_NetworkManager = std::make_shared<Craft::NetworkManager>();
+	m_WorldStreamer = std::make_unique<Craft::WorldStreamer>(m_NetworkManager);
 
 	//glActiveTexture(GL_TEXTURE0);
 	//glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());

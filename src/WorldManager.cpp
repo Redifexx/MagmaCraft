@@ -13,7 +13,7 @@ WorldManager::WorldManager()
 void WorldManager::CreateWorld(const std::string& worldName, int seed)
 {
 	// Implementation for creating a new world with the given name and seed
-	m_WorldGenerator = new WorldGenerator(seed);
+	m_WorldGenerator = std::make_unique<WorldGenerator>(seed);
 
 	m_WorldName = worldName;
 

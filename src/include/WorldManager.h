@@ -6,6 +6,7 @@
 #include "WorldGenerator.h"
 #include <glm/glm.hpp>
 #include <cstdint>
+#include <map>
 
 // Manages world data, including loading, saving, and updating chunks
 namespace Craft
@@ -15,6 +16,13 @@ namespace Craft
 		uint32_t magic = 0X4D43484B; // Magma Chunk 'MCHK' Magic Number
 		int chunkX;
 		int chunkZ;
+	};
+
+	struct RenderChunk
+	{
+		std::unique_ptr<Chunk> chunkPtr = nullptr;
+		bool isLoaded = false;
+		bool isPending = false
 	};
 
 	class WorldManager
@@ -41,8 +49,8 @@ namespace Craft
 			
 			
 		private:
-			WorldGenerator* m_WorldGenerator = nullptr;
+			std::unique_ptr<WorldGenerator> m_WorldGenerator = nullptr;
 			std::string m_WorldName = "New World";
-			std::map<std::pair<int, int>, SingleChunk> m_ChunkBuffer;
+			std::map<std::pair<int, int>, RenderChunk> m_ChunkBuffer;
 	};
 }

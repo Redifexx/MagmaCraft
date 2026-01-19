@@ -16,11 +16,6 @@
 // The game layer will own both
 namespace Craft
 {
-	struct SingleChunk
-	{
-		std::unique_ptr<Chunk> chunkPtr = nullptr;
-		bool isLoaded = false;
-	};
 
 	class WorldStreamer
 	{
