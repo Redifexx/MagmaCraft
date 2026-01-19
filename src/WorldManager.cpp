@@ -41,7 +41,7 @@ void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
 	}
 }
 
-void WorldManager::CompressChunk(const Chunk& chunk, std::vector<uint8_t>& compressedData)
+void WorldManager::CompressChunkData(const Chunk& chunk, std::vector<uint8_t>& compressedData)
 {
 	// interate through all blocks in array
 	for (int i = 0; i < CHUNK_VOLUME; ++i)
@@ -63,7 +63,7 @@ void WorldManager::CompressChunk(const Chunk& chunk, std::vector<uint8_t>& compr
 	}
 }
 
-void WorldManager::DecompressChunk(const std::vector<uint8_t>& compressedData, Chunk& chunk)
+void WorldManager::DecompressChunkData(const std::vector<uint8_t>& compressedData, Chunk& chunk)
 {
 	int dataIndex = 0;
 	int blockIndex = 0;
@@ -81,7 +81,7 @@ void WorldManager::DecompressChunk(const std::vector<uint8_t>& compressedData, C
 	}
 }
 
-std::vector<uint8_t> WorldManager::GetChunkCompressed(int chunkX, int chunkZ)
+std::vector<uint8_t> WorldManager::GetChunkDataCompressed(int chunkX, int chunkZ)
 {
 	std::vector<uint8_t> chunkData;
 	if (LoadChunkFromFile(chunkData, chunkX, chunkZ)) return chunkData;
@@ -90,7 +90,7 @@ std::vector<uint8_t> WorldManager::GetChunkCompressed(int chunkX, int chunkZ)
 	Chunk chunk;
 	m_WorldGenerator->GenerateChunk(chunk, chunkX, chunkZ);
 	std::vector<uint8_t> buffer;
-	CompressChunk(chunk, buffer);
+	CompressChunkData(chunk, buffer);
 	return buffer;
 }
 
@@ -110,7 +110,7 @@ void WorldManager::SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ)
 
 	// Compress
 	std::vector<uint8_t> compressedData;
-	CompressChunk(chunk, compressedData);
+	CompressChunkData(chunk, compressedData);
 
 	// Write Data Size
 	uint32_t dataSize = compressedData.size();
@@ -153,6 +153,30 @@ bool WorldManager::LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int c
 	std::vector<uint8_t> compressedData;
 	if (!LoadChunkFromFile(compressedData, chunkX, chunkZ)) return false;
 
-	DecompressChunk(compressedData, chunk);
+	DecompressChunkData(compressedData, chunk);
 	return true;
+}
+
+void WorldManager::AddChunkToBuffer(int chunkX, int chunkZ)
+{
+	// First check if it's in buffer
+	if (HasChunkInBuffer(chunkX, chunkZ)) return;
+
+	// Then try to load from file
+	std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
+	if (!LoadChunkFromFileDecompressed(*chunk, chunkX, chunkZ))
+	{
+		// if it fails, generate a new chunk
+		m_WorldGenerator->GenerateChunk(*chunk, chunkX, chunkZ);
+	}
+
+	m_ChunkBuffer[{chunkX, chunkZ}] = std::move(chunk);
+}
+
+void WorldManager::RemoveChunkFromBuffer(int chunkX, int chunkZ)
+{
+	// First check if it's in buffer
+	if (!HasChunkInBuffer(chunkX, chunkZ)) return;
+
+	m_ChunkBuffer.erase({ chunkX, chunkZ });
 }

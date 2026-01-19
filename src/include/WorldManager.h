@@ -7,6 +7,8 @@
 #include <glm/glm.hpp>
 #include <cstdint>
 #include <map>
+#include <unordered_map>
+#include <memory>
 
 // Manages world data, including loading, saving, and updating chunks
 namespace Craft
@@ -18,39 +20,40 @@ namespace Craft
 		int chunkZ;
 	};
 
-	struct RenderChunk
-	{
-		std::unique_ptr<Chunk> chunkPtr = nullptr;
-		bool isLoaded = false;
-		bool isPending = false
-	};
-
 	class WorldManager
 	{
 		public:
 			WorldManager();
 
+			// --- WORLD CREATION/INITIALIZATION ---
 			// Sets up a new world generator & world folder
 			void CreateWorld(const std::string& worldName, int seed);
 
 			// Generates initial world data around player spawn
 			void InitializeWorld(glm::vec3 spawnPoint);
 
-			void CompressChunk(const Chunk& chunk, std::vector<uint8_t>& compressedData);
-			void DecompressChunk(const std::vector<uint8_t>& compressedData, Chunk& chunk);
+			// --- CHUNK LOADING/SAVING ---
+			void CompressChunkData(const Chunk& chunk, std::vector<uint8_t>& compressedData);
+			void DecompressChunkData(const std::vector<uint8_t>& compressedData, Chunk& chunk);
 			
-			std::vector<uint8_t> GetChunkCompressed(int chunkX, int chunkZ);
+			std::vector<uint8_t> GetChunkDataCompressed(int chunkX, int chunkZ);
 
 			void SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ);
 
 			bool LoadChunkFromFile(std::vector<uint8_t>& compressedData, int chunkX, int chunkZ);
 			bool LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int chunkZ);
 
+			// --- CHUNK BUFFER ---
+			bool HasChunkInBuffer(int chunkX, int chunkZ) { return m_ChunkBuffer.count({ chunkX, chunkZ }); }
+			Chunk* GetChunkFromBuffer(int chunkX, int chunkZ) { return m_ChunkBuffer[{chunkX, chunkZ}].get(); }
+			void AddChunkToBuffer(int chunkX, int chunkZ);
+			void RemoveChunkFromBuffer(int chunkX, int chunkZ);
 			
 			
 		private:
-			std::unique_ptr<WorldGenerator> m_WorldGenerator = nullptr;
+			std::unique_ptr<WorldGenerator> m_WorldGenerator;
 			std::string m_WorldName = "New World";
-			std::map<std::pair<int, int>, RenderChunk> m_ChunkBuffer;
+			uint8_t m_ChunkRenderDistance = 8; // allocated for each client in the server
+			std::unordered_map<glm::ivec2, std::unique_ptr<Chunk>> m_ChunkBuffer;
 	};
 }

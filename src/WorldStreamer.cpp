@@ -1,4 +1,6 @@
 #include "WorldStreamer.h"
+#include <memory>
+
 
 using namespace Craft;
 
@@ -13,26 +15,61 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 {
 	// Current Chunks
 	int chunkX, chunkZ;
-
 	GetPlayerChunkCoords(playerPosition, chunkX, chunkZ);
+
+	int chunkRequestsSentThisFrame = 0;
+
+	std::shared_ptr<WorldManager> worldManager = GetWorldManager();
+	std::shared_ptr<NetworkManager> networkManager = GetNetworkManager();
+	if (!worldManager || !networkManager) return;
 
 	for (int i = (-m_ChunkRenderDistance); i <= m_ChunkRenderDistance; i++)
 	{
 		for (int j = (-m_ChunkRenderDistance); j <= m_ChunkRenderDistance; j++)
 		{
-			SingleChunk& singleChunk = m_NetworkManager->GetWorldManager()->m_ChunkBuffer[std::make_pair(chunkX + i, chunkZ + j)];
-			if (!singleChunk.isLoaded)
+			int curChunkX = chunkX + i;
+			int curChunkZ = chunkZ + j;
+			glm::ivec2 chunkKey = glm::ivec2(curChunkX, curChunkZ);
+
+			if (m_ChunkBuffer.find(chunkKey) == m_ChunkBuffer.end())
 			{
-				if (m_NetworkManager->GetNetworkRole() == NetworkRole::CLIENT)
+				m_ChunkBuffer[chunkKey] = std::make_unique<RenderChunk>();
+			}
+			RenderChunk* renderChunk = m_ChunkBuffer[chunkKey].get();
+
+			// if it's already loaded skip
+			if (renderChunk->isLoaded) continue;
+
+			if (worldManager->HasChunkInBuffer(curChunkX, curChunkZ))
+			{
+				// generate mesh here
+				renderChunk->isLoaded = true;
+				renderChunk->isPending = false;
+			}
+			else if (!renderChunk->isPending && chunkRequestsSentThisFrame < MAX_CHUNK_REQUESTS_PER_FRAME)
+			{
+				NetworkRole role = networkManager->GetNetworkRole();
+
+				if (role == NetworkRole::CLIENT)
 				{
-					m_NetworkManager->RequestChunkData(m_NetworkManager->GetClient()->GetENetPeer(), chunkX + i, chunkZ + j);
+					networkManager.get()->RequestChunkData(
+						networkManager.get()->GetClient()->GetENetPeer(),
+						curChunkX,
+						curChunkZ);
+
+					// mark as pending
+					renderChunk->isPending = true;
+
+					chunkRequestsSentThisFrame++;
+				}
+				else if (role == NetworkRole::SERVER) // until i made a dedicated server, server == server + client
+				{
+					// skip localhost, send data directly
+					worldManager->AddChunkToBuffer(curChunkX, curChunkZ);
 				}
 			}
 		}
 	}
-
-	// Check buffer
-
 }
 
 void WorldStreamer::GetPlayerChunkCoords(const glm::vec3& playerPosition, int& chunkX, int& chunkZ)

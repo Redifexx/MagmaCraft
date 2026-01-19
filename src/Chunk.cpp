@@ -17,4 +17,5 @@ void Chunk::SetBlock(int x, int y, int z, BlockID block)
 		return; // Ignore out of bounds
 	int index = x + (z * CHUNK_WIDTH) + (y * CHUNK_WIDTH * CHUNK_WIDTH);
 	blocks[index] = block;
+	m_IsModified = true;
 }

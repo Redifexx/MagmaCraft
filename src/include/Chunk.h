@@ -16,6 +16,7 @@ namespace Craft
 		public:
 			// Chunk data stored in a 1D array
 			BlockID blocks[CHUNK_VOLUME];
+			bool m_IsModified = false;
 
 			BlockID GetBlock(int x, int y, int z) const;
 			void SetBlock(int x, int y, int z, BlockID block);
