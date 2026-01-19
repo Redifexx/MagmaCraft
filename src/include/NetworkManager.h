@@ -70,5 +70,3 @@ namespace Craft
 			std::shared_ptr<WorldManager> m_WorldManager = nullptr;
 	};
 }
-
-// next up: implement SendChunkData and HandlePacket methods

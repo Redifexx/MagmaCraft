@@ -23,14 +23,14 @@ bool NetworkManager::Begin()
 	switch (m_Role)
 	{
 		case NetworkRole::SERVER:
-			m_Server = new Magma::Server();
-			m_Client = new Magma::Client();
-			m_WorldManager = new WorldManager();
+			m_Server = std::make_unique<Magma::Server>();
+			m_Client = std::make_unique<Magma::Client>();
+			m_WorldManager = std::make_shared<WorldManager>();
 			return true;
 
 		case NetworkRole::CLIENT:
-			m_Client = new Magma::Client();
-			m_WorldManager = new WorldManager();
+			m_Client = std::make_unique<Magma::Client>();
+			m_WorldManager = std::make_shared<WorldManager>();
 			return true;
 
 		default:
@@ -41,10 +41,11 @@ bool NetworkManager::Begin()
 
 void NetworkManager::End()
 {
-	if (m_Server != nullptr) delete m_Server;
-	if (m_Client != nullptr) delete m_Client;
-	if (m_WorldManager != nullptr) delete m_WorldManager;
+	if (m_Server) m_Server.reset();
+	if (m_Client) m_Client.reset();
+	if (m_WorldManager) m_WorldManager.reset();
 	NetworkRole m_Role = NetworkRole::NONE;
+	m_IsRunning = false;
 }	
 
 // Can only be called from a packet
@@ -52,7 +53,7 @@ void NetworkManager::End()
 void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkZ)
 {
 	// get compressed chunk data
-	std::vector<uint8_t> chunkData = m_WorldManager->GetChunkCompressed(chunkX, chunkZ);
+	std::vector<uint8_t> chunkData = m_WorldManager->GetChunkDataCompressed(chunkX, chunkZ);
 
 	// write to packet
 	PacketWriter writer;

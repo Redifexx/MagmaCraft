@@ -3,6 +3,8 @@
 #include "WorldRenderer.h"
 #include "NetworkManager.h"
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 #include <vector>
 #include <cstdint>
 #include "Chunk.h"

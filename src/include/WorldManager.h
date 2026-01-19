@@ -5,6 +5,8 @@
 #include "Chunk.h"
 #include "WorldGenerator.h"
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 #include <cstdint>
 #include <map>
 #include <unordered_map>
