@@ -61,6 +61,7 @@ void GameLayer::OnAttach()
 
 	// Network Manager Setup
 	m_NetworkManager = new Craft::NetworkManager();
+	m_WorldStreamer = new Craft::WorldStreamer(m_NetworkManager);
 
 	//glActiveTexture(GL_TEXTURE0);
 	//glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
@@ -122,8 +123,8 @@ void GameLayer::OnUpdate(float dt)
 	}
 
 
-	// ---- WORLD UPDATE ----
-
+	// ---- WORLD UPDATE ---- FINISH
+	m_WorldStreamer->Update(dt, m_Camera->GetPosition());
 
 	// ---- AUDIO UPDATE ----
 	// Audio Listener Update
@@ -197,6 +198,7 @@ void GameLayer::OnImGuiRender()
 		case (MenuState::SINGLEPLAYER):
 			if (ImGui::Button("Create World"))
 			{
+				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SERVER);
 				m_MenuState = MenuState::CREATE_WORLD;
 			}
 			if (ImGui::Button("Back"))
@@ -236,10 +238,6 @@ void GameLayer::OnImGuiRender()
 						// initialize server
 						m_NetworkManager->Begin();
 					}
-					else
-					{
-						m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SOLO);
-					}
 
 					m_MenuState = MenuState::LOADING;
 					// Create world
@@ -262,7 +260,7 @@ void GameLayer::OnImGuiRender()
 			// Hosting options would go here
 			if (ImGui::Button("Create World"))
 			{
-				m_NetworkManager->SetRole(Craft::NetworkRole::SERVER);
+				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SERVER);
 				m_MenuState = MenuState::CREATE_WORLD;
 			}
 			if (ImGui::Button("Back"))
@@ -288,7 +286,7 @@ void GameLayer::OnImGuiRender()
 				strcpy_s(m_ServerAddressBuf, "localhost");
 				strcpy_s(m_ServerportBuf, "1233");
 			}
-			if ((m_AutoConnect || (IM_ARRAYSIZE(m_ServerAddressBuf) > 0) && (IM_ARRAYSIZE(m_ServerportBuf) > 0)) && m_ConnectionState != ConnectionState::CONNECTING)
+			if ((m_AutoConnect || (IM_ARRAYSIZE(m_ServerAddressBuf) > 0) && (IM_ARRAYSIZE(m_ServerportBuf) > 0)) && m_NetworkManager->GetClient()->GetConnectionState() != ConnectionState::CONNECTING)
 			{
 				if (ImGui::Button("Connect"))
 				{
@@ -307,7 +305,7 @@ void GameLayer::OnImGuiRender()
 			}
 			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTING)
 			{
-				ImGui::Text("Connecting... %.1f s", m_ConnectionTimer);
+				ImGui::Text("Connecting... %.1f s", m_NetworkManager->GetClient()->m_ConnectionTimer);
 			}
 			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTED)
 			{

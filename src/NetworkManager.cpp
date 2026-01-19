@@ -20,24 +20,17 @@ void PacketWriter::WriteData(const void* data, size_t size)
 bool NetworkManager::Begin()
 {
 	m_IsRunning = true;
-	switch (m_NetworkRole)
+	switch (m_Role)
 	{
-		case NetworkRole::SOLO:
-			// Until I send data directly, use localhost
-			m_Server = new Server();
-			m_Client = new Client();
-			m_WorldManager = new WorldManager();
-			m_WorldRenderer = new WorldRenderer();
-
-			return true;
 		case NetworkRole::SERVER:
-			m_Server = new Server();
+			m_Server = new Magma::Server();
+			m_Client = new Magma::Client();
 			m_WorldManager = new WorldManager();
 			return true;
 
 		case NetworkRole::CLIENT:
-			m_Client = new Client();
-			m_WorldRenderer = new WorldRenderer();
+			m_Client = new Magma::Client();
+			m_WorldManager = new WorldManager();
 			return true;
 
 		default:
@@ -51,10 +44,11 @@ void NetworkManager::End()
 	if (m_Server != nullptr) delete m_Server;
 	if (m_Client != nullptr) delete m_Client;
 	if (m_WorldManager != nullptr) delete m_WorldManager;
-	if (m_WorldRenderer != nullptr) delete m_WorldRenderer;
 	NetworkRole m_Role = NetworkRole::NONE;
 }	
 
+// Can only be called from a packet
+// only from server to client
 void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkZ)
 {
 	// get compressed chunk data
@@ -65,7 +59,7 @@ void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkZ)
 	writer.WriteByte(static_cast<uint8_t>(PacketType::CHUNK_DATA));
 	writer.WriteInt(chunkX);
 	writer.WriteInt(chunkZ);
-	writer.WriteData(chunkData.data(), compressedData.size());
+	writer.WriteData(chunkData.data(), chunkData.size());
 
 	// create ENet packet
 	ENetPacket* packet = enet_packet_create(
@@ -76,7 +70,25 @@ void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkZ)
 
 	// send
 	enet_peer_send(peer, 0, packet);
-	enet_host_flush(peer);
+}
+
+void NetworkManager::RequestChunkData(ENetPeer* peer, int chunkX, int chunkZ)
+{
+	// write to packet
+	PacketWriter writer;
+	writer.WriteByte(static_cast<uint8_t>(PacketType::CHUNK_REQUEST));
+	writer.WriteInt(chunkX);
+	writer.WriteInt(chunkZ);
+
+	// create ENet packet
+	ENetPacket* packet = enet_packet_create(
+		writer.buffer.data(),
+		writer.buffer.size(),
+		ENET_PACKET_FLAG_RELIABLE // bc chunk data is important
+	);
+
+	// send
+	enet_peer_send(peer, 0, packet);
 }
 
 void NetworkManager::Update(float dt)
@@ -85,9 +97,9 @@ void NetworkManager::Update(float dt)
 	ENetEvent event;
 
 	// Handle Server Events
-	if (m_NetworkRole == NetworkRole::SERVER || m_NetworkRole == NetworkRole::SOLO)
+	if (m_Role == NetworkRole::SERVER)
 	{
-		while (enet_host_service(m_Server, &event, 0) > 0)
+		while (enet_host_service(m_Server->GetENetHost(), &event, 0) > 0)
 		{
 			switch (event.type)
 			{
@@ -96,7 +108,7 @@ void NetworkManager::Update(float dt)
 					event.peer->address.host,
 					event.peer->address.port);
 				std::cout << "Welcome Player " << event.peer->address.host << "!" << std::endl;
-				m_Clients[event.peer->incomingPeerID] = event.peer;
+				m_Server->GetClients()[event.peer->incomingPeerID] = event.peer;
 				std::cout << "Client Count : [" << m_Server->GetClientCount() << "/" << m_Server->GetMaxClients() << "]" << std::endl;
 				break;
 			case ENET_EVENT_TYPE_RECEIVE:
@@ -106,16 +118,16 @@ void NetworkManager::Update(float dt)
 				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
 				std::cout << "Player " << event.peer->address.host << " disconnected." << std::endl;
-				m_Clients.erase(event.peer->incomingPeerID);
+				m_Server->GetClients().erase(event.peer->incomingPeerID);
 				break;
 			}
 		}
 	}
 
 	// Handle Client Events
-	if (m_NetworkRole == NetworkRole::CLIENT || m_NetworkRole == NetworkRole::SOLO)
+	if (m_Role == NetworkRole::CLIENT || m_Role == NetworkRole::SERVER)
 	{
-		while (enet_host_service(m_Client, &event, 0) > 0)
+		while (enet_host_service(m_Client->GetENetHost(), &event, 0) > 0)
 		{
 			switch (event.type)
 			{
@@ -134,18 +146,18 @@ void NetworkManager::Update(float dt)
 			}
 		}
 
-		if (m_Client->GetConnectionState() == Craft::ConnectionState::CONNECTING)
+		if (m_Client->GetConnectionState() == Magma::ConnectionState::CONNECTING)
 		{
 			if (m_Client->IsConnected())
 			{
-				m_Client->SetConnectionState(Craft::ConnectionState::CONNECTED);
+				m_Client->SetConnectionState(Magma::ConnectionState::CONNECTED);
 			}
 			else
 			{
 				m_Client->m_ConnectionTimer -= dt;
 				if (m_Client->m_ConnectionTimer <= 0.0f)
 				{
-					m_Client->SetConnectionState(Craft::ConnectionState::FAILED);
+					m_Client->SetConnectionState(Magma::ConnectionState::FAILED);
 				}
 			}
 		}
@@ -156,5 +168,53 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 {
 	// Implementation for handling received packets
 
+	uint8_t* data = packet->data;
+	size_t length = packet->dataLength;
 
+	if (length < 1) return;
+
+	uint8_t packetType = data[0];
+
+	switch (packetType)
+	{
+		case static_cast<uint8_t>(PacketType::HANDSHAKE):
+			std::cout << "Received HANDSHAKE packet." << std::endl;
+			// Handle handshake logic
+			break;
+
+		case static_cast<uint8_t>(PacketType::MESSAGE):
+			break;
+
+		case static_cast<uint8_t>(PacketType::CHUNK_REQUEST):
+		{
+			if (length < 9) break; // not enough data (type, int, int)
+
+			int chunkX = 0;
+			int chunkZ = 0;
+
+			std::memcpy(&chunkX, &data[1], sizeof(int));
+			std::memcpy(&chunkZ, &data[5], sizeof(int));
+			// may have to consider endianness here
+
+			std::cout << "Received CHUNK_REQUEST for chunk (" << chunkX << ", " << chunkZ << ")." << std::endl;
+			SendChunkData(peer, chunkX, chunkZ);
+			break;
+		}
+
+		case static_cast<uint8_t>(PacketType::CHUNK_DATA):
+			std::cout << "Received CHUNK_DATA packet." << std::endl;
+
+
+			// Handle chunk data logic
+			break;
+
+		case static_cast<uint8_t>(PacketType::BLOCK_UPDATE):
+			std::cout << "Received BLOCK_UPDATE packet." << std::endl;
+			// Handle block update logic
+			break;
+
+		default:
+			std::cout << "Received unknown packet type: " << static_cast<int>(packetType) << std::endl;
+
+	}
 }

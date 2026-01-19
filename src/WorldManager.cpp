@@ -41,7 +41,7 @@ void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
 	}
 }
 
-void WorldManager::CompressChunk(const Chunk& chunk, std::vector<uint_8>& compressedData)
+void WorldManager::CompressChunk(const Chunk& chunk, std::vector<uint8_t>& compressedData)
 {
 	// interate through all blocks in array
 	for (int i = 0; i < CHUNK_VOLUME; ++i)
@@ -58,8 +58,8 @@ void WorldManager::CompressChunk(const Chunk& chunk, std::vector<uint_8>& compre
 
 		// Write block ID and run length to buffer
 		// [Count, BlockID]
-		buffer.push_back(static_cast<uint8_t>(runLength));
-		buffer.push_back(static_cast<uint8_t>(currentBlock));
+		compressedData.push_back(static_cast<uint8_t>(runLength));
+		compressedData.push_back(static_cast<uint8_t>(currentBlock));
 	}
 }
 
@@ -84,7 +84,7 @@ void WorldManager::DecompressChunk(const std::vector<uint8_t>& compressedData, C
 std::vector<uint8_t> WorldManager::GetChunkCompressed(int chunkX, int chunkZ)
 {
 	std::vector<uint8_t> chunkData;
-	if (LoadChunkFromFileCompressed(chunkData, chunkX, chunkZ)) return chunkData;
+	if (LoadChunkFromFile(chunkData, chunkX, chunkZ)) return chunkData;
 
 	// if chunk not found, generate new chunk
 	Chunk chunk;
@@ -109,7 +109,8 @@ void WorldManager::SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ)
 	outfile.write((char*)&header, sizeof(ChunkFileHeader));
 
 	// Compress
-	std::vector<uint8_t> compressedData = CompressChunk(chunk);
+	std::vector<uint8_t> compressedData;
+	CompressChunk(chunk, compressedData);
 
 	// Write Data Size
 	uint32_t dataSize = compressedData.size();
@@ -121,7 +122,7 @@ void WorldManager::SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ)
 	outfile.close();
 }
 
-bool WorldManager::LoadChunkFromFile(Chunk& chunk, int chunkX, int chunkZ)
+bool WorldManager::LoadChunkFromFile(std::vector<uint8_t>& compressedData, int chunkX, int chunkZ)
 {
 	std::string filename = "saves/" + m_WorldName + "/chunk_" + std::to_string(chunkX) + "_" + std::to_string(chunkZ) + ".dat";
 	std::ifstream infile(filename, std::ios::binary);
@@ -141,17 +142,16 @@ bool WorldManager::LoadChunkFromFile(Chunk& chunk, int chunkX, int chunkZ)
 	infile.read((char*)&dataSize, sizeof(uint32_t));
 
 	// Read Compressed Data
-	std::vector<uint8_t> compressedData(dataSize);
 	infile.read((char*)compressedData.data(), dataSize);
 	infile.close();
 
 	return true;
 }
 
-bool WorldManager::LoadChunkFromFileCompressed(std::vector<uint8_t>& compressedData, int chunkX, int chunkZ)
+bool WorldManager::LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int chunkZ)
 {
-	Chunk chunk;
-	if (!LoadChunkFromFile(chunk, chunkX, chunkZ)) return false;
+	std::vector<uint8_t> compressedData;
+	if (!LoadChunkFromFile(compressedData, chunkX, chunkZ)) return false;
 
 	DecompressChunk(compressedData, chunk);
 	return true;

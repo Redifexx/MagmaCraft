@@ -17,6 +17,7 @@
 #include <Client.h>
 #include <Server.h>
 #include "WorldManager.h"
+#include "WorldStreamer.h"
 
 namespace Magma
 {
@@ -48,12 +49,21 @@ namespace Magma
 			std::vector<Model*> m_Models;
 			ShaderProgram* m_ShaderProgram;
 			MenuState m_MenuState = MenuState::MAIN_MENU;
-			char m_SeedBuf[32] = "";
-			bool m_AutoSeed = true;
-			Craft::WorldManager* m_WorldManager = nullptr;
-			char m_WorldNameBuf[32] = "";
-			Craft::NetworkManger* m_NetworkManager = nullptr;
 
+			Craft::NetworkManager* m_NetworkManager = nullptr;
+			Craft::WorldStreamer* m_WorldStreamer = nullptr;
+
+			// Text Input Buffers
+			char m_SeedBuf[32] = "";
+			char m_WorldNameBuf[32] = "";
+			char m_NetworkMsg[256] = "";
+			char m_ServerAddressBuf[256] = "";
+			char m_ServerportBuf[256] = "";
+			char m_ChatLog[1024 * 16] = ""; // big buffer for chat log
+
+			// IMGui Options
+			bool m_AutoConnect = true;
+			bool m_AutoSeed = true;
 
 			// Demo Variables
 			// These should ideally be part of another class or system
@@ -61,22 +71,5 @@ namespace Magma
 			Camera* m_Camera;
 			Texture* m_Texture;
 			SDL_Window* m_Window;
-
-			// maybe turn into a network manager class later
-			Client* m_Client;
-			Server* m_Server;
-			bool m_Host; //server true, client false
-			bool m_NetworkInitialized = false;
-
-			// ConnectionStuff
-			ConnectionState m_ConnectionState = ConnectionState::DISCONNECTED;
-			float m_ConnectionTimer = 0.0f;
-			const float CONNECTION_TIMEOUT = 5.0f;
-			bool m_AutoConnect = true;
-
-			char m_NetworkMsg[256] = "";
-			char m_ServerAddressBuf[256] = "";
-			char m_ServerportBuf[256] = "";
-			char m_ChatLog[1024 * 16] = ""; // big buffer for chat log
 	};
 }

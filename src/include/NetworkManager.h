@@ -14,7 +14,6 @@ namespace Craft
 	enum class NetworkRole
 	{
 		NONE,
-		SOLO,
 		SERVER,
 		CLIENT
 	};
@@ -25,7 +24,8 @@ namespace Craft
 		MESSAGE,
 		CHUNK_REQUEST,
 		CHUNK_DATA,
-		BLOCK_UPDATE
+		BLOCK_UPDATE,
+		PLAYER_DATA //pos, rotation, health, velocity
 	};
 
 	struct PacketWriter
@@ -46,6 +46,7 @@ namespace Craft
 
 			// Send
 			void SendChunkData(ENetPeer* peer, int chunkX, int chunkZ);
+			void RequestChunkData(ENetPeer* peer, int chunkX, int chunkZ);
 
 			// Receive
 			void Update(float dt);
@@ -54,21 +55,19 @@ namespace Craft
 			NetworkRole GetNetworkRole() const { return m_Role; }
 			void SetNetworkRole(NetworkRole role) { m_Role = role; }
 
-			Server* GetServer() const { return m_Server; }
-			Client* GetClient() const { return m_Client; }
+			Magma::Server* GetServer() const { return m_Server.get(); }
+			Magma::Client* GetClient() const { return m_Client.get(); }
 			bool IsRunning() const { return m_IsRunning; }
-			WorldManager* GetWorldManager() const { return m_WorldManager; }
-			WorldRenderer* GetWorldRenderer() const { return m_WorldRenderer; }
+			std::shared_ptr<WorldManager> GetWorldManager() const { return m_WorldManager; }
 
 		private:
-			Server* m_Server = nullptr;
-			Client* m_Client = nullptr;
+			std::unique_ptr<Magma::Server> m_Server = nullptr;
+			std::unique_ptr<Magma::Client> m_Client = nullptr;
 			NetworkRole m_Role = NetworkRole::NONE;
 			bool m_IsRunning = false;
 
 			// World Classes
-			WorldManager* m_WorldManager = nullptr;
-			WorldRenderer* m_WorldRenderer = nullptr;
+			std::shared_ptr<WorldManager> m_WorldManager = nullptr;
 	};
 }
 
