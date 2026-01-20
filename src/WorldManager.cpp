@@ -6,10 +6,6 @@
 
 using namespace Craft;
 
-WorldManager::WorldManager()
-{
-}
-
 void WorldManager::CreateWorld(const std::string& worldName, int seed)
 {
 	// Implementation for creating a new world with the given name and seed
@@ -32,11 +28,11 @@ void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
 	{
 		for (int z = -2; z <= 2; z++)
 		{
-			Chunk chunk;
-			m_WorldGenerator->GenerateChunk(chunk, spawnChunkX + x, spawnChunkZ + z);
+			std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
+			m_WorldGenerator->GenerateChunk(*chunk, spawnChunkX + x, spawnChunkZ + z);
 
 			// Save or store the generated chunk as needed
-			SaveChunkToFile(chunk, spawnChunkX + x, spawnChunkZ + z);
+			SaveChunkToFile(*chunk, spawnChunkX + x, spawnChunkZ + z);
 		}
 	}
 }

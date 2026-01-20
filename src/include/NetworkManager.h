@@ -22,7 +22,7 @@ namespace Craft
 	{
 		HANDSHAKE,
 		MESSAGE,
-		CHUNK_REQUEST,
+		CHUNK_REQUEST, //chunk pos, add or remove
 		CHUNK_DATA,
 		BLOCK_UPDATE,
 		PLAYER_DATA //pos, rotation, health, velocity
@@ -46,7 +46,7 @@ namespace Craft
 
 			// Send
 			void SendChunkData(ENetPeer* peer, int chunkX, int chunkZ);
-			void RequestChunkData(ENetPeer* peer, int chunkX, int chunkZ);
+			void RequestChunkData(ENetPeer* peer, int chunkX, int chunkZ, bool chunkAdd);
 
 			// Receive
 			void Update(float dt);

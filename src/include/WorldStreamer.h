@@ -31,8 +31,10 @@ namespace Craft
 		public:
 			WorldStreamer(std::shared_ptr<NetworkManager> networkManager);
 			void Update(float dt, const glm::vec3& playerPosition);
+			void RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunkPos, glm::ivec2 chunkDelta);
 
 			void GetPlayerChunkCoords(const glm::vec3& playerPosition, int& chunkX, int& chunkZ);
+
 
 			void SetChunkRenderDistance(uint8_t distance) { m_ChunkRenderDistance = distance; }
 
@@ -44,6 +46,8 @@ namespace Craft
 			std::shared_ptr<NetworkManager> GetNetworkManager() { return m_NetworkManager.lock(); }
 
 			uint8_t m_ChunkRenderDistance = 8;
+			glm::ivec2 m_LastChunkPos;
+			bool m_FirstFrame = true;
 			const int MAX_CHUNK_REQUESTS_PER_FRAME = 3;
 
 			// Any chunk in this buffer gets rendered

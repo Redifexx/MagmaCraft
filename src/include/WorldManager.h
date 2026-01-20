@@ -25,13 +25,13 @@ namespace Craft
 	class WorldManager
 	{
 		public:
-			WorldManager();
-
 			// --- WORLD CREATION/INITIALIZATION ---
 			// Sets up a new world generator & world folder
+			// Only ever called if server
 			void CreateWorld(const std::string& worldName, int seed);
 
 			// Generates initial world data around player spawn
+			// Only ever called if server
 			void InitializeWorld(glm::vec3 spawnPoint);
 
 			// --- CHUNK LOADING/SAVING ---

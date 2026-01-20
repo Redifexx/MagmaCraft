@@ -73,13 +73,14 @@ void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkZ)
 	enet_peer_send(peer, 0, packet);
 }
 
-void NetworkManager::RequestChunkData(ENetPeer* peer, int chunkX, int chunkZ)
+void NetworkManager::RequestChunkData(ENetPeer* peer, int chunkX, int chunkZ, bool chunkAdd)
 {
 	// write to packet
 	PacketWriter writer;
 	writer.WriteByte(static_cast<uint8_t>(PacketType::CHUNK_REQUEST));
 	writer.WriteInt(chunkX);
 	writer.WriteInt(chunkZ);
+	writer.WriteByte(chunkAdd);
 
 	// create ENet packet
 	ENetPacket* packet = enet_packet_create(
@@ -188,17 +189,27 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 		case static_cast<uint8_t>(PacketType::CHUNK_REQUEST):
 		{
-			if (length < 9) break; // not enough data (type, int, int)
+			if (length < 10) break; // not enough data (type, int, int, bool)
 
 			int chunkX = 0;
 			int chunkZ = 0;
+			bool chunkAdd = true;
 
 			std::memcpy(&chunkX, &data[1], sizeof(int));
 			std::memcpy(&chunkZ, &data[5], sizeof(int));
+			std::memcpy(&chunkAdd, &data[9], sizeof(bool));
 			// may have to consider endianness here
 
 			std::cout << "Received CHUNK_REQUEST for chunk (" << chunkX << ", " << chunkZ << ")." << std::endl;
-			SendChunkData(peer, chunkX, chunkZ);
+			
+			if (chunkAdd)
+			{
+				SendChunkData(peer, chunkX, chunkZ);
+			}
+			else
+			{
+				m_WorldManager->RemoveChunkFromBuffer(chunkX, chunkZ);
+			}
 			break;
 		}
 

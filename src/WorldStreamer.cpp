@@ -16,6 +16,15 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 	// Current Chunks
 	int chunkX, chunkZ;
 	GetPlayerChunkCoords(playerPosition, chunkX, chunkZ);
+	glm::ivec2 curChunkPos = glm::ivec2(chunkX, chunkZ);
+
+	if (m_FirstFrame)
+	{
+		m_LastChunkPos = curChunkPos;
+		m_FirstFrame = false;
+	}
+
+	glm::ivec2 chunkDelta = curChunkPos - m_LastChunkPos;
 
 	int chunkRequestsSentThisFrame = 0;
 
@@ -23,12 +32,29 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 	std::shared_ptr<NetworkManager> networkManager = GetNetworkManager();
 	if (!worldManager || !networkManager) return;
 
-	for (int i = (-m_ChunkRenderDistance); i <= m_ChunkRenderDistance; i++)
+	// Remove chunks outside of render distance from local and remote chunk buffer
+
+	if (chunkDelta.x != 0 || chunkDelta.y != 0)
 	{
-		for (int j = (-m_ChunkRenderDistance); j <= m_ChunkRenderDistance; j++)
+		// handle lag/teleport
+		if (glm::length(glm::vec2(chunkDelta)) > 2.0f)
 		{
-			int curChunkX = chunkX + i;
-			int curChunkZ = chunkZ + j;
+			// handle
+		}
+		else
+		{
+
+		}
+		m_LastChunkPos = curChunkPos;
+	}
+
+	// Add chunks isnide of render distance to local and remote chunk buffer
+	for (int x = (-m_ChunkRenderDistance); x <= m_ChunkRenderDistance; x++)
+	{
+		for (int z = (-m_ChunkRenderDistance); z <= m_ChunkRenderDistance; z++)
+		{
+			int curChunkX = chunkX + x;
+			int curChunkZ = chunkZ + z;
 			glm::ivec2 chunkKey = glm::ivec2(curChunkX, curChunkZ);
 
 			if (m_ChunkBuffer.find(chunkKey) == m_ChunkBuffer.end())
@@ -42,7 +68,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 
 			if (worldManager->HasChunkInBuffer(curChunkX, curChunkZ))
 			{
-				// generate mesh here
+				// generate mesh here //
 				renderChunk->isLoaded = true;
 				renderChunk->isPending = false;
 			}
@@ -66,7 +92,55 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 				{
 					// skip localhost, send data directly
 					worldManager->AddChunkToBuffer(curChunkX, curChunkZ);
+					renderChunk->isPending = true;
 				}
+			}
+		}
+	}
+}
+
+// finish bro
+void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunkPos, glm::ivec2 chunkDelta)
+{
+	std::shared_ptr<NetworkManager> networkManager = GetNetworkManager();
+	if (!networkManager) return;
+
+	int chunkRequestsSentThisFrame = 0;
+
+	// check delta X
+	if (chunkDelta.x != 0)
+	{
+		// if we move east, remove previous western most chunks
+		int staleX = (chunkDelta.x > 0) ? (lastChunkPos.x - m_ChunkRenderDistance) : (lastChunkPos.x + m_ChunkRenderDistance);
+		for (int z = lastChunkPos.y - m_ChunkRenderDistance; z <= lastChunkPos.y + m_ChunkRenderDistance; z++)
+		{
+			glm::ivec2 key = { staleX, z };
+
+			if (m_ChunkBuffer.find(key) != m_ChunkBuffer.end())
+			{
+				m_ChunkBuffer.erase(key);
+			}
+			else
+			{
+
+			}
+			NetworkRole role = networkManager->GetNetworkRole();
+
+			if (role == NetworkRole::CLIENT)
+			{
+				networkManager.get()->RequestChunkData(
+					networkManager.get()->GetClient()->GetENetPeer(),
+					key.x,
+					key.y,
+					false);
+
+				chunkRequestsSentThisFrame++;
+			}
+			else if (role == NetworkRole::SERVER) // until i made a dedicated server, server == server + client
+			{
+				// skip localhost, send data directly
+				worldManager->AddChunkToBuffer(curChunkX, curChunkZ);
+				renderChunk->isPending = true;
 			}
 		}
 	}

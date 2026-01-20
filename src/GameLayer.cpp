@@ -233,11 +233,8 @@ void GameLayer::OnImGuiRender()
 			{
 				if (ImGui::Button("Create"))
 				{
-					if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::SERVER)
-					{
-						// initialize server
-						m_NetworkManager->Begin();
-					}
+					// initialize server
+					m_NetworkManager->Begin();
 
 					m_MenuState = MenuState::LOADING;
 					// Create world
