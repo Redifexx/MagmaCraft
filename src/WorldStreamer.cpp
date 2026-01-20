@@ -43,7 +43,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 		}
 		else
 		{
-
+			RemoveOldChunks(curChunkPos, m_LastChunkPos, chunkDelta);
 		}
 		m_LastChunkPos = curChunkPos;
 	}
@@ -68,6 +68,8 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 
 			if (worldManager->HasChunkInBuffer(curChunkX, curChunkZ))
 			{
+				Chunk* chunk = worldManager->GetChunkFromBuffer(curChunkX, curChunkZ);
+
 				// generate mesh here //
 				renderChunk->isLoaded = true;
 				renderChunk->isPending = false;
@@ -102,10 +104,9 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 // finish bro
 void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunkPos, glm::ivec2 chunkDelta)
 {
+	std::shared_ptr<WorldManager> worldManager = GetWorldManager();
 	std::shared_ptr<NetworkManager> networkManager = GetNetworkManager();
-	if (!networkManager) return;
-
-	int chunkRequestsSentThisFrame = 0;
+	if (!worldManager || !networkManager) return;
 
 	// check delta X
 	if (chunkDelta.x != 0)
@@ -116,32 +117,24 @@ void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunk
 		{
 			glm::ivec2 key = { staleX, z };
 
-			if (m_ChunkBuffer.find(key) != m_ChunkBuffer.end())
-			{
-				m_ChunkBuffer.erase(key);
-			}
-			else
-			{
+			m_ChunkBuffer.erase(key);
+			
+			worldManager->RemoveChunkFromBuffer(key.x, key.y);
+		}
+	}
 
-			}
-			NetworkRole role = networkManager->GetNetworkRole();
+	// check delta Z
+	if (chunkDelta.y != 0)
+	{
+		// if we move east, remove previous western most chunks
+		int staleZ = (chunkDelta.y > 0) ? (lastChunkPos.y - m_ChunkRenderDistance) : (lastChunkPos.y + m_ChunkRenderDistance);
+		for (int x = lastChunkPos.x - m_ChunkRenderDistance; x <= lastChunkPos.x + m_ChunkRenderDistance; x++)
+		{
+			glm::ivec2 key = { x, staleZ };
 
-			if (role == NetworkRole::CLIENT)
-			{
-				networkManager.get()->RequestChunkData(
-					networkManager.get()->GetClient()->GetENetPeer(),
-					key.x,
-					key.y,
-					false);
+			m_ChunkBuffer.erase(key);
 
-				chunkRequestsSentThisFrame++;
-			}
-			else if (role == NetworkRole::SERVER) // until i made a dedicated server, server == server + client
-			{
-				// skip localhost, send data directly
-				worldManager->AddChunkToBuffer(curChunkX, curChunkZ);
-				renderChunk->isPending = true;
-			}
+			worldManager->RemoveChunkFromBuffer(key.x, key.y);
 		}
 	}
 }
