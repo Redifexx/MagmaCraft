@@ -2,7 +2,7 @@
 
 using namespace Craft;
 
-BlockLibrary::BlockLibrary()
+void BlockLibrary::Initialize()
 {
 	blockTypes.resize(256);
 

@@ -9,6 +9,7 @@
 #include <AudioEngine.h>
 #include "WorldManager.h"
 #include "NetworkManager.h"
+#include "BlockLibrary.h"
 
 using namespace Magma;
 
@@ -62,6 +63,11 @@ void GameLayer::OnAttach()
 	// Network Manager Setup
 	m_NetworkManager = std::make_shared<Craft::NetworkManager>();
 	m_WorldStreamer = std::make_unique<Craft::WorldStreamer>(m_NetworkManager);
+
+	//BlockLibrary Setup
+	Craft::BlockLibrary::Initialize();
+	
+
 
 	//glActiveTexture(GL_TEXTURE0);
 	//glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
