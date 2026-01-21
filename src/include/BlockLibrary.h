@@ -29,6 +29,11 @@ namespace Craft
 			static const BlockData& GetBlockData(uint8_t id) { return blockTypes[id]; }
 
 			// Returns texture coordinates from the texture atlas, assuming 256x256
+
+			static const float ATLAS_SIZE;
+			static const float TILE_SIZE;
+			static const int TILES_PER_ROW;
+			static float m_UVTileScale;
 			static const glm::vec2 GetTexCoords(uint8_t texID);
 	};
 }

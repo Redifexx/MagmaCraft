@@ -2,6 +2,11 @@
 
 using namespace Craft;
 
+static const float ATLAS_SIZE = 256.0f;
+static const float TILE_SIZE = 16.0f;
+static const int TILES_PER_ROW = 16;
+static float m_UVTileScale = 1.0f / (float)TILES_PER_ROW;
+
 void BlockLibrary::Initialize()
 {
 	blockTypes.resize(256);
@@ -33,16 +38,11 @@ void BlockLibrary::Initialize()
 
 static const glm::vec2 GetTexCoords(uint8_t texID)
 {
-	float atlasSize = 256.0f; // 256 x 256 texture
-	float tileSize = 16.0f;
-	int tilesPerRow = 16; // in case it changes
-	float tileUVSize = 1.0f / (float)tilesPerRow;
+	int column = texID % TILES_PER_ROW;
+	int row = texID / TILES_PER_ROW;
 
-	int column = texID % tilesPerRow;
-	int row = texID / tilesPerRow;
-
-	float u = column * tileUVSize;
-	float v = row * tileUVSize;
+	float u = column * m_UVTileScale;
+	float v = row * m_UVTileScale;
 
 	// might have to handle flipped textures if not already
 	return glm::vec2(u, v);
