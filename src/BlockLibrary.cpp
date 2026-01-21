@@ -2,10 +2,11 @@
 
 using namespace Craft;
 
-static const float ATLAS_SIZE = 256.0f;
-static const float TILE_SIZE = 16.0f;
-static const int TILES_PER_ROW = 16;
-static float m_UVTileScale = 1.0f / (float)TILES_PER_ROW;
+std::vector<BlockData> BlockLibrary::blockTypes;
+const float BlockLibrary::ATLAS_SIZE = 256.0f;
+const float BlockLibrary::TILE_SIZE = 16.0f;
+const int BlockLibrary::TILES_PER_ROW = 16;
+float BlockLibrary::m_UVTileScale = 1.0f / (float)TILES_PER_ROW;
 
 void BlockLibrary::Initialize()
 {
@@ -36,7 +37,7 @@ void BlockLibrary::Initialize()
 	// ID 12: Diamond Ore
 }
 
-static const glm::vec2 GetTexCoords(uint8_t texID)
+const glm::vec2 BlockLibrary::GetTexCoords(uint8_t texID)
 {
 	int column = texID % TILES_PER_ROW;
 	int row = texID / TILES_PER_ROW;

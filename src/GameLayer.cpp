@@ -233,7 +233,7 @@ void GameLayer::OnImGuiRender()
 			{
 				ImGui::InputText("Seed", m_SeedBuf, IM_ARRAYSIZE(m_SeedBuf));
 			}
-			if (m_AutoSeed || IM_ARRAYSIZE(m_SeedBuf) > 0)
+			if (m_AutoSeed || IM_ARRAYSIZE(m_SeedBuf) > 0) // add auto seed
 			{
 				if (ImGui::Button("Create"))
 				{
@@ -247,7 +247,7 @@ void GameLayer::OnImGuiRender()
 					{
 						worldName = std::string(m_WorldNameBuf);
 					}
-					m_NetworkManager->GetWorldManager()->CreateWorld(worldName, std::stoi(m_SeedBuf));
+					m_NetworkManager->GetWorldManager()->CreateWorld(worldName, std::stoi(static_cast<std::string>(m_SeedBuf)));
 					m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
 				}
 			}

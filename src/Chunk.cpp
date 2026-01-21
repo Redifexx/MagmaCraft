@@ -20,7 +20,7 @@ void Chunk::SetBlock(int x, int y, int z, BlockID block)
 	m_IsModified = true;
 }
 
-const uint32_t& GetBlockNeighbor(uint32_t id, Direction direction)
+const uint32_t Chunk::GetBlockNeighbor(uint32_t id, Direction direction)
 {
 	switch (direction)
 	{
