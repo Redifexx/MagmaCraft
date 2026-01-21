@@ -3,7 +3,7 @@
 using namespace Magma;
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) :
-	m_Vertices(vertices), m_Indices(indices)
+	m_Vertices(std::move(vertices)), m_Indices(std::move(indices))
 {
 	glGenVertexArrays(1, &m_VAO);
 	glGenBuffers(1, &m_VBO);

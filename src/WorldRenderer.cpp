@@ -11,15 +11,25 @@ WorldRenderer::WorldRenderer()
 void WorldRenderer::RenderChunk(Chunk* chunk, glm::ivec2 chunkPos)
 {
 	std::unique_ptr<Magma::Mesh> mesh;
-	GenerateMesh(*mesh, chunk, chunkPos);
-
-}
-
-void WorldRenderer::GenerateMesh(Magma::Mesh& mesh, Chunk* chunk, glm::ivec2 chunkPos)
-{
-	BlockID* blocks = chunk->blocks;
 	std::vector<Magma::Vertex> vertices;
 	std::vector<uint32_t> indices;
+
+	GenerateMesh(vertices, indices, chunk, chunkPos);
+
+	if (vertices.empty()) return;
+
+	std::unique_ptr<Magma::Mesh> mesh = std::make_unique<Magma::Mesh>(std::move(vertices), std::move(indices));
+
+	std::unique_ptr<ChunkMesh> chunkMesh = std::make_unique<ChunkMesh>();
+	chunkMesh->mesh = std::move(mesh);
+	chunkMesh->chunkPos = chunkPos;
+
+	m_DrawPool.push_back(std::move(chunkMesh));
+}
+
+void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec2 chunkPos)
+{
+	BlockID* blocks = chunk->blocks;
 	uint32_t indexOffset = 0;
 
 	for (int i = 0; i < CHUNK_VOLUME; i++)
@@ -334,5 +344,15 @@ void WorldRenderer::GenerateMesh(Magma::Mesh& mesh, Chunk* chunk, glm::ivec2 chu
 			}
 			
 		}
+	}
+}
+
+void WorldRenderer::DrawWorld()
+{
+	if (m_DrawPool.empty()) return;
+
+	for (int i = 0; i < m_DrawPool.size(); i++)
+	{
+		m_DrawPool.at(i)->mesh->Draw();
 	}
 }

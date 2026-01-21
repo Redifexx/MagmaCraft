@@ -15,8 +15,7 @@ namespace Craft
 	struct ChunkMesh
 	{
 		std::unique_ptr<Magma::Mesh> mesh;
-		int chunkX = 0;
-		int chunkZ = 0;
+		glm::ivec2 chunkPos;
 	};
 
 	class WorldRenderer
@@ -24,9 +23,10 @@ namespace Craft
 		public:
 			WorldRenderer();
 			void RenderChunk(Chunk* chunk, glm::ivec2 chunkPos);
-			void GenerateMesh(Magma::Mesh& mesh, Chunk* chunk, glm::ivec2 chunkPos);
+			void GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec2 chunkPos);
 
+			void DrawWorld();
 		private:
-			std::vector<ChunkMesh> m_MeshPool;
+			std::vector<std::unique_ptr<ChunkMesh>> m_DrawPool;
 	};
 }
