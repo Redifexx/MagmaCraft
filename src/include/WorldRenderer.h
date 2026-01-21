@@ -2,9 +2,12 @@
 
 #include <vector>
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 #include "Chunk.h"
 #include "Mesh.h"
 #include <memory>
+#include <map>
 #include <cstdint>
 
 // Receives chunks from server
@@ -12,11 +15,6 @@
 // Renders cached chunks
 namespace Craft
 {
-	struct ChunkMesh
-	{
-		std::unique_ptr<Magma::Mesh> mesh;
-		glm::ivec2 chunkPos;
-	};
 
 	class WorldRenderer
 	{
@@ -25,8 +23,11 @@ namespace Craft
 			void RenderChunk(Chunk* chunk, glm::ivec2 chunkPos);
 			void GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec2 chunkPos);
 
+			void RemoveFromDrawPool(glm::ivec2 chunkPos);
+
 			void DrawWorld();
+
 		private:
-			std::vector<std::unique_ptr<ChunkMesh>> m_DrawPool;
+			std::unordered_map<glm::ivec2, std::unique_ptr<Magma::Mesh>> m_DrawPool;
 	};
-}
+};

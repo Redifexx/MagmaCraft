@@ -141,10 +141,8 @@ void GameLayer::OnUpdate(float dt)
 	m_ShaderProgram->Use();
 	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
 
-	for (Model* model : m_Models)
-	{
-		model->Draw();
-	}
+
+	m_WorldStreamer->GetWorldRenderer()->DrawWorld();
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();

@@ -1,5 +1,6 @@
 #include "WorldStreamer.h"
 #include <memory>
+#include <glm/glm.hpp>
 
 
 using namespace Craft;
@@ -70,7 +71,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 			{
 				Chunk* chunk = worldManager->GetChunkFromBuffer(curChunkX, curChunkZ);
 
-				// generate mesh here //
+				m_WorldRenderer->RenderChunk(std::move(chunk), glm::ivec2(curChunkX, curChunkZ));
 				renderChunk->isLoaded = true;
 				renderChunk->isPending = false;
 			}
@@ -120,6 +121,7 @@ void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunk
 			m_ChunkBuffer.erase(key);
 			
 			worldManager->RemoveChunkFromBuffer(key.x, key.y);
+			m_WorldRenderer->RemoveFromDrawPool(glm::ivec2(key.x, key.y));
 		}
 	}
 
@@ -135,6 +137,7 @@ void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunk
 			m_ChunkBuffer.erase(key);
 
 			worldManager->RemoveChunkFromBuffer(key.x, key.y);
+			m_WorldRenderer->RemoveFromDrawPool(glm::ivec2(key.x, key.y));
 		}
 	}
 }

@@ -35,6 +35,7 @@ namespace Craft
 
 			void GetPlayerChunkCoords(const glm::vec3& playerPosition, int& chunkX, int& chunkZ);
 
+			WorldRenderer* GetWorldRenderer() const { return m_WorldRenderer.get(); }
 
 			void SetChunkRenderDistance(uint8_t distance) { m_ChunkRenderDistance = distance; }
 
