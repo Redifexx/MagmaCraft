@@ -24,6 +24,11 @@ void WorldRenderer::GenerateMesh(Magma::Mesh& mesh, BlockID* blocks)
 		{
 			const Craft::BlockData& curBlockData = Craft::BlockLibrary::GetBlockData(blocks[i]);
 
+			// index = x + (z * CHUNK_WIDTH) + (y * CHUNK_WIDTH * CHUNK_WIDTH);
+			// TOPFACE
+			if (blocks[])
+			Magma::Vertex v1, v2, v3, v4;
+			
 		}
 	}
 }
