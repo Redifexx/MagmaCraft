@@ -19,3 +19,23 @@ void Chunk::SetBlock(int x, int y, int z, BlockID block)
 	blocks[index] = block;
 	m_IsModified = true;
 }
+
+const uint32_t& GetBlockNeighbor(uint32_t id, Direction direction)
+{
+	switch (direction)
+	{
+		case (Direction::EAST):
+			return id + 1;
+		case (Direction::WEST):
+			return id - 1;
+		case (Direction::UP):
+			return id + (CHUNK_WIDTH * CHUNK_WIDTH);
+		case (Direction::DOWN):
+			return id - (CHUNK_WIDTH * CHUNK_WIDTH);
+		case (Direction::SOUTH):
+			return id + (CHUNK_WIDTH);
+		case (Direction::NORTH):
+			return id - (CHUNK_WIDTH);
+	}
+	return id;
+}

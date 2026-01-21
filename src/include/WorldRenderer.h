@@ -18,12 +18,13 @@ namespace Craft
 		int chunkX = 0;
 		int chunkZ = 0;
 	};
+
 	class WorldRenderer
 	{
 		public:
 			WorldRenderer();
-			void RenderChunk(Chunk* chunk);
-			void GenerateMesh(Magma::Mesh& mesh, BlockID* blocks);
+			void RenderChunk(Chunk* chunk, glm::ivec2 chunkPos);
+			void GenerateMesh(Magma::Mesh& mesh, Chunk* chunk, glm::ivec2 chunkPos);
 
 		private:
 			std::vector<ChunkMesh> m_MeshPool;

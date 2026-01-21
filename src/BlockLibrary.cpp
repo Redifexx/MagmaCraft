@@ -30,3 +30,20 @@ void BlockLibrary::Initialize()
 	// ID 11: Bedrock
 	// ID 12: Diamond Ore
 }
+
+static const glm::vec2 GetTexCoords(uint8_t texID)
+{
+	float atlasSize = 256.0f; // 256 x 256 texture
+	float tileSize = 16.0f;
+	int tilesPerRow = 16; // in case it changes
+	float tileUVSize = 1.0f / (float)tilesPerRow;
+
+	int column = texID % tilesPerRow;
+	int row = texID / tilesPerRow;
+
+	float u = column * tileUVSize;
+	float v = row * tileUVSize;
+
+	// might have to handle flipped textures if not already
+	return glm::vec2(u, v);
+}

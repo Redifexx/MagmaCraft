@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <glm/glm.hpp>
 
 namespace Craft
 {
@@ -26,5 +27,8 @@ namespace Craft
 			static std::vector<BlockData> blockTypes;
 			static void Initialize();
 			static const BlockData& GetBlockData(uint8_t id) { return blockTypes[id]; }
+
+			// Returns texture coordinates from the texture atlas, assuming 256x256
+			static const glm::vec2 GetTexCoords(uint8_t texID);
 	};
 }
