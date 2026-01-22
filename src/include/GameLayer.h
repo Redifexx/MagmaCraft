@@ -18,6 +18,7 @@
 #include <Server.h>
 #include "WorldManager.h"
 #include "WorldStreamer.h"
+#include <memory>
 #include <random>
 
 namespace Magma
