@@ -18,6 +18,7 @@
 #include <Server.h>
 #include "WorldManager.h"
 #include "WorldStreamer.h"
+#include <memory>
 
 namespace Magma
 {
@@ -69,7 +70,7 @@ namespace Magma
 			// These should ideally be part of another class or system
 			glm::mat4 m_ModelMatrix;
 			Camera* m_Camera;
-			Texture* m_Texture;
+			std::unique_ptr<Texture> m_Texture;
 			SDL_Window* m_Window;
 	};
 }

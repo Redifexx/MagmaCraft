@@ -32,10 +32,11 @@ void GameLayer::OnAttach()
 	// Shader setup (Shader.h & ShaderProgram.h)
 	std::string vertpath = "resources/shaders/basic.vert";
 	std::string fragpath = "resources/shaders/basic.frag";
-
+	std::string texturePath = "resources/textures/terrain.png";
 	#ifdef MAGMA_ROOT_DIR
 		vertpath = std::string(MAGMA_ROOT_DIR) + vertpath;
 		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
+		texturepath = std::string(MAGMA_ROOT_DIR) + texturePath;
 	#endif
 
 	Shader vertexShader(vertpath, GL_VERTEX_SHADER);
@@ -66,12 +67,13 @@ void GameLayer::OnAttach()
 
 	//BlockLibrary Setup
 	Craft::BlockLibrary::Initialize();
-	
 
+	// Single Texture setup
+	m_Texture = std::make_unique<Texture>(texturePath.c_str(), true);
 
-	//glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
-	//m_ShaderProgram->SetUniform("u_Texture", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
+	m_ShaderProgram->SetUniform("u_Texture", 0);
 }
 
 // ---- GAME UPDATE LOGIC ----
@@ -140,7 +142,9 @@ void GameLayer::OnUpdate(float dt)
 	// Shader uniforms update and model drawing
 	m_ShaderProgram->Use();
 	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
-
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
+	m_ShaderProgram->SetUniform("u_Texture", 0);
 
 	m_WorldStreamer->GetWorldRenderer()->DrawWorld();
 
