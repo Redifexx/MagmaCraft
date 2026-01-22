@@ -10,6 +10,7 @@
 #include "WorldManager.h"
 #include "NetworkManager.h"
 #include "BlockLibrary.h"
+#include <limits.h>
 
 using namespace Magma;
 
@@ -41,7 +42,8 @@ void GameLayer::OnAttach()
 	Shader vertexShader(vertpath, GL_VERTEX_SHADER);
 	Shader fragmentShader(fragpath, GL_FRAGMENT_SHADER);
 
-	m_ShaderProgram = new ShaderProgram();
+	m_ShaderProgram = std::make_unique<ShaderProgram>();
+
 
 	m_ShaderProgram->AttachShader(vertexShader);
 	m_ShaderProgram->AttachShader(fragmentShader);
@@ -52,7 +54,7 @@ void GameLayer::OnAttach()
 	}
 
 	// Camera setup (Camera.h)
-	m_Camera = new Camera(glm::vec3(0.0f, 64.0f, 0.0f));
+	m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 64.0f, 0.0f));
 	m_Camera->SetPerspective(true);
 
 	// Initial shader uniforms setup
@@ -233,7 +235,11 @@ void GameLayer::OnImGuiRender()
 			{
 				ImGui::InputText("Seed", m_SeedBuf, IM_ARRAYSIZE(m_SeedBuf));
 			}
-			if (m_AutoSeed || IM_ARRAYSIZE(m_SeedBuf) > 0) // add auto seed
+			else
+			{
+				m_SeedBuf = Magma::Random::Int(INT_MIN, INT_MAX);
+			}
+			if (m_AutoSeed || strlen(m_SeedBuf) > 0) // catch non number seeds
 			{
 				if (ImGui::Button("Create"))
 				{
@@ -243,7 +249,7 @@ void GameLayer::OnImGuiRender()
 					m_MenuState = MenuState::LOADING;
 					// Create world
 					std::string worldName = "New World";
-					if (IM_ARRAYSIZE(m_WorldNameBuf) > 0)
+					if (strlen(m_WorldNameBuf) > 0)
 					{
 						worldName = std::string(m_WorldNameBuf);
 					}

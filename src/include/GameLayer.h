@@ -18,9 +18,36 @@
 #include <Server.h>
 #include "WorldManager.h"
 #include "WorldStreamer.h"
+#include <random>
 
 namespace Magma
 {
+	// header only random helper class, may need a new home
+	class Random
+	{
+		public:
+			Random() = delete; // no constructor
+
+			static int Int(int min, int max)
+			{
+				std::unique_int_distribution<int> dist(min, max);
+				return dist(GetEngine());
+			}
+
+			// Returns float between 0.0, 1.0
+			static float Float()
+			{
+				std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+			}
+
+		private:
+			static std::mt19937& GetEngine()
+			{
+				static std::random_device rd;
+				static std::mt19937 engine(rd());
+				return engine;
+			}
+	};
 
 	enum class MenuState
 	{
@@ -47,7 +74,7 @@ namespace Magma
 
 		private:
 			std::vector<Model*> m_Models;
-			ShaderProgram* m_ShaderProgram;
+			std::unique_ptr<ShaderProgram> m_ShaderProgram = nullptr;
 			MenuState m_MenuState = MenuState::MAIN_MENU;
 
 			std::shared_ptr<Craft::NetworkManager> m_NetworkManager = nullptr;
@@ -68,8 +95,8 @@ namespace Magma
 			// Demo Variables
 			// These should ideally be part of another class or system
 			glm::mat4 m_ModelMatrix;
-			Camera* m_Camera;
-			Texture* m_Texture;
+			std::unique_ptr<Camera> m_Camera = nullptr;
+			std::unique_ptr<Texture> m_Texture = nullptr;
 			SDL_Window* m_Window;
 	};
 }
