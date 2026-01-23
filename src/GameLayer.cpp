@@ -25,6 +25,10 @@ void GameLayer::OnAttach()
 		return;
 	}
 
+	// ImGui File Brower Config
+	m_FileBrowser.SetTitle("World Browser");
+	m_FileBrowser.SetTypeFilters({ ".mcwd" });
+
 	// ---- GAME INITIALIZATION ----
 
 	// Model setup (Model.h)
@@ -102,14 +106,14 @@ void GameLayer::OnUpdate(float dt)
 		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetRight() * 5.0f * dt);
 
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_E))
-		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetUp() * 5.0f * dt);
+		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetWorldUp() * 5.0f * dt);
 
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_Q))
-		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetUp() * -5.0f * dt);
+		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetWorldUp() * -5.0f * dt);
 
-	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_F))
+	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_T))
 	{
-		//Magma::AudioEngine::PlayGlobal("R:/Code/Magma/resources/audio/wind.mp3", 0.1f, true);
+		//Magma::AudioEngine::PlayGlobal("resources/audio/music_6.ogg", 0.1f, true);
 		//Magma::AudioEngine::PlayAtLocation("resources/audio/pickitup.mp3", glm::vec3(0.0f, 0.0f, 0.0f), 1.5f, true);
 	}
 
@@ -192,8 +196,16 @@ void GameLayer::OnImGuiRender()
 	ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
 	ImGui::Begin("MagmaCraft");
-	ImGui::TextUnformatted(logoArt);
-	ImGui::Text("by Gio Perez Colon");
+	if (m_MenuState != MenuState::IN_GAME)
+	{
+		ImGui::TextUnformatted(logoArt);
+		ImGui::Text("by Gio Perez Colon");
+	}
+	else
+	{
+		ImGui::Text("MagmaCraft by Gio Perez Colon");
+	}
+
 	switch (m_MenuState)
 	{
 		case (MenuState::MAIN_MENU):
@@ -212,6 +224,11 @@ void GameLayer::OnImGuiRender()
 			{
 				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SERVER);
 				m_MenuState = MenuState::CREATE_WORLD;
+			}
+			if (ImGui::Button("Load World"))
+			{
+				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SERVER);
+				m_MenuState = MenuState::LOAD_WORLD;
 			}
 			if (ImGui::Button("Back"))
 			{
@@ -276,10 +293,54 @@ void GameLayer::OnImGuiRender()
 			}
 			if (ImGui::Button("Back"))
 			{
+				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::NONE);
 				m_MenuState = MenuState::SINGLEPLAYER;
 			}
 			break;
 
+		case (MenuState::LOAD_WORLD):
+		{
+			ImGui::InputText("World Path", m_WorldPathBuf, IM_ARRAYSIZE(m_WorldPathBuf));
+			if (ImGui::Button("Browse"))
+			{
+				m_FileBrowser.Open();
+			}
+
+			m_FileBrowser.Display();
+
+			if (m_FileBrowser.HasSelected())
+			{
+				std::memset(m_WorldPathBuf, 0, sizeof(m_WorldPathBuf));
+				std::strncpy(m_WorldPathBuf, m_FileBrowser.GetSelected().string().c_str(), sizeof(m_WorldPathBuf));
+				m_FileBrowser.ClearSelected();
+			}
+
+			if (strlen(m_WorldPathBuf) > 0)
+			{
+				if (ImGui::Button("Join"))
+				{
+					// initialize server
+					m_NetworkManager->Begin();
+
+					m_MenuState = MenuState::LOADING;
+
+					if (!m_NetworkManager->GetWorldManager()->LoadWorld(m_WorldPathBuf))
+					{
+						ImGui::Text("Invalid file path.");
+					}
+					else
+					{
+						m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
+					}
+				}
+			}
+			if (ImGui::Button("Back"))
+			{
+				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::NONE);
+				m_MenuState = MenuState::SINGLEPLAYER;
+			}
+			break;
+		}
 		case (MenuState::HOST_GAME):
 			// Hosting options would go here
 			if (ImGui::Button("Create World"))

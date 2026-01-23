@@ -18,8 +18,15 @@ namespace Craft
 	struct ChunkFileHeader
 	{
 		uint32_t magic = 0X4D43484B; // Magma Chunk 'MCHK' Magic Number
-		int chunkX;
-		int chunkZ;
+		int32_t chunkX;
+		int32_t chunkZ;
+	};
+
+	struct WorldFileHeader
+	{
+		uint32_t magic = 0X4D435744; // Magma Craft World 'MCWD' Magic Number
+		uint32_t seed;
+		char worldName[32];
 	};
 
 	inline int WorldToChunkPos(int coord)
@@ -34,7 +41,8 @@ namespace Craft
 			// --- WORLD CREATION/INITIALIZATION ---
 			// Sets up a new world generator & world folder
 			// Only ever called if server
-			void CreateWorld(const std::string& worldName, int seed);
+			void CreateWorld(std::string& worldName, int seed);
+			bool LoadWorld(const char* filepath);
 
 			// Generates initial world data around player spawn
 			// Only ever called if server

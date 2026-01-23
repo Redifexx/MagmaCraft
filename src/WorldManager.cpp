@@ -4,18 +4,69 @@
 #include <string>
 #include <fstream>
 #include <filesystem>
+#include <algorithm>
 
 using namespace Craft;
 
-void WorldManager::CreateWorld(const std::string& worldName, int seed)
+void WorldManager::CreateWorld(std::string& worldName, int seed)
 {
 	// Implementation for creating a new world with the given name and seed
 	m_WorldGenerator = std::make_unique<WorldGenerator>(seed);
 
+	// truncate world name, replace spaces with gap
+	size_t maxNameLength = 32;
+	worldName.resize(std::min(worldName.size(), maxNameLength));
+	std::replace(worldName.begin(), worldName.end(), ' ', '_');
+
 	m_WorldName = worldName;
+
+	// Create .mcwd file (magmacraftworld)
+	std::string folderPath = "saves/" + m_WorldName;
+	std::filesystem::create_directories(folderPath);
+
+	std::string filename = folderPath + "/" + m_WorldName + ".mcwd";
+
+	std::ofstream outfile(filename, std::ios::binary);
+	if (!outfile.is_open()) return; // should prob throw an error
+
+	// Header
+	WorldFileHeader header;
+	header.seed = seed;
+
+	std::memset(header.worldName, 0, sizeof(header.worldName));
+	std::strncpy(header.worldName, m_WorldName.c_str(), sizeof(header.worldName)); // no null termination for file (yet)
+
+	// the header contains all the data for now until the world needs more
+	outfile.write((char*)&header, sizeof(WorldFileHeader));
+	outfile.close();
 
 	// later make player spawn random within chunk
 	InitializeWorld(glm::vec3(0.0f, 64.0f, 0.0f));
+}
+
+bool WorldManager::LoadWorld(const char* filepath)
+{
+	// looks for worldname.mcwd
+	
+	std::ifstream infile(filepath, std::ios::binary);
+	if (!infile.is_open()) return false;
+
+	// Read Header
+	WorldFileHeader header;
+	infile.read((char*)&header, sizeof(WorldFileHeader));
+	if (header.magic != 0X4D435744)
+	{
+		infile.close();
+		return false; // Invalid file
+	}
+	infile.close();
+
+	// creates world generator with the same attributes
+	// sets the world name
+	m_WorldGenerator = std::make_unique<WorldGenerator>(header.seed);
+	m_WorldName = header.worldName;
+
+	return true;
 }
 
 void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
@@ -99,11 +150,10 @@ void WorldManager::SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ)
 {
 
 	std::string folderPath = "saves/" + m_WorldName;
-	std::filesystem::create_directories(folderPath);
 	std::string filename = folderPath + "/chunk_" + std::to_string(chunkX) + "_" + std::to_string(chunkZ) + ".dat";
 
 	std::ofstream outfile(filename, std::ios::binary);
-	if (!outfile.is_open()) return;
+	if (!outfile.is_open()) return; // should prob throw an error
 
 	// Header
 	ChunkFileHeader header;

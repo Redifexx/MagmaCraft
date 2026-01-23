@@ -20,6 +20,7 @@
 #include "WorldStreamer.h"
 #include <memory>
 #include <random>
+#include "imfilebrowser.h"
 
 namespace Magma
 {
@@ -57,6 +58,7 @@ namespace Magma
 		SINGLEPLAYER,
 		MULTIPLAYER,
 		CREATE_WORLD,
+		LOAD_WORLD,
 		HOST_GAME,
 		JOIN_GAME,
 		LOADING,
@@ -85,6 +87,7 @@ namespace Magma
 			// Text Input Buffers
 			char m_SeedBuf[32] = "";
 			char m_WorldNameBuf[32] = "";
+			char m_WorldPathBuf[128] = "";
 			char m_NetworkMsg[256] = "";
 			char m_ServerAddressBuf[256] = "";
 			char m_ServerportBuf[256] = "";
@@ -93,6 +96,7 @@ namespace Magma
 			// IMGui Options
 			bool m_AutoConnect = true;
 			bool m_AutoSeed = true;
+			ImGui::FileBrowser m_FileBrowser;
 
 			// Demo Variables
 			// These should ideally be part of another class or system
