@@ -8,12 +8,20 @@ using namespace Craft;
 WorldStreamer::WorldStreamer(std::shared_ptr<NetworkManager> networkManager)
 	: m_NetworkManager(networkManager)
 	, m_WorldRenderer(std::make_unique<WorldRenderer>())
-{
-	m_WorldManager = networkManager->GetWorldManager();
-}
+{}
 
 void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 {
+
+    if (m_WorldManager.expired())
+    {
+        auto networkManager = GetNetworkManager();
+        if (networkManager->GetNetworkRole() != NetworkRole::NONE)
+        {
+			m_WorldManager = networkManager->GetWorldManager();
+        }
+    }
+
 	// Current Chunks
 	int chunkX, chunkZ;
 	GetPlayerChunkCoords(playerPosition, chunkX, chunkZ);
@@ -144,6 +152,6 @@ void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunk
 
 void WorldStreamer::GetPlayerChunkCoords(const glm::vec3& playerPosition, int& chunkX, int& chunkZ)
 {
-	chunkX = static_cast<int>(playerPosition.x) / CHUNK_WIDTH;
-	chunkZ = static_cast<int>(playerPosition.z) / CHUNK_WIDTH;
+	chunkX = WorldToChunkPos(static_cast<int>(playerPosition.x));
+	chunkZ = WorldToChunkPos(static_cast<int>(playerPosition.z));
 }

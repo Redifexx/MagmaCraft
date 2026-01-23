@@ -1,6 +1,7 @@
 #include "WorldRenderer.h"
 #include "BlockLibrary.h"
 #include <glm/glm.hpp>
+#include <iostream>
 
 using namespace Craft;
 
@@ -28,6 +29,8 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 	BlockID* blocks = chunk->blocks;
 	uint32_t indexOffset = 0;
 
+	std::cout << "---------" << chunkPos.x << " " << chunkPos.y << std::endl;
+
 	for (int i = 0; i < CHUNK_VOLUME; i++)
 	{
 		// reference rgl
@@ -36,9 +39,10 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 		{
 			const Craft::BlockData& curBlockData = Craft::BlockLibrary::GetBlockData(blocks[i]);
 
-			float x = chunkPos.x + chunk->GetBlockX(i);
+			float x = (chunkPos.x * Craft::CHUNK_WIDTH) + chunk->GetBlockX(i);
 			float y = chunk->GetBlockY(i);
-			float z = chunkPos.y + chunk->GetBlockZ(i);
+			float z = (chunkPos.y * Craft::CHUNK_WIDTH) + chunk->GetBlockZ(i);
+			std::cout << x << " " << z << std::endl;
 			glm::vec2 uv;
 
 			// index = x + (z * CHUNK_WIDTH) + (y * CHUNK_WIDTH * CHUNK_WIDTH);

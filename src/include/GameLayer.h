@@ -31,7 +31,7 @@ namespace Magma
 
 			static int Int(int min, int max)
 			{
-				std::unique_int_distribution<int> dist(min, max);
+				std::uniform_int_distribution<int> dist(min, max);
 				return dist(GetEngine());
 			}
 
@@ -39,6 +39,7 @@ namespace Magma
 			static float Float()
 			{
 				std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+				return dist(GetEngine());
 			}
 
 		private:
@@ -98,6 +99,6 @@ namespace Magma
 			glm::mat4 m_ModelMatrix;
 			std::unique_ptr<Camera> m_Camera = nullptr;
 			std::unique_ptr<Texture> m_Texture = nullptr;
-			SDL_Window* m_Window;
+			SDL_Window* m_Window; // make shared
 	};
 }

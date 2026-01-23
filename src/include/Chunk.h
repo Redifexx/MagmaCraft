@@ -32,10 +32,10 @@ namespace Craft
 			BlockID GetBlock(int x, int y, int z) const;
 			void SetBlock(int x, int y, int z, BlockID block);
 
-			const uint32_t GetBlockX(uint32_t id) { return id % CHUNK_WIDTH; }
-			const uint32_t GetBlockY(uint32_t id) { return id / (CHUNK_WIDTH * CHUNK_WIDTH); }
-			const uint32_t GetBlockZ(uint32_t id) { return (id / CHUNK_WIDTH) % CHUNK_WIDTH; }
+			const int GetBlockX(uint32_t id) { return id % CHUNK_WIDTH; }
+			const int GetBlockY(uint32_t id) { return id / (CHUNK_WIDTH * CHUNK_WIDTH); }
+			const int GetBlockZ(uint32_t id) { return (id / CHUNK_WIDTH) % CHUNK_WIDTH; }
 			glm::ivec3 GetBlockXYZ(uint32_t id) { return glm::ivec3(GetBlockX(id), GetBlockY(id), GetBlockZ(id)); }
-			const uint32_t GetBlockNeighbor(uint32_t id, Direction direction);
+			const int32_t GetLocalBlockNeighbor(uint32_t id, Direction direction);
 	};
 }

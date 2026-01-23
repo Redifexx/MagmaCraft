@@ -46,7 +46,7 @@ namespace Craft
 			std::shared_ptr<WorldManager> GetWorldManager() { return m_WorldManager.lock(); }
 			std::shared_ptr<NetworkManager> GetNetworkManager() { return m_NetworkManager.lock(); }
 
-			uint8_t m_ChunkRenderDistance = 8;
+			uint8_t m_ChunkRenderDistance = 2;
 			glm::ivec2 m_LastChunkPos;
 			bool m_FirstFrame = true;
 			const int MAX_CHUNK_REQUESTS_PER_FRAME = 3;

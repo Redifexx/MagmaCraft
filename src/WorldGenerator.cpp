@@ -44,8 +44,11 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)
 					currentBlock = 3; // Dirt
 				}
 
-				chunk.SetBlock(x, y, z, currentBlock);
+				chunk.SetBlock(x, y, z, 0); // set to air for DEBUG
 			}
 		}
 	}
+	
+	chunk.SetBlock(0, 64, 0, 1);
+	chunk.SetBlock(15, 64, 15, 1);
 }

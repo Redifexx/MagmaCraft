@@ -22,6 +22,22 @@ namespace Craft
 		int chunkZ;
 	};
 
+	inline int WorldToChunkPos(int coord)
+	{
+		// maps negative chunks correctly
+		return (coord >= 0) ? (coord / CHUNK_WIDTH) : ((coord - CHUNK_WIDTH + 1) / CHUNK_WIDTH);
+	}
+
+	enum class Direction
+	{
+		EAST, // +X
+		WEST, // -X
+		UP, // +Y
+		DOWN, // -Y
+		SOUTH, // +Z
+		NORTH, // -Z
+	};
+
 	class WorldManager
 	{
 		public:
@@ -40,6 +56,8 @@ namespace Craft
 			
 			std::vector<uint8_t> GetChunkDataCompressed(int chunkX, int chunkZ);
 
+			// Calls on world generator to create a chunk, then saves to file
+			void CreateChunk(Chunk& chunk, int chunkX, int chunkZ);
 			void SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ);
 
 			bool LoadChunkFromFile(std::vector<uint8_t>& compressedData, int chunkX, int chunkZ);
@@ -50,6 +68,9 @@ namespace Craft
 			Chunk* GetChunkFromBuffer(int chunkX, int chunkZ) { return m_ChunkBuffer[{chunkX, chunkZ}].get(); }
 			void AddChunkToBuffer(int chunkX, int chunkZ);
 			void RemoveChunkFromBuffer(int chunkX, int chunkZ);
+
+			// Returns block type
+			const uint32_t GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec2 chunkPos, Direction direction);
 			
 			
 		private:

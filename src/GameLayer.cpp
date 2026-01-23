@@ -11,6 +11,7 @@
 #include "NetworkManager.h"
 #include "BlockLibrary.h"
 #include <limits.h>
+#include <cstdio>
 
 using namespace Magma;
 
@@ -32,12 +33,12 @@ void GameLayer::OnAttach()
 
 	// Shader setup (Shader.h & ShaderProgram.h)
 	std::string vertpath = "resources/shaders/basic.vert";
-	std::string fragpath = "resources/shaders/basic.frag";
+	std::string fragpath = "resources/shaders/block.frag";
 	std::string texturePath = "resources/textures/terrain.png";
 	#ifdef MAGMA_ROOT_DIR
 		vertpath = std::string(MAGMA_ROOT_DIR) + vertpath;
 		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
-		texturepath = std::string(MAGMA_ROOT_DIR) + texturePath;
+		texturePath = std::string(MAGMA_ROOT_DIR) + texturePath;
 	#endif
 
 	Shader vertexShader(vertpath, GL_VERTEX_SHADER);
@@ -81,6 +82,7 @@ void GameLayer::OnAttach()
 // ---- GAME UPDATE LOGIC ----
 void GameLayer::OnUpdate(float dt)
 {
+	if (dt > 0.1f) dt = 0.1f; // safaty
 	// ---- INPUT ----
 	// Basic input handling for Camera movement (Input.h)
 	// Should probably be handled by a manager class
@@ -169,9 +171,6 @@ void GameLayer::OnDetach()
 		delete model;
 	}
 	m_Models.clear();
-	delete m_ShaderProgram;
-	delete m_Camera;
-	delete m_Texture;
 }
 
 static const char* logoArt = R"(
@@ -241,7 +240,8 @@ void GameLayer::OnImGuiRender()
 			}
 			else
 			{
-				m_SeedBuf = Magma::Random::Int(INT_MIN, INT_MAX);
+				int randSeed = Magma::Random::Int(INT_MIN, INT_MAX);
+				std::snprintf(m_SeedBuf, sizeof(m_SeedBuf), "%d", randSeed);
 			}
 			if (m_AutoSeed || strlen(m_SeedBuf) > 0) // catch non number seeds
 			{
@@ -257,7 +257,17 @@ void GameLayer::OnImGuiRender()
 					{
 						worldName = std::string(m_WorldNameBuf);
 					}
-					m_NetworkManager->GetWorldManager()->CreateWorld(worldName, std::stoi(static_cast<std::string>(m_SeedBuf)));
+
+					int seed;
+					try 
+					{
+						seed = std::stoi(m_SeedBuf);
+					}
+					catch (std::invalid_argument)
+					{
+						seed = Magma::Random::Int(INT_MIN, INT_MAX);
+					}
+					m_NetworkManager->GetWorldManager()->CreateWorld(worldName, seed);
 					m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
 				}
 			}

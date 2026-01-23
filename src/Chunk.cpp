@@ -20,22 +20,45 @@ void Chunk::SetBlock(int x, int y, int z, BlockID block)
 	m_IsModified = true;
 }
 
-const uint32_t Chunk::GetBlockNeighbor(uint32_t id, Direction direction)
+const int32_t Chunk::GetLocalBlockNeighbor(uint32_t id, Direction direction)
 {
+	// turn into coords
+	int x = GetBlockX(id);
+	int y = GetBlockY(id);
+	int z = GetBlockZ(id);
+
+	// block offset
 	switch (direction)
 	{
 		case (Direction::EAST):
-			return id + 1;
+			x++;
+			break;
 		case (Direction::WEST):
-			return id - 1;
+			x--;
+			break;
 		case (Direction::UP):
-			return id + (CHUNK_WIDTH * CHUNK_WIDTH);
+			y++;
+			break;
 		case (Direction::DOWN):
-			return id - (CHUNK_WIDTH * CHUNK_WIDTH);
+			y--;
+			break;
 		case (Direction::SOUTH):
-			return id + (CHUNK_WIDTH);
+			z++;
+			break;
 		case (Direction::NORTH):
-			return id - (CHUNK_WIDTH);
+			z--;
+			break;
 	}
-	return id;
+
+	// check chunk bounds
+	if (
+		x < 0 || x >= CHUNK_WIDTH ||
+		y < 0 || y >= CHUNK_HEIGHT ||
+		z < 0 || z >= CHUNK_WIDTH)
+	{
+		return -1; // outside chunk
+	}
+
+	// else turn back into index 
+	return x + (z * CHUNK_WIDTH) + (y * CHUNK_WIDTH * CHUNK_WIDTH);
 }

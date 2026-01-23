@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <fstream>
+#include <filesystem>
 
 using namespace Craft;
 
@@ -20,8 +21,8 @@ void WorldManager::CreateWorld(const std::string& worldName, int seed)
 void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
 {
 	// Implementation for generating initial world data around player spawn
-	int spawnChunkX = static_cast<int>(spawnPoint.x) / CHUNK_WIDTH;
-	int spawnChunkZ = static_cast<int>(spawnPoint.z) / CHUNK_WIDTH;
+	int spawnChunkX = WorldToChunkPos(static_cast<int>(spawnPoint.x));
+	int spawnChunkZ = WorldToChunkPos(static_cast<int>(spawnPoint.z));
 
 	// Generate chunks around spawn point
 	for (int x = -2; x <= 2; x++)
@@ -29,10 +30,7 @@ void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
 		for (int z = -2; z <= 2; z++)
 		{
 			std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
-			m_WorldGenerator->GenerateChunk(*chunk, spawnChunkX + x, spawnChunkZ + z);
-
-			// Save or store the generated chunk as needed
-			SaveChunkToFile(*chunk, spawnChunkX + x, spawnChunkZ + z);
+			CreateChunk(*chunk, spawnChunkX + x, spawnChunkZ + z);
 		}
 	}
 }
@@ -90,10 +88,19 @@ std::vector<uint8_t> WorldManager::GetChunkDataCompressed(int chunkX, int chunkZ
 	return buffer;
 }
 
+void WorldManager::CreateChunk(Chunk& chunk, int chunkX, int chunkZ)
+{
+	m_WorldGenerator->GenerateChunk(chunk, chunkX, chunkZ);
+	SaveChunkToFile(chunk, chunkX, chunkZ);
+}
+
 // Each Chunk will be its own file until worlds become bigger
 void WorldManager::SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ)
 {
-	std::string filename = "saves/" + m_WorldName + "/chunk_" + std::to_string(chunkX) + "_" + std::to_string(chunkZ) + ".dat";
+
+	std::string folderPath = "saves/" + m_WorldName;
+	std::filesystem::create_directories(folderPath);
+	std::string filename = folderPath + "/chunk_" + std::to_string(chunkX) + "_" + std::to_string(chunkZ) + ".dat";
 
 	std::ofstream outfile(filename, std::ios::binary);
 	if (!outfile.is_open()) return;
@@ -138,6 +145,7 @@ bool WorldManager::LoadChunkFromFile(std::vector<uint8_t>& compressedData, int c
 	infile.read((char*)&dataSize, sizeof(uint32_t));
 
 	// Read Compressed Data
+	compressedData.resize(dataSize);
 	infile.read((char*)compressedData.data(), dataSize);
 	infile.close();
 
@@ -163,7 +171,8 @@ void WorldManager::AddChunkToBuffer(int chunkX, int chunkZ)
 	if (!LoadChunkFromFileDecompressed(*chunk, chunkX, chunkZ))
 	{
 		// if it fails, generate a new chunk
-		m_WorldGenerator->GenerateChunk(*chunk, chunkX, chunkZ);
+		// first saves to file, then saves to buffer
+		CreateChunk(*chunk, chunkX, chunkZ);
 	}
 
 	m_ChunkBuffer[{chunkX, chunkZ}] = std::move(chunk);
@@ -175,4 +184,38 @@ void WorldManager::RemoveChunkFromBuffer(int chunkX, int chunkZ)
 	if (!HasChunkInBuffer(chunkX, chunkZ)) return;
 
 	m_ChunkBuffer.erase({ chunkX, chunkZ });
+}
+
+const uint32_t WorldManager::GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec2 chunkPos, Direction direction)
+{
+	// First check if neighbor is within chunk
+	int32_t blockNeighbor = chunk->GetLocalBlockNeighbor(id, direction);
+	if (blockNeighbor > -1) return chunk->blocks[blockNeighbor];
+
+	// if out of bounds, get adjacent chunk
+	// not handling up and down
+	glm::ivec3 localBlockCoords = chunk->GetBlockXYZ(id);
+	glm::ivec2 adjacentChunkPos = chunkPos;
+
+	int newLocalX = localBlockCoords.x;
+	int newLocalZ = localBlockCoords.z;
+	switch (direction)
+	{
+		case (Direction::EAST):
+			adjacentChunkPos.x++;
+			break;
+		case (Direction::WEST):
+			adjacentChunkPos.x--;
+			break;
+		case (Direction::SOUTH):
+			adjacentChunkPos.y++;
+			break;
+		case (Direction::NORTH):
+			adjacentChunkPos.y--;
+			break;
+	}
+
+
+
+
 }
