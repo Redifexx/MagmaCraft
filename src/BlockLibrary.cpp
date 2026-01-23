@@ -6,6 +6,7 @@ std::vector<BlockData> BlockLibrary::blockTypes;
 const float BlockLibrary::ATLAS_SIZE = 256.0f;
 const float BlockLibrary::TILE_SIZE = 16.0f;
 const int BlockLibrary::TILES_PER_ROW = 16;
+const float BlockLibrary::PADDING = 0.0005f; // added padding until i fix the texture bleeding
 float BlockLibrary::m_UVTileScale = 1.0f / (float)TILES_PER_ROW;
 
 void BlockLibrary::Initialize()
@@ -21,7 +22,7 @@ void BlockLibrary::Initialize()
 	// ID 3: Dirt
 	blockTypes[3] = { "Dirt", false, false, 2, 2, 2, 2, 2, 2 };
 	// ID 4: Grass
-	blockTypes[4] = { "Grass", false, false, 0, 0, 0, 0, 0, 0 };
+	blockTypes[4] = { "Grass", false, false, 0, 3, 3, 3, 3, 2 };
 	// ID 5: Sand
 	blockTypes[5] = { "Sand", false, true, 18, 18, 18, 18, 18, 18 };
 	// ID 6: Gravel

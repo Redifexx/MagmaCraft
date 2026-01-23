@@ -186,6 +186,17 @@ void WorldManager::RemoveChunkFromBuffer(int chunkX, int chunkZ)
 	m_ChunkBuffer.erase({ chunkX, chunkZ });
 }
 
+void WorldManager::AddChunkDataToBuffer(std::unique_ptr<Chunk> chunk, int chunkX, int chunkZ)
+{
+	// overwrite
+	if (HasChunkInBuffer(chunkX, chunkZ))
+	{
+		m_ChunkBuffer.erase({ chunkX, chunkZ });
+	}
+
+    m_ChunkBuffer[{ chunkX, chunkZ }] = std::move(chunk);
+}
+
 const uint32_t WorldManager::GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec2 chunkPos, Direction direction)
 {
 	// First check if neighbor is within chunk
@@ -203,19 +214,28 @@ const uint32_t WorldManager::GetBlockNeighborData(uint32_t id, Chunk* chunk, glm
 	{
 		case (Direction::EAST):
 			adjacentChunkPos.x++;
+			newLocalX = 0; // 15 -> 0
 			break;
 		case (Direction::WEST):
 			adjacentChunkPos.x--;
+			newLocalX = CHUNK_WIDTH - 1; // 0 <- 15
 			break;
 		case (Direction::SOUTH):
 			adjacentChunkPos.y++;
+			newLocalZ = 0;
 			break;
 		case (Direction::NORTH):
 			adjacentChunkPos.y--;
+			newLocalZ = CHUNK_WIDTH - 1;
 			break;
+		default:
+			return 0;
 	}
 
+	// may cause a problem as client
+	if (!HasChunkInBuffer(adjacentChunkPos.x, adjacentChunkPos.y)) return 0;
 
-
-
+	// expensive, possible optimization by caching these chunks
+	Chunk* adjacentChunk = GetChunkFromBuffer(adjacentChunkPos.x, adjacentChunkPos.y);
+	return adjacentChunk->GetBlockData(newLocalX, localBlockCoords.y, newLocalZ);
 }

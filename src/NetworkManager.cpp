@@ -113,7 +113,7 @@ void NetworkManager::Update(float dt)
 				std::cout << "Client Count : [" << m_Server->GetClientCount() << "/" << m_Server->GetMaxClients() << "]" << std::endl;
 				break;
 			case ENET_EVENT_TYPE_RECEIVE:
-				std::cout << (char*)event.packet->data << std::endl;
+				//std::cout << (char*)event.packet->data << std::endl;
 				HandlePacket(event.packet, event.peer);
 				enet_packet_destroy(event.packet);
 				break;
@@ -136,7 +136,7 @@ void NetworkManager::Update(float dt)
 					std::cout << "Connected to server." << std::endl;
 					break;
 				case ENET_EVENT_TYPE_RECEIVE:
-					std::cout << (char*)event.packet->data << std::endl;
+					//std::cout << (char*)event.packet->data << std::endl;
 					HandlePacket(event.packet, event.peer);
 					enet_packet_destroy(event.packet);
 					break;
@@ -197,18 +197,34 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			std::memcpy(&chunkZ, &data[5], sizeof(int));
 			// may have to consider endianness here
 
-			std::cout << "Received CHUNK_REQUEST for chunk (" << chunkX << ", " << chunkZ << ")." << std::endl;
-			
+			//std::cout << "Received CHUNK_REQUEST for chunk (" << chunkX << ", " << chunkZ << ")." << std::endl;
+
 			SendChunkData(peer, chunkX, chunkZ);
 			break;
 		}
 
 		case static_cast<uint8_t>(PacketType::CHUNK_DATA):
+		{
 			std::cout << "Received CHUNK_DATA packet." << std::endl;
 
+			if (length < 10) break; // not enough data (type, int, int, data)
 
+			int chunkX = 0;
+			int chunkZ = 0;
+			size_t dataSize = length;
+
+			std::memcpy(&chunkX, &data[1], sizeof(int));
+			dataSize -= sizeof(int);
+			std::memcpy(&chunkZ, &data[5], sizeof(int));
+			dataSize -= sizeof(int);
+			std::vector<uint8_t> chunkData(data + 9, data + length);
+
+			std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
+			m_WorldManager->DecompressChunkData(chunkData, *chunk);
+			m_WorldManager->AddChunkDataToBuffer(std::move(chunk), chunkX, chunkZ);
 			// Handle chunk data logic
 			break;
+		}
 
 		case static_cast<uint8_t>(PacketType::BLOCK_UPDATE):
 			std::cout << "Received BLOCK_UPDATE packet." << std::endl;

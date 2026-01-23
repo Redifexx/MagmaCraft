@@ -2,7 +2,7 @@
 
 using namespace Craft;
 
-BlockID Chunk::GetBlock(int x, int y, int z) const
+BlockID Chunk::GetBlockData(int x, int y, int z) const
 {
 	if (x < 0 || x >= CHUNK_WIDTH || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_WIDTH)
 		return 0; // Air block for out of bounds

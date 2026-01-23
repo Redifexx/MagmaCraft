@@ -58,6 +58,7 @@ void GameLayer::OnAttach()
 	// Camera setup (Camera.h)
 	m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 64.0f, 0.0f));
 	m_Camera->SetPerspective(true);
+	m_Camera->SetFarPlane(200.f);
 
 	// Initial shader uniforms setup
 	m_ShaderProgram->Use();
@@ -72,7 +73,9 @@ void GameLayer::OnAttach()
 	Craft::BlockLibrary::Initialize();
 
 	// Single Texture setup
-	m_Texture = std::make_unique<Texture>(texturePath.c_str(), true);
+	m_Texture = std::make_unique<Texture>(texturePath.c_str(), false);
+	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
@@ -296,6 +299,7 @@ void GameLayer::OnImGuiRender()
 			break;
 		case (MenuState::JOIN_GAME):
 			// Joining options would go here
+			m_NetworkManager->SetNetworkRole(Craft::NetworkRole::CLIENT);
 			ImGui::Checkbox("Localhost", &m_AutoConnect);
 			if (!m_AutoConnect)
 			{
@@ -307,7 +311,7 @@ void GameLayer::OnImGuiRender()
 				strcpy_s(m_ServerAddressBuf, "localhost");
 				strcpy_s(m_ServerportBuf, "1233");
 			}
-			if ((m_AutoConnect || (IM_ARRAYSIZE(m_ServerAddressBuf) > 0) && (IM_ARRAYSIZE(m_ServerportBuf) > 0)) && m_NetworkManager->GetClient()->GetConnectionState() != ConnectionState::CONNECTING)
+			if ((m_AutoConnect || (strlen(m_ServerAddressBuf) > 0) && (strlen(m_ServerportBuf) > 0)))
 			{
 				if (ImGui::Button("Connect"))
 				{

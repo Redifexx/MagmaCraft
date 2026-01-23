@@ -33,6 +33,7 @@ namespace Craft
 			static const float ATLAS_SIZE;
 			static const float TILE_SIZE;
 			static const int TILES_PER_ROW;
+			static const float PADDING;
 			static float m_UVTileScale;
 			static const glm::vec2 GetTexCoords(uint8_t texID);
 	};

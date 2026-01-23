@@ -41,14 +41,14 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)
 				}
 				else if (y == height)
 				{
-					currentBlock = 3; // Dirt
+					currentBlock = 4; // Dirt
 				}
 
-				chunk.SetBlock(x, y, z, 0); // set to air for DEBUG
+				chunk.SetBlock(x, y, z, currentBlock); // set to air for DEBUG
 			}
 		}
 	}
 	
-	chunk.SetBlock(0, 64, 0, 1);
-	chunk.SetBlock(15, 64, 15, 1);
+	//chunk.SetBlock(0, 64, 0, 1);
+	//chunk.SetBlock(15, 64, 15, 1);
 }

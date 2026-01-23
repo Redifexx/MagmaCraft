@@ -29,7 +29,7 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 	BlockID* blocks = chunk->blocks;
 	uint32_t indexOffset = 0;
 
-	std::cout << "---------" << chunkPos.x << " " << chunkPos.y << std::endl;
+	//std::cout << "---------" << chunkPos.x << " " << chunkPos.y << std::endl;
 
 	for (int i = 0; i < CHUNK_VOLUME; i++)
 	{
@@ -42,14 +42,16 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 			float x = (chunkPos.x * Craft::CHUNK_WIDTH) + chunk->GetBlockX(i);
 			float y = chunk->GetBlockY(i);
 			float z = (chunkPos.y * Craft::CHUNK_WIDTH) + chunk->GetBlockZ(i);
-			std::cout << x << " " << z << std::endl;
+			//std::cout << x << " " << z << std::endl;
 			glm::vec2 uv;
 
 			// index = x + (z * CHUNK_WIDTH) + (y * CHUNK_WIDTH * CHUNK_WIDTH);
 			// mesh class expects pos, normals, texcoords, tangents, and bitangents
 
 			// EAST FACE | EAST +X
-			if (Craft::BlockLibrary::GetBlockData(chunk->GetBlockNeighbor(i, Direction::EAST)).isTransparent)
+			if (Craft::BlockLibrary::GetBlockData(
+				m_WorldManager.lock()->GetBlockNeighborData(i, chunk, chunkPos, Direction::EAST)
+			).isTransparent)
 			{
 				Magma::Vertex v1, v2, v3, v4;
 				uv = BlockLibrary::GetTexCoords(curBlockData.textureEast);
@@ -98,7 +100,9 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 			}
 
 			// WEST FACE | WEST -X
-			if (Craft::BlockLibrary::GetBlockData(chunk->GetBlockNeighbor(i, Direction::WEST)).isTransparent)
+			if (Craft::BlockLibrary::GetBlockData(
+				m_WorldManager.lock()->GetBlockNeighborData(i, chunk, chunkPos, Direction::WEST)
+			).isTransparent)
 			{
 				Magma::Vertex v1, v2, v3, v4;
 				uv = BlockLibrary::GetTexCoords(curBlockData.textureWest);
@@ -148,7 +152,9 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 
 			
 			// TOP FACE | UP +Y
-			if (Craft::BlockLibrary::GetBlockData(chunk->GetBlockNeighbor(i, Direction::UP)).isTransparent)
+			if (Craft::BlockLibrary::GetBlockData(
+				m_WorldManager.lock()->GetBlockNeighborData(i, chunk, chunkPos, Direction::UP)
+			).isTransparent)
 			{
 				Magma::Vertex v1, v2, v3, v4;
 				uv = BlockLibrary::GetTexCoords(curBlockData.textureTop);
@@ -197,7 +203,9 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 			}
 
 			// BOTTOM FACE | DOWN -Y
-			if (Craft::BlockLibrary::GetBlockData(chunk->GetBlockNeighbor(i, Direction::DOWN)).isTransparent)
+			if (Craft::BlockLibrary::GetBlockData(
+				m_WorldManager.lock()->GetBlockNeighborData(i, chunk, chunkPos, Direction::DOWN)
+			).isTransparent)
 			{
 				Magma::Vertex v1, v2, v3, v4;
 				uv = BlockLibrary::GetTexCoords(curBlockData.textureBottom);
@@ -246,7 +254,9 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 			}
 
 			// SOUTH FACE | SOUTH +Z
-			if (Craft::BlockLibrary::GetBlockData(chunk->GetBlockNeighbor(i, Direction::SOUTH)).isTransparent)
+			if (Craft::BlockLibrary::GetBlockData(
+				m_WorldManager.lock()->GetBlockNeighborData(i, chunk, chunkPos, Direction::SOUTH)
+			).isTransparent)
 			{
 				Magma::Vertex v1, v2, v3, v4;
 				uv = BlockLibrary::GetTexCoords(curBlockData.textureSouth);
@@ -295,7 +305,9 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 			}
 
 			// NORTH FACE | NORTH -Z
-			if (Craft::BlockLibrary::GetBlockData(chunk->GetBlockNeighbor(i, Direction::NORTH)).isTransparent)
+			if (Craft::BlockLibrary::GetBlockData(
+				m_WorldManager.lock()->GetBlockNeighborData(i, chunk, chunkPos, Direction::NORTH)
+			).isTransparent)
 			{
 				Magma::Vertex v1, v2, v3, v4;
 				uv = BlockLibrary::GetTexCoords(curBlockData.textureNorth);

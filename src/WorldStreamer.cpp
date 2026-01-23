@@ -12,15 +12,20 @@ WorldStreamer::WorldStreamer(std::shared_ptr<NetworkManager> networkManager)
 
 void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 {
-
+	// set own and world renderer's world manager
     if (m_WorldManager.expired())
     {
         auto networkManager = GetNetworkManager();
         if (networkManager->GetNetworkRole() != NetworkRole::NONE)
         {
 			m_WorldManager = networkManager->GetWorldManager();
+			if (m_WorldRenderer->m_WorldManager.expired())
+			{
+				m_WorldRenderer->m_WorldManager = m_WorldManager;
+			}
         }
     }
+
 
 	// Current Chunks
 	int chunkX, chunkZ;

@@ -28,16 +28,6 @@ namespace Craft
 		return (coord >= 0) ? (coord / CHUNK_WIDTH) : ((coord - CHUNK_WIDTH + 1) / CHUNK_WIDTH);
 	}
 
-	enum class Direction
-	{
-		EAST, // +X
-		WEST, // -X
-		UP, // +Y
-		DOWN, // -Y
-		SOUTH, // +Z
-		NORTH, // -Z
-	};
-
 	class WorldManager
 	{
 		public:
@@ -68,6 +58,9 @@ namespace Craft
 			Chunk* GetChunkFromBuffer(int chunkX, int chunkZ) { return m_ChunkBuffer[{chunkX, chunkZ}].get(); }
 			void AddChunkToBuffer(int chunkX, int chunkZ);
 			void RemoveChunkFromBuffer(int chunkX, int chunkZ);
+
+			// data packets
+			void AddChunkDataToBuffer(std::unique_ptr<Chunk> chunk, int chunkX, int chunkZ);
 
 			// Returns block type
 			const uint32_t GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec2 chunkPos, Direction direction);

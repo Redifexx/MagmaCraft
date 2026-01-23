@@ -9,6 +9,7 @@
 #include <memory>
 #include <map>
 #include <cstdint>
+#include "WorldManager.h"
 
 // Receives chunks from server
 // Caches a number of chunks around the player
@@ -27,6 +28,8 @@ namespace Craft
 
 			void DrawWorld();
 
+			// temporary 
+			std::weak_ptr<WorldManager> m_WorldManager;
 		private:
 			std::unordered_map<glm::ivec2, std::unique_ptr<Magma::Mesh>> m_DrawPool;
 	};

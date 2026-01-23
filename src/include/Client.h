@@ -36,7 +36,7 @@ namespace Magma
 		private:
 			ENetHost* m_Client;
 			ENetPeer* m_Server;
-			ENetAddress m_ServerHint;
+			ENetAddress m_ServerHint = { 0 };
 			ConnectionState m_ConnectionState = ConnectionState::DISCONNECTED;
 	};
 }

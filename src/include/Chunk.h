@@ -29,7 +29,7 @@ namespace Craft
 			BlockID blocks[CHUNK_VOLUME];
 			bool m_IsModified = false;
 
-			BlockID GetBlock(int x, int y, int z) const;
+			BlockID GetBlockData(int x, int y, int z) const;
 			void SetBlock(int x, int y, int z, BlockID block);
 
 			const int GetBlockX(uint32_t id) { return id % CHUNK_WIDTH; }
