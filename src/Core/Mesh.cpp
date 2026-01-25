@@ -1,4 +1,4 @@
-#include "Mesh.h"
+#include "Core/Mesh.h"
 
 using namespace Magma;
 

@@ -1,4 +1,4 @@
-#include "Texture.h"
+#include "Core/Texture.h"
 
 using namespace Magma;
 

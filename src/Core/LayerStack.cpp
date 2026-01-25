@@ -1,4 +1,4 @@
-#include "LayerStack.h"
+#include "Core/LayerStack.h"
 
 using namespace Magma;
 

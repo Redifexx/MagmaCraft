@@ -1,4 +1,4 @@
-#include "ImGuiLayer.h"
+#include "Core/ImGuiLayer.h"
 
 using namespace Magma;
 

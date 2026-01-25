@@ -9,13 +9,13 @@
 #include <iostream>
 #include <filesystem>
 
-#include "Window.h"
-#include "LayerStack.h"
-#include "ImGuiLayer.h"
-#include "GameLayer.h"
-#include "Camera.h"
-#include "Input.h"
-#include <AudioEngine.h>
+#include "Core/Window.h"
+#include "Core/LayerStack.h"
+#include "Core/ImGuiLayer.h"
+#include "Core/GameLayer.h"
+#include "Core/Camera.h"
+#include "Core/Input.h"
+#include <Core/AudioEngine.h>
 
 int main(int argc, char* argv[])
 {

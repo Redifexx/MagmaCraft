@@ -5,7 +5,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 #include "Chunk.h"
-#include "Mesh.h"
+#include "Core/Mesh.h"
 #include <memory>
 #include <map>
 #include <cstdint>

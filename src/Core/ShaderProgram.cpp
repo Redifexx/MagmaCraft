@@ -1,4 +1,4 @@
-#include "ShaderProgram.h"
+#include "Core/ShaderProgram.h"
 
 using namespace Magma;
 

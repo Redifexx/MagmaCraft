@@ -1,4 +1,4 @@
-#include "Window.h"
+#include "Core/Window.h"
 
 using namespace Magma;
 

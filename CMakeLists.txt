@@ -31,7 +31,7 @@ add_library(imgui STATIC
     "${CMAKE_SOURCE_DIR}/external/imgui/imgui_demo.cpp"
     "${CMAKE_SOURCE_DIR}/external/imgui/backends/imgui_impl_sdl3.cpp"
     "${CMAKE_SOURCE_DIR}/external/imgui/backends/imgui_impl_opengl3.cpp"
- "src/include/Texture.h")
+)
 
 target_include_directories(imgui PUBLIC
     "${CMAKE_SOURCE_DIR}/external/imgui"
@@ -51,9 +51,9 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(enet)
 
 # Executable
-file(GLOB_RECURSE MAGMA_SOURCES "src/*.cpp")
-file(GLOB_RECURSE EXTERN_SOURCES "external/*.cpp")
-file(GLOB_RECURSE SHADER_SOURCES "resources/shaders/*.vert" "resources/shaders/*.frag")
+file(GLOB_RECURSE MAGMA_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE EXTERN_SOURCES CONFIGURE_DEPENDS "external/*.cpp")
+file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS "resources/shaders/*.vert" "resources/shaders/*.frag")
 add_executable(MagmaFramework
      ${MAGMA_SOURCES}
      ${EXTERN_SOURCES}

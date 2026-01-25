@@ -1,12 +1,12 @@
 #include <enet/enet.h>
-#include "GameLayer.h"
+#include "Core/GameLayer.h"
 
-#include "Model.h"
-#include "ShaderProgram.h"
-#include "Shader.h"
-#include "Texture.h"
+#include "Core/Model.h"
+#include "Core/ShaderProgram.h"
+#include "Core/Shader.h"
+#include "Core/Texture.h"
 #include <filesystem>
-#include <AudioEngine.h>
+#include <Core/AudioEngine.h>
 #include "WorldManager.h"
 #include "NetworkManager.h"
 #include "BlockLibrary.h"
