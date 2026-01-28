@@ -42,6 +42,7 @@ void GameLayer::OnAttach()
 	// create our entity world (world simulation / logic, NOT the world generation)
 	
 	m_EntityWorld = std::make_unique<Craft::EntityWorld>();
+	m_TransformSystem = std::make_unique<Craft::TransformSystem>();
 
 	// add player entity
 	uint32_t playerEntity = m_EntityWorld->AddEntity();
@@ -90,15 +91,11 @@ void GameLayer::OnAttach()
 		});
 
 
-
-
-
-
-
-	// Camera setup (Camera.h)
-	m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 64.0f, 0.0f));
+	// Camera setup (Camera.h
+	m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 64.0f, 0.0f)); // update with component
 	m_Camera->SetPerspective(true);
 	m_Camera->SetFarPlane(200.f);
+
 
 	// Model setup (Model.h)
 	// make model read raw vertices
@@ -213,6 +210,9 @@ void GameLayer::OnUpdate(float dt)
 	// Audio Listener Update
 	Magma::AudioEngine::UpdateListener(m_Camera->GetPosition(), m_Camera->GetFront(), m_Camera->GetUp());
 
+	// --- TRANSFORMS UPDATE ----
+	m_TransformSystem->Update(*m_EntityWorld);
+
 	// ---- RENDERING ----
 	// Shader uniforms update and model drawing
 	m_ShaderProgram->Use();
@@ -220,6 +220,7 @@ void GameLayer::OnUpdate(float dt)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
 	m_ShaderProgram->SetUniform("u_Texture", 0);
+
 
 	m_WorldStreamer->GetWorldRenderer()->DrawWorld();
 

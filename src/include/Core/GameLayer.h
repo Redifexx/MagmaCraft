@@ -22,6 +22,7 @@
 #include <random>
 #include "imfilebrowser.h"
 #include <Datatypes/EntityWorld.h>
+#include <Datatypes/TransformSystem.h>
 
 namespace Magma
 {
@@ -108,5 +109,6 @@ namespace Magma
 
 			// Entity World
 			std::unique_ptr<Craft::EntityWorld> m_EntityWorld = nullptr;
+			std::unique_ptr<Craft::TransformSystem> m_TransformSystem = nullptr;
 	};
 }
