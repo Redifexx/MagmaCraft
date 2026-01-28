@@ -4,18 +4,18 @@
 
 #include <Core/Camera.h>
 #include <Datatypes/EntityWorld.h>
+#include <memory>
 
 namespace Craft
 {
 	class CameraSystem
 	{
-		// get all entites with transform and relationship components
-		SparseSet<TransformComponent>* transformPool = world.GetComponentPool<TransformComponent>();
-		SparseSet<CameraComponent>* cameraPool = world.GetComponentPool<CameraComponent>();
-
-		if (!transformPool || !cameraPool) return;
+		CameraSystem();
 
 		public:
 			void Update(EntityWorld& world);
+
+		private:
+			std::unique_ptr<Magma::Camera> m_Camera = nullptr;
 	};
 }

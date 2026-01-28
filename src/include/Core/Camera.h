@@ -16,11 +16,14 @@ namespace Magma
 				float pitch = 0.0f
 			);
 
-			void UpdateCameraVectors();
+			// when updating matrices directly, i should eventualy recalculate the internal pos
+			void UpdateEulerOrientation();
+			void UpdateViewMatrix();
+			void UpdateProjectionMatrix();
 
-			glm::mat4 GetViewMatrix() const;
-			glm::mat4 GetProjectionMatrix() const;
-			glm::mat4 GetViewProjectionMatrix() const;
+			glm::mat4 GetViewMatrix() const { return m_ViewMatrix; }
+			glm::mat4 GetProjectionMatrix() const { return m_ProjectionMatrix; }
+			glm::mat4 GetViewProjectionMatrix() const { return m_ViewMatrix * m_ProjectionMatrix; }
 
 			float GetFOV() const { return m_FOV; }
 			float GetAspectRatio() const { return m_AspectRatio; }
@@ -48,6 +51,9 @@ namespace Magma
 
 			void SetPosition(const glm::vec3& position) { m_Position = position; }
 			void SetPerspective(bool isPerspective) { m_IsPerspective = isPerspective; }
+			void SetOrientation(const glm::vec3& front, const glm::vec3& up);
+			void SetViewMatrix(const glm::mat4& viewMatrix) { m_ViewMatrix = viewMatrix }
+			void SetProjectionMatrix(const glm::mat4& projectionMatrix) { m_ProjectionMatrix = projectionMatrix }
 
 		private:
 			float m_FOV;
@@ -64,6 +70,9 @@ namespace Magma
 			glm::vec3 m_Up;
 			glm::vec3 m_Right;
 			glm::vec3 m_WorldUp;
+
+			glm::mat4 m_ViewMatrix;
+			glm::mat4 m_ProjectionMatrix;
 
 			bool m_IsPerspective;
 	};

@@ -13,10 +13,10 @@ Camera::Camera(
 	m_IsPerspective(true)
 {
 
-	UpdateCameraVectors();
+	UpdateEulerOrientation();
 }
 
-void Camera::UpdateCameraVectors()
+void Camera::UpdateEulerOrientation()
 {
 	m_Front.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
 	m_Front.y = sin(glm::radians(m_Pitch));
@@ -26,13 +26,15 @@ void Camera::UpdateCameraVectors()
 	m_Up = glm::normalize(glm::cross(m_Right, m_Front));
 }
 
-glm::mat4 Camera::GetViewMatrix() const
+// Updates it with m_Position, m_Front, m_Up
+void Camera::UpdateViewMatrix()
 {
 	return glm::lookAt(m_Position, m_Position + m_Front, m_Up);
 }
 
-glm::mat4 Camera::GetProjectionMatrix() const
+void Camera::UpdateProjectionMatrix()
 {
+
 	if (m_IsPerspective)
 	{
 		return glm::perspective(glm::radians(m_FOV), m_AspectRatio, m_NearPlane, m_FarPlane);
@@ -45,7 +47,9 @@ glm::mat4 Camera::GetProjectionMatrix() const
 	}
 }
 
-glm::mat4 Camera::GetViewProjectionMatrix() const
+void Camera::SetOrientation(const glm::vec3& front, const glm::vec3& up)
 {
-	return GetProjectionMatrix() * GetViewMatrix();
+	m_Front = front;
+	m_Right = glm::normalize(glm::cross(m_Front, m_WorldUp));
+	m_Up = up;
 }
