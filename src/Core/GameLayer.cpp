@@ -12,6 +12,12 @@
 #include "BlockLibrary.h"
 #include <limits.h>
 #include <cstdio>
+#include <Datatypes/EntityWorld.h>
+#include <Datatypes/Components/TransformComponent.h>
+#include <Datatypes/Components/RelationshipComponent.h>
+#include <Datatypes/Components/ModelComponent.h>
+#include <Datatypes/Components/CameraComponent.h>
+#include <Datatypes/Components/HealthComponent.h>
 
 using namespace Magma;
 
@@ -29,7 +35,70 @@ void GameLayer::OnAttach()
 	m_FileBrowser.SetTitle("World Browser");
 	m_FileBrowser.SetTypeFilters({ ".mcwd" });
 
+
 	// ---- GAME INITIALIZATION ----
+
+	// ECS SETUP
+	// create our entity world (world simulation / logic, NOT the world generation)
+	
+	m_EntityWorld = std::make_unique<Craft::EntityWorld>();
+
+	// add player entity
+	uint32_t playerEntity = m_EntityWorld->AddEntity();
+
+	// add components to player entity
+	m_EntityWorld->AddComponent<Craft::TransformComponent>(playerEntity,
+		{
+			glm::vec3(0.0f, 64.0f, 0.0f), // position
+			glm::quat(1.0f, 0.0f, 0.0f, 0.0f), // rotation quat
+			glm::vec3(1.0f, 1.0f, 1.0f) // scale
+		});
+
+	m_EntityWorld->AddComponent<Craft::HealthComponent>(playerEntity, { 100.0f, 100.0f });
+
+	std::unique_ptr<Magma::Model> playerModelTemp = std::make_unique<Magma::Model>("resources/player.fbx");
+	m_EntityWorld->AddComponent<Craft::ModelComponent>(playerEntity, { std::move(playerModelTemp) });
+
+	// add camera entity
+
+	uint32_t cameraEntity = m_EntityWorld->AddEntity();
+	m_EntityWorld->AddComponent<Craft::TransformComponent>(cameraEntity,
+		{
+			glm::vec3(0.0f, 1.0f, 0.0f), // position
+			glm::quat(1.0f, 0.0f, 0.0f, 0.0f), // rotation quat
+			glm::vec3(1.0f, 1.0f, 1.0f) // scale
+		});
+
+	m_EntityWorld->AddComponent<Craft::CameraComponent>(cameraEntity, {});
+
+	// make camera a child of player
+
+	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(playerEntity,
+		{
+			Craft::NULL_ENTITY,
+			cameraEntity,
+			Craft::NULL_ENTITY,
+			Craft::NULL_ENTITY
+		});
+
+	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(cameraEntity,
+		{
+			playerEntity,
+			Craft::NULL_ENTITY,
+			Craft::NULL_ENTITY,
+			Craft::NULL_ENTITY
+		});
+
+
+
+
+
+
+
+	// Camera setup (Camera.h)
+	m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 64.0f, 0.0f));
+	m_Camera->SetPerspective(true);
+	m_Camera->SetFarPlane(200.f);
 
 	// Model setup (Model.h)
 	// make model read raw vertices
@@ -58,11 +127,6 @@ void GameLayer::OnAttach()
 		std::cerr << "Failed to link shader program!" << std::endl;
 		return;
 	}
-
-	// Camera setup (Camera.h)
-	m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 64.0f, 0.0f));
-	m_Camera->SetPerspective(true);
-	m_Camera->SetFarPlane(200.f);
 
 	// Initial shader uniforms setup
 	m_ShaderProgram->Use();

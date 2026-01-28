@@ -21,6 +21,7 @@
 #include <memory>
 #include <random>
 #include "imfilebrowser.h"
+#include <Datatypes/EntityWorld.h>
 
 namespace Magma
 {
@@ -104,5 +105,8 @@ namespace Magma
 			std::unique_ptr<Camera> m_Camera = nullptr;
 			std::unique_ptr<Texture> m_Texture = nullptr;
 			SDL_Window* m_Window; // make shared
+
+			// Entity World
+			std::unique_ptr<Craft::EntityWorld> m_EntityWorld = nullptr;
 	};
 }
