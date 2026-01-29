@@ -5,18 +5,4 @@
 
 using namespace Magma;
 
-
-void Camera::UpdateProjectionMatrix()
-{
-
-	if (m_IsPerspective)
-	{
-		m_ProjectionMatrix = glm::perspective(glm::radians(m_FOV), m_AspectRatio, m_NearPlane, m_FarPlane);
-	}
-	else
-	{
-		float orthoHeight = m_OrthoSize;
-		float orthoWidth = orthoHeight * m_AspectRatio;
-		m_ProjectionMatrix = glm::ortho(-orthoWidth / 2.0f, orthoWidth / 2.0f, -orthoHeight / 2.0f, orthoHeight / 2.0f, m_NearPlane, m_FarPlane);
-	}
-}
+// moved everything into the ECS component, not sure if this class is needed anymore

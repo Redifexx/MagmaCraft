@@ -10,10 +10,6 @@ namespace Magma
 	class Camera
 	{
 		public:
-			Camera() { UpdateProjectionMatrix(); }
-
-			void UpdateProjectionMatrix();
-
 			const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 			const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
 			glm::mat4 GetViewProjectionMatrix() const { return m_ViewMatrix * m_ProjectionMatrix; }
@@ -25,12 +21,12 @@ namespace Magma
 			float GetOrthoSize() const { return m_OrthoSize; }
 			bool GetPerspective() const { return m_IsPerspective; }
 
-			void SetFOV(float fov) { m_FOV = fov; UpdateProjectionMatrix(); }
-			void SetAspectRatio(float aspectRatio) { m_AspectRatio = aspectRatio; UpdateProjectionMatrix(); }
-			void SetNearPlane(float nearPlane) { m_NearPlane = nearPlane; UpdateProjectionMatrix(); }
-			void SetFarPlane(float farPlane) { m_FarPlane = farPlane; UpdateProjectionMatrix(); }
-			void SetOrthoSize(float orthoSize) { m_OrthoSize = orthoSize; UpdateProjectionMatrix(); }
-			void SetPerspective(bool isPerspective) { m_IsPerspective = isPerspective; UpdateProjectionMatrix(); }
+			void SetFOV(float fov) { m_FOV = fov; }
+			void SetAspectRatio(float aspectRatio) { m_AspectRatio = aspectRatio; }
+			void SetNearPlane(float nearPlane) { m_NearPlane = nearPlane; }
+			void SetFarPlane(float farPlane) { m_FarPlane = farPlane; }
+			void SetOrthoSize(float orthoSize) { m_OrthoSize = orthoSize; }
+			void SetPerspective(bool isPerspective) { m_IsPerspective = isPerspective; }
 
 			void SetViewMatrix(const glm::mat4& viewMatrix) { m_ViewMatrix = viewMatrix; }
 			void SetProjectionMatrix(const glm::mat4& projectionMatrix) { m_ProjectionMatrix = projectionMatrix; }

@@ -41,8 +41,12 @@ void GameLayer::OnAttach()
 	// ECS SETUP
 	// create our entity world (world simulation / logic, NOT the world generation)
 	
+	// setup systems
 	m_EntityWorld = std::make_unique<Craft::EntityWorld>();
 	m_TransformSystem = std::make_unique<Craft::TransformSystem>();
+	m_RenderSystem = std::make_unique<Craft::RenderSystem>();
+	m_CameraSystem = std::make_unique<Craft::CameraSystem>();
+
 
 	// add player entity
 	uint32_t playerEntity = m_EntityWorld->AddEntity();
@@ -71,9 +75,9 @@ void GameLayer::OnAttach()
 		});
 
 	m_EntityWorld->AddComponent<Craft::CameraComponent>(cameraEntity, {});
+	m_EntityWorld->GetComponent<Craft::CameraComponent>(cameraEntity).isPrimary = true; // set primary camera
 
 	// make camera a child of player
-
 	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(playerEntity,
 		{
 			Craft::NULL_ENTITY,
@@ -90,9 +94,6 @@ void GameLayer::OnAttach()
 			Craft::NULL_ENTITY
 		});
 
-
-	// Camera setup (Camera System)
-	m_CameraSystem = std::make_unique<Craft::CameraSystem>();
 
 	// Shader setup (Shader.h & ShaderProgram.h)
 	std::string vertpath = "resources/shaders/basic.vert";
