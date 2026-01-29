@@ -19,7 +19,7 @@ namespace Craft
 		float orthoSize = 10.0f;
 		float aspectRatio = 16.0f/9.0f;
 
-		bool isPrimary = true;
+		bool isPrimary = false;
 
 		glm::mat4 projectionMatrix = glm::mat4(1.0f);
 		glm::mat4 viewMatrix = glm::mat4(1.0f);

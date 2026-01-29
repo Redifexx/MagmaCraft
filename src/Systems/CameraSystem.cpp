@@ -1,15 +1,11 @@
 #include <Systems/CameraSystem.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 using namespace Craft;
 
-CameraSystem::CameraSystem()
-{
-	m_Camera = std::make_unique<Magma::Camera>();
-}
-
 void CameraSystem::Update(EntityWorld& world)
 {
-	// get all entites with transform and relationship components
+	// get all entites with transform and camera components (shuold be 1)
 	SparseSet<TransformComponent>* transformPool = world.GetComponentPool<TransformComponent>();
 	SparseSet<CameraComponent>* cameraPool = world.GetComponentPool<CameraComponent>();
 
@@ -25,15 +21,28 @@ void CameraSystem::Update(EntityWorld& world)
 			auto& transRef = transformPool->Get(entity);
 			auto& camRef = cameraPool->Get(entity);
 
-			const glm::mat4& worldMatrix = transRef.worldMatrix;
+			camRef.viewMatrix = glm::inverse(transRef.worldMatrix);
 
-			// extract camera pos from matrix
-			glm::vec3 worldPos = worldMatrix[3];
-			glm::vec3 worldFront = -glm::vec3(worldMatrix[2]);
-			glm::vec3 worldUp = glm::vec3(worldMatrix[1]);
-
-			m_Camera->SetPosition(worldPos);
-			m_Camera->SetOrientation(worldFront, worldUp);
+			if (camRef.cameraType == CameraType::PERSPECTIVE)
+			{
+				camRef.projectionMatrix = glm::perspective(
+					glm::radians(camRef.FOV),
+					camRef.aspectRatio,
+					camRef.nearPlane,
+					camRef.farPlane
+				);
+			}
+			else
+			{
+				float orthoHeight = camRef.orthoSize;
+				float orthoWidth = orthoHeight * camRef.aspectRatio;
+				camRef.projectionMatrix = glm::ortho(
+					-orthoWidth / 2.0f, orthoWidth / 2.0f,
+					-orthoHeight / 2.0f, orthoHeight / 2.0f,
+					camRef.nearPlane,
+					camRef.farPlane
+				);
+			}
 		}
 	}
 }

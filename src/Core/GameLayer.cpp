@@ -91,15 +91,8 @@ void GameLayer::OnAttach()
 		});
 
 
-	// Camera setup (Camera.h
-	m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 64.0f, 0.0f)); // update with component
-	m_Camera->SetPerspective(true);
-	m_Camera->SetFarPlane(200.f);
-
-
-	// Model setup (Model.h)
-	// make model read raw vertices
-	m_ModelMatrix = glm::mat4(1.0f);
+	// Camera setup (Camera System)
+	m_CameraSystem = std::make_unique<Craft::CameraSystem>();
 
 	// Shader setup (Shader.h & ShaderProgram.h)
 	std::string vertpath = "resources/shaders/basic.vert";
@@ -115,7 +108,6 @@ void GameLayer::OnAttach()
 	Shader fragmentShader(fragpath, GL_FRAGMENT_SHADER);
 
 	m_ShaderProgram = std::make_unique<ShaderProgram>();
-
 
 	m_ShaderProgram->AttachShader(vertexShader);
 	m_ShaderProgram->AttachShader(fragmentShader);

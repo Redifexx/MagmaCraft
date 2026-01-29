@@ -5,17 +5,14 @@
 #include <Core/Camera.h>
 #include <Datatypes/EntityWorld.h>
 #include <memory>
+#include <glm/glm.hpp>
 
+// Updates all cameras in the world
 namespace Craft
 {
 	class CameraSystem
 	{
-		CameraSystem();
-
 		public:
 			void Update(EntityWorld& world);
-
-		private:
-			std::unique_ptr<Magma::Camera> m_Camera = nullptr;
 	};
 }
