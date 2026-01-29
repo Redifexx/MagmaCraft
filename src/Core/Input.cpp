@@ -1,4 +1,5 @@
 #include "Core/Input.h"
+#include <iostream>
 
 namespace Magma
 {
@@ -39,6 +40,12 @@ namespace Magma
 	// Keyboard
 	bool Input::IsKeyHeld(SDL_Scancode key)
 	{
+		// Pass nullptr to get the internal array of the keyboard state
+		//const Uint8* state = SDL_GetKeyboardState(nullptr);
+
+		// Check if the specific key is physically down right now
+		//return state[scancode] != 0;
+		//std::cout << "holding: " << key << " state: " << m_CurrentKeyState[key] << std::endl;
 		return m_CurrentKeyState[key];
 	}
 

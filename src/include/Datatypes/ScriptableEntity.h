@@ -11,17 +11,17 @@ namespace Craft
 {
 	class ScriptableEntity
 	{
-		pubilc:
+		public:
 			virtual ~ScriptableEntity() = default;
 
 			EntityID entityID;
 			EntityWorld* world = nullptr;
 
 			template <typename T>
-			T& GetComponent() { return world->GetComponent<T>(entityID) }
+			T& GetComponent() { return world->GetComponent<T>(entityID); }
 
 			virtual void OnAttach() {}
 			virtual void OnUpdate(float dt) {}
-			virtual void OnDestory() {}
+			virtual void OnDestroy() {}
 	};
 }

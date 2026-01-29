@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <limits> 
 
 // key to an almost pure ecs approach
 // sparse set implementation
@@ -11,7 +12,7 @@ namespace Craft
 	using EntityID = uint32_t;
 
 	// this will represent a null entity since -1 isn't possible
-	const uint32_t NULL_ENTITY = std::numeric_limits<uint32_t>::max();
+	const uint32_t NULL_ENTITY = (std::numeric_limits<uint32_t>::max)();
 
 	// Interface so I can store different sparse sets in one map
 	class ISparseSet
@@ -77,7 +78,7 @@ namespace Craft
 
 			T& Get(EntityID entity)
 			{
-				assert(Contains(entity) && "Entity doesn't have this component.");
+				//assert(Contains(entity) && "Entity doesn't have this component.");
 				return m_Components[m_Sparse[entity]];
 			}
 

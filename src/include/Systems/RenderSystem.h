@@ -8,7 +8,7 @@ namespace Craft
 	class RenderSystem
 	{
 		public:
-			void Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, const WorldStreamer& worldStreamer);
+			void Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer);
 		private:
 			void DrawEntities(EntityWorld& world, const Magma::ShaderProgram& shaderProgram);
 			void SetupShaderUniforms(EntityWorld& world, const Magma::ShaderProgram& shaderProgram);

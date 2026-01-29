@@ -25,6 +25,7 @@
 #include <Systems/TransformSystem.h>
 #include <Systems/CameraSystem.h>
 #include <Systems/RenderSystem.h>
+#include <Systems/ScriptSystem.h>
 #include <Datatypes/Components/CameraComponent.h>
 
 namespace Magma
@@ -74,14 +75,15 @@ namespace Magma
 	class GameLayer : public Layer
 	{
 		public:
+			GameLayer(SDL_Window* window) { SetWindow(window); }
 			void OnAttach() override;
 			void OnUpdate(float dt) override;
 			void OnDetach() override;
 			void OnImGuiRender() override;
 			void OnResize(int width, int height);
-			void SetWindow(SDL_Window* window) { m_Window = window; }
 
 		private:
+			void SetWindow(SDL_Window* window) { m_Window = window; }
 			std::vector<Model*> m_Models;
 			std::unique_ptr<ShaderProgram> m_ShaderProgram = nullptr;
 			MenuState m_MenuState = MenuState::MAIN_MENU;
@@ -108,13 +110,14 @@ namespace Magma
 			glm::mat4 m_ModelMatrix;
 			std::unique_ptr<Camera> m_Camera = nullptr;
 			std::unique_ptr<Texture> m_Texture = nullptr;
-			SDL_Window* m_Window; // make shared
+			SDL_Window* m_Window = nullptr; // make shared
 
 			// Entity World
 			std::unique_ptr<Craft::EntityWorld> m_EntityWorld = nullptr;
 			std::unique_ptr<Craft::TransformSystem> m_TransformSystem = nullptr;
 			std::unique_ptr<Craft::CameraSystem> m_CameraSystem = nullptr;
 			std::unique_ptr<Craft::RenderSystem> m_RenderSystem = nullptr;
+			std::unique_ptr<Craft::ScriptSystem> m_ScriptSystem = nullptr;
 
 			uint32_t m_Player = Craft::NULL_ENTITY;
 			uint32_t m_PrimaryCamera = Craft::NULL_ENTITY;

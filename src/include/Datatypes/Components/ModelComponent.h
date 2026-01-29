@@ -7,6 +7,6 @@ namespace Craft
 {
 	struct ModelComponent
 	{
-		std::unique_ptr<Magma::Model> model = nullptr;
+		Magma::Model* model = nullptr;
 	};
 }

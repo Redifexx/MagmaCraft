@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 
 	// add text / image rendering layer
 
-	Magma::GameLayer* gameLayer = new Magma::GameLayer();
+	Magma::GameLayer* gameLayer = new Magma::GameLayer(window.GetSDLWindow());
 	layerStack.PushLayer(gameLayer);
 
 	window.SetResizeCallback([&](int width, int height)
@@ -41,7 +41,6 @@ int main(int argc, char* argv[])
 	});
 
 	gameLayer->OnResize(1280, 720);
-	gameLayer->SetWindow(window.GetSDLWindow());
 
     // Timing
 	Uint64 performanceFrequency = SDL_GetPerformanceFrequency();

@@ -1,20 +1,23 @@
-#include "RenderSystem.h"
+#include "Systems/RenderSystem.h"
 #include <Datatypes/Components/TransformComponent.h>
 #include <Datatypes/Components/ModelComponent.h>
 #include <Datatypes/Components/CameraComponent.h>
 #include <Core/Model.h>
+#include <glm/glm.hpp>
 
 using namespace Craft;
 
-void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, const WorldStreamer& worldStreamer)
+void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer)
 {
 	shaderProgram.Use();
 
 	SetupShaderUniforms(world, shaderProgram);	
 
+	shaderProgram.SetUniform("u_Model", glm::mat4(1.0f));
+
 	if (worldStreamer)
 	{
-		worldStreamer.GetWorldRenderer()->DrawWorld();
+		worldStreamer->GetWorldRenderer()->DrawWorld();
 	}
 
 	DrawEntities(world, shaderProgram);
@@ -25,6 +28,8 @@ void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& 
 	SparseSet<TransformComponent>* transformPool = world.GetComponentPool<TransformComponent>();
 	SparseSet<ModelComponent>* modelPool = world.GetComponentPool<ModelComponent>();
 
+	glm::mat4 worldMatrix = glm::mat4(1.0f);
+
 	for (auto entity : modelPool->GetAllEntities())
 	{
 		if (!transformPool->Contains(entity)) return;
@@ -32,8 +37,9 @@ void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& 
 		// gets component references
 		auto& modelRef = modelPool->Get(entity);
 		auto& transformRef = transformPool->Get(entity);
+		worldMatrix = transformRef.worldMatrix;
 
-		shaderProgram.SetUniform("u_Model", transformRef.worldMatrix);
+		shaderProgram.SetUniform("u_Model", worldMatrix);
 
 		if (modelRef.model)
 		{
@@ -62,7 +68,8 @@ void RenderSystem::SetupShaderUniforms(EntityWorld& world, const Magma::ShaderPr
 
 			if (transformPool->Contains(entity))
 			{
-				shaderProgram.SetUniform("u_CameraPosition", transformPool->Get(entity).worldMatrix[3]);
+				// dont send cam pos until defered rendering is added
+				//shaderProgram.SetUniform("u_CameraPosition", glm::vec3(transformPool->Get(entity).worldMatrix[3]));
 			}
 			break;
 		}

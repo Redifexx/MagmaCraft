@@ -18,6 +18,8 @@
 #include <Datatypes/Components/ModelComponent.h>
 #include <Datatypes/Components/CameraComponent.h>
 #include <Datatypes/Components/HealthComponent.h>
+#include <Scripts/PlayerController.h>
+#include <Datatypes/Components/NativeScriptComponent.h>
 
 using namespace Magma;
 
@@ -46,6 +48,7 @@ void GameLayer::OnAttach()
 	m_TransformSystem = std::make_unique<Craft::TransformSystem>();
 	m_RenderSystem = std::make_unique<Craft::RenderSystem>();
 	m_CameraSystem = std::make_unique<Craft::CameraSystem>();
+	m_ScriptSystem = std::make_unique<Craft::ScriptSystem>();
 
 
 	// add player entity
@@ -61,8 +64,8 @@ void GameLayer::OnAttach()
 
 	m_EntityWorld->AddComponent<Craft::HealthComponent>(playerEntity, { 100.0f, 100.0f });
 
-	std::unique_ptr<Magma::Model> playerModelTemp = std::make_unique<Magma::Model>("resources/player.fbx");
-	m_EntityWorld->AddComponent<Craft::ModelComponent>(playerEntity, { std::move(playerModelTemp) });
+	Magma::Model* playerModelTemp = new Magma::Model("resources/models/player.fbx");
+	//m_EntityWorld->AddComponent<Craft::ModelComponent>(playerEntity, { std::move(playerModelTemp) });
 	m_Player = playerEntity;
 
 	// add camera entity
@@ -95,6 +98,19 @@ void GameLayer::OnAttach()
 			Craft::NULL_ENTITY,
 			Craft::NULL_ENTITY
 		});
+
+	// bind scripts
+	auto& scriptComponent = m_EntityWorld->AddComponent<Craft::NativeScriptComponent>(playerEntity, {});
+	scriptComponent.Bind<Craft::PlayerController>();
+
+	// set script window
+	SDL_Window* windowPtr = m_Window;
+	scriptComponent.instantiateScript = [windowPtr]()
+	{
+		auto* controller = new Craft::PlayerController();
+		controller->SetWindow(windowPtr);
+		return static_cast<Craft::ScriptableEntity*>(controller);
+	};
 
 
 	// Shader setup (Shader.h & ShaderProgram.h)
@@ -142,28 +158,13 @@ void GameLayer::OnUpdate(float dt)
 {
 	if (dt > 0.1f) dt = 0.1f; // safaty
 
+	m_ScriptSystem->Update(*m_EntityWorld, dt);
+	m_CameraSystem->Update(*m_EntityWorld);
+
 	auto& camTransform = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
 	// ---- INPUT ----
 	// Basic input handling for Camera movement (Input.h)
 	// Should probably be handled by a manager class
-
-	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_W))
-		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetFront() * 5.0f * dt);
-
-	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_S))
-		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetFront() * -5.0f * dt);
-
-	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_A))
-		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetRight() * -5.0f * dt);
-
-	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_D))
-		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetRight() * 5.0f * dt);
-
-	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_E))
-		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetWorldUp() * 5.0f * dt);
-
-	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_Q))
-		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetWorldUp() * -5.0f * dt);
 
 	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_T))
 	{
@@ -176,25 +177,10 @@ void GameLayer::OnUpdate(float dt)
 
 	// Mouse look
 	ImGuiIO& io = ImGui::GetIO();
-	// Setup Window Cursor Lock
 	if (!io.WantCaptureMouse && Magma::Input::IsMouseButtonPressed(SDL_BUTTON_LEFT))
 	{
 		SDL_SetWindowRelativeMouseMode(m_Window, true);
 	}
-
-	if (SDL_GetWindowRelativeMouseMode(m_Window)) // check if cursor is captured
-	{
-		float mouseX = Magma::Input::GetMouseDelta().x;
-		float mouseY = Magma::Input::GetMouseDelta().y;
-
-		float camYaw = m_Camera->GetYaw() + mouseX * 0.1f;
-		float camPitch = m_Camera->GetPitch() - mouseY * 0.1f;
-		camPitch = glm::clamp(camPitch, -89.0f, 89.0f);
-		m_Camera->SetYaw(camYaw);
-		m_Camera->SetPitch(camPitch);
-		m_Camera->UpdateCameraVectors();
-	}
-
 
 	// ---- WORLD UPDATE ---- FINISH
 	m_WorldStreamer->Update(dt, glm::vec3(camTransform.worldMatrix[3]));
@@ -213,7 +199,7 @@ void GameLayer::OnUpdate(float dt)
 	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
 	m_ShaderProgram->SetUniform("u_Texture", 0);
 
-	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, *m_WorldStreamer);
+	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get());
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();
@@ -464,7 +450,7 @@ void GameLayer::OnImGuiRender()
 
 			// In-game menu options would go here
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-			glm::vec3 pos = m_Camera->GetPosition();
+			glm::vec3 pos = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera).worldMatrix[3];
 			ImGui::Text("X: %.1f", pos[0]);
 			ImGui::Text("Y: %.1f", pos[1]);
 			ImGui::Text("Z: %.1f", pos[2]);
@@ -478,5 +464,6 @@ void GameLayer::OnResize(int width, int height)
 	// Resizing callback handling
 
 	if (height == 0) height = 1;
-	m_Camera->SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
+	auto& camRef = m_EntityWorld->GetComponent<Craft::CameraComponent>(m_PrimaryCamera);
+	camRef.aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 }
