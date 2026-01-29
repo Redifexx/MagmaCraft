@@ -25,6 +25,7 @@
 #include <Systems/TransformSystem.h>
 #include <Systems/CameraSystem.h>
 #include <Systems/RenderSystem.h>
+#include <Datatypes/Components/CameraComponent.h>
 
 namespace Magma
 {
@@ -114,5 +115,8 @@ namespace Magma
 			std::unique_ptr<Craft::TransformSystem> m_TransformSystem = nullptr;
 			std::unique_ptr<Craft::CameraSystem> m_CameraSystem = nullptr;
 			std::unique_ptr<Craft::RenderSystem> m_RenderSystem = nullptr;
+
+			uint32_t m_Player = Craft::NULL_ENTITY;
+			uint32_t m_PrimaryCamera = Craft::NULL_ENTITY;
 	};
 }

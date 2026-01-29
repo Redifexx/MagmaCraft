@@ -63,6 +63,7 @@ void GameLayer::OnAttach()
 
 	std::unique_ptr<Magma::Model> playerModelTemp = std::make_unique<Magma::Model>("resources/player.fbx");
 	m_EntityWorld->AddComponent<Craft::ModelComponent>(playerEntity, { std::move(playerModelTemp) });
+	m_Player = playerEntity;
 
 	// add camera entity
 
@@ -76,6 +77,7 @@ void GameLayer::OnAttach()
 
 	m_EntityWorld->AddComponent<Craft::CameraComponent>(cameraEntity, {});
 	m_EntityWorld->GetComponent<Craft::CameraComponent>(cameraEntity).isPrimary = true; // set primary camera
+	m_PrimaryCamera = cameraEntity;
 
 	// make camera a child of player
 	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(playerEntity,
@@ -118,11 +120,6 @@ void GameLayer::OnAttach()
 		return;
 	}
 
-	// Initial shader uniforms setup
-	m_ShaderProgram->Use();
-	m_ShaderProgram->SetUniform("u_Model", m_ModelMatrix);
-	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
-
 	// Network Manager Setup
 	m_NetworkManager = std::make_shared<Craft::NetworkManager>();
 	m_WorldStreamer = std::make_unique<Craft::WorldStreamer>(m_NetworkManager);
@@ -144,9 +141,12 @@ void GameLayer::OnAttach()
 void GameLayer::OnUpdate(float dt)
 {
 	if (dt > 0.1f) dt = 0.1f; // safaty
+
+	auto& camTransform = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
 	// ---- INPUT ----
 	// Basic input handling for Camera movement (Input.h)
 	// Should probably be handled by a manager class
+
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_W))
 		m_Camera->SetPosition(m_Camera->GetPosition() + m_Camera->GetFront() * 5.0f * dt);
 
@@ -197,11 +197,11 @@ void GameLayer::OnUpdate(float dt)
 
 
 	// ---- WORLD UPDATE ---- FINISH
-	m_WorldStreamer->Update(dt, m_Camera->GetPosition());
+	m_WorldStreamer->Update(dt, glm::vec3(camTransform.worldMatrix[3]));
 
 	// ---- AUDIO UPDATE ----
 	// Audio Listener Update
-	Magma::AudioEngine::UpdateListener(m_Camera->GetPosition(), m_Camera->GetFront(), m_Camera->GetUp());
+	Magma::AudioEngine::UpdateListener(glm::vec3(camTransform.worldMatrix[3]), -glm::vec3(camTransform.worldMatrix[2]), glm::vec3(camTransform.worldMatrix[1]));
 
 	// --- TRANSFORMS UPDATE ----
 	m_TransformSystem->Update(*m_EntityWorld);
@@ -209,13 +209,11 @@ void GameLayer::OnUpdate(float dt)
 	// ---- RENDERING ----
 	// Shader uniforms update and model drawing
 	m_ShaderProgram->Use();
-	m_ShaderProgram->SetUniform("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
 	m_ShaderProgram->SetUniform("u_Texture", 0);
 
-
-	m_WorldStreamer->GetWorldRenderer()->DrawWorld();
+	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, *m_WorldStreamer);
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();
