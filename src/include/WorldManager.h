@@ -4,6 +4,8 @@
 #include <vector>
 #include "Chunk.h"
 #include "WorldGenerator.h"
+#include "Datatypes/EntityWorld.h"
+#include "Datatypes/Components/PlayerComponent.h"
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
@@ -29,6 +31,33 @@ namespace Craft
 		char worldName[32];
 	};
 
+	// not sure if needed, but keeping here for consistency
+	struct PlayerFileHeader
+	{
+		uint32_t magic = 0X4D43504C; // Magma Craft Player 'MCPL' Magic Number
+	};
+
+	struct PlayerData
+	{
+
+		glm::vec3 position;
+		glm::vec3 rotation;
+		float health;
+		glm::vec3 velocity;
+	};
+
+	#pragma pack(push, 1)
+	struct SerializedPlayerData
+	{
+		char username[32];
+		uint32_t playerID;
+		float posX, posY, posZ;
+		float rotW, rotX, rotY, rotZ;
+		float health;
+		float velX, velY, velZ;
+	};
+	#pragma pack(pop)
+
 	inline int WorldToChunkPos(int coord)
 	{
 		// maps negative chunks correctly
@@ -41,8 +70,14 @@ namespace Craft
 			// --- WORLD CREATION/INITIALIZATION ---
 			// Sets up a new world generator & world folder
 			// Only ever called if server
-			void CreateWorld(std::string& worldName, int seed);
+			void CreateWorld(std::string& worldName, int seed, EntityWorld& eWorld);
 			bool LoadWorld(const char* filepath);
+			void SaveWorld(std::string& worldName, EntityWorld& eWorld); // saves metadata
+
+			// Player Functions
+			std::string GetPlayerFolder();
+			void SavePlayerData(EntityWorld& eWorld, uint32_t entityID);
+			bool LoadPlayerData(std::string& username, SerializedPlayerData& outData);
 
 			// Generates initial world data around player spawn
 			// Only ever called if server

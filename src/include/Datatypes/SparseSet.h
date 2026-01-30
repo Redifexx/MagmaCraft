@@ -22,6 +22,7 @@ namespace Craft
 			virtual void Remove(EntityID entity) = 0;
 			virtual bool Contains(EntityID entity) const = 0;
 			virtual void Clear() = 0;
+			virtual const std::vector<EntityID>& GetAllEntities() const = 0;
 	};
 
 	template <typename T>
@@ -100,7 +101,7 @@ namespace Craft
 				return m_Components;
 			}
 
-			const std::vector<EntityID>& GetAllEntities() const
+			const std::vector<EntityID>& GetAllEntities() const override
 			{
 				return m_DenseToEntity;
 			}

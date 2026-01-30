@@ -42,6 +42,12 @@ namespace Magma
 				return dist(GetEngine());
 			}
 
+			static unsigned int UInt(unsigned int min, unsigned int max)
+			{
+				std::uniform_int_distribution<unsigned int> dist(min, max);
+				return dist(GetEngine());
+			}
+
 			// Returns float between 0.0, 1.0
 			static float Float()
 			{
@@ -113,7 +119,7 @@ namespace Magma
 			SDL_Window* m_Window = nullptr; // make shared
 
 			// Entity World
-			std::unique_ptr<Craft::EntityWorld> m_EntityWorld = nullptr;
+			std::shared_ptr<Craft::EntityWorld> m_EntityWorld = nullptr;
 			std::unique_ptr<Craft::TransformSystem> m_TransformSystem = nullptr;
 			std::unique_ptr<Craft::CameraSystem> m_CameraSystem = nullptr;
 			std::unique_ptr<Craft::RenderSystem> m_RenderSystem = nullptr;

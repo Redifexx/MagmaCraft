@@ -20,6 +20,7 @@
 #include <Datatypes/Components/HealthComponent.h>
 #include <Scripts/PlayerController.h>
 #include <Datatypes/Components/NativeScriptComponent.h>
+#include <Datatypes/Components/PlayerComponent.h>
 
 using namespace Magma;
 
@@ -44,7 +45,7 @@ void GameLayer::OnAttach()
 	// create our entity world (world simulation / logic, NOT the world generation)
 	
 	// setup systems
-	m_EntityWorld = std::make_unique<Craft::EntityWorld>();
+	m_EntityWorld = std::make_shared<Craft::EntityWorld>();
 	m_TransformSystem = std::make_unique<Craft::TransformSystem>();
 	m_RenderSystem = std::make_unique<Craft::RenderSystem>();
 	m_CameraSystem = std::make_unique<Craft::CameraSystem>();
@@ -67,6 +68,14 @@ void GameLayer::OnAttach()
 	Magma::Model* playerModelTemp = new Magma::Model("resources/models/player.fbx");
 	//m_EntityWorld->AddComponent<Craft::ModelComponent>(playerEntity, { std::move(playerModelTemp) });
 	m_Player = playerEntity;
+
+
+	m_EntityWorld->AddComponent<Craft::PlayerComponent>(playerEntity,
+		{
+			static_cast<uint32_t>(Magma::Random::UInt(0, UINT_MAX)), // player is given random ID (later add function to avoid duplicates)
+			"LocalPlayer",
+			true
+		});
 
 	// add camera entity
 
@@ -199,7 +208,7 @@ void GameLayer::OnUpdate(float dt)
 	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
 	m_ShaderProgram->SetUniform("u_Texture", 0);
 
-	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get());
+	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window);
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();
@@ -329,7 +338,7 @@ void GameLayer::OnImGuiRender()
 					{
 						seed = Magma::Random::Int(INT_MIN, INT_MAX);
 					}
-					m_NetworkManager->GetWorldManager()->CreateWorld(worldName, seed);
+					m_NetworkManager->GetWorldManager()->CreateWorld(worldName, seed, *m_EntityWorld);
 					m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
 				}
 			}
@@ -454,6 +463,21 @@ void GameLayer::OnImGuiRender()
 			ImGui::Text("X: %.1f", pos[0]);
 			ImGui::Text("Y: %.1f", pos[1]);
 			ImGui::Text("Z: %.1f", pos[2]);
+			
+			if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::SERVER)
+			{
+				if (ImGui::Button("Save & Exit"))
+				{
+					m_MenuState = MenuState::MAIN_MENU;
+				}
+			}
+			else if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::CLIENT)
+			{
+				if (ImGui::Button("Exit"))
+				{
+					m_MenuState = MenuState::MAIN_MENU;
+				}
+			}
 			break;
 	}
 	ImGui::End();

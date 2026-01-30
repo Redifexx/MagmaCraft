@@ -69,14 +69,6 @@ int main(int argc, char* argv[])
 		// Window Handling
 		window.PollEvents(isRunning);
 
-        int w_, h_;
-		window.GetWindowSize(w_, h_);
-
-        glViewport(0, 0, w_, h_);
-        glClearColor(0.643f, 0.827f, 0.984f, 1.0f);
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		if (Magma::Input::IsKeyPressed(SDL_SCANCODE_ESCAPE))
 		{
 			SDL_SetWindowRelativeMouseMode(window.GetSDLWindow(), false);

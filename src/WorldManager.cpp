@@ -8,7 +8,7 @@
 
 using namespace Craft;
 
-void WorldManager::CreateWorld(std::string& worldName, int seed)
+void WorldManager::CreateWorld(std::string& worldName, int seed, EntityWorld& eWorld)
 {
 	// Implementation for creating a new world with the given name and seed
 	m_WorldGenerator = std::make_unique<WorldGenerator>(seed);
@@ -66,6 +66,79 @@ bool WorldManager::LoadWorld(const char* filepath)
 	m_WorldGenerator = std::make_unique<WorldGenerator>(header.seed);
 	m_WorldName = header.worldName;
 
+	return true;
+}
+
+void WorldManager::SaveWorld(std::string& worldName, EntityWorld& eWorld)
+{
+	std::string folderPath = "saves/" + m_WorldName;
+	std::string filename = folderPath + "/" + m_WorldName + ".mcwd";
+
+	std::ofstream outfile(filename, std::ios::binary);
+	if (!outfile.is_open()) return; // should prob throw an error
+	
+	// doesnt need to rewrite anything for now
+	// the header contains all the data for now until the world needs more
+
+	outfile.close();
+
+	// save players
+	auto playerEntities = eWorld.View<PlayerComponent>();
+	for (uint32_t entity : playerEntities)
+	{
+		SavePlayerData(eWorld, entity);
+	}
+}
+
+std::string WorldManager::GetPlayerFolder()
+{
+	return "saves/" + m_WorldName + "/players/";
+}
+
+void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
+{
+	auto& playerRef = eWorld.GetComponent<PlayerComponent>(entityID);
+	auto& transformRef = eWorld.GetComponent<TransformComponent>(entityID);
+	auto& healthRef = eWorld.GetComponent<HealthComponent>(entityID);
+
+	SerializedPlayerData pData = {};
+
+	std::strncpy(pData.username, playerRef.username.c_str(), sizeof(pData.username) - 1);
+	pData.playerID = playerRef.playerID;
+
+	pData.posX = transformRef.localPosition.x;
+	pData.posY = transformRef.localPosition.y;
+	pData.posZ = transformRef.localPosition.z;
+
+	pData.rotW = transformRef.localRotation.w;
+	pData.rotX = transformRef.localRotation.x;
+	pData.rotY = transformRef.localRotation.y;
+	pData.rotZ = transformRef.localRotation.z;
+
+	pData.health = healthRef.health;
+	// skipped max health bc we know it's a player
+
+	// write to file
+	std::filesystem::create_directories(GetPlayerFolder());
+	std::string filename = GetPlayerFolder() + std::string(pData.username) + ".mcpl";
+	std::ofstream outfile(filename, std::ios::binary);
+	if (!outfile.is_open()) return; // should prob throw an error
+
+	PlayerFileHeader header; // just a magic number for now
+	outfile.write((char*)&header, sizeof(PlayerFileHeader));
+
+	outfile.write((char*)&pData, sizeof(SerializedPlayerData));
+	outfile.close();
+}
+
+bool WorldManager::LoadPlayerData(std::string& username, SerializedPlayerData& outData)
+{
+	std::string filename = GetPlayerFolder() + username + ".mcpl";
+
+	std::ifstream infile(filename, std::ios::binary);
+	if (!infile.is_open()) return false; // new player
+
+	infile.read((char*)(&outData), sizeof(SerializedPlayerData));
 	return true;
 }
 

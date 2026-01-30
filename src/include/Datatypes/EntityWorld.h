@@ -83,6 +83,67 @@ namespace Craft
 				return GetComponentPool<T>()->Get(entityID);
 			}
 
+			// provide a view of entities that have all specified components
+			// variadic templates - can take in any number of arguments/component types
+			// very nice, very useful
+			template<typename... ComponentTypes>
+			std::vector<EntityID> View()
+			{
+				std::vector<EntityID> result;
+
+				// get all the pools as the base ISparseSet
+				std::vector<ISparseSet*> pools = { GetComponentPool<ComponentTypes>()... };
+
+				// return empty if pool is invalid
+				for (auto* pool : pools)
+				{
+					if (!pool || pool->GetAllEntities().empty())
+					{
+						return result;
+					}
+				}
+
+				// start with the smallest pool to minimize iterations
+				ISparseSet* smallestPool = pools[0];
+				size_t smallestSize = smallestPool->GetAllEntities().size();
+
+				for (size_t i = 1; i < pools.size(); ++i)
+				{
+					if (pools[i]->GetAllEntities().size() < smallestSize)
+					{
+						smallestPool = pools[i];
+						smallestSize = pools[i]->GetAllEntities().size();
+					}
+				}
+
+				// iterate over entities in smallest pool
+				const std::vector<EntityID>& entities = smallestPool->GetAllEntities();
+				result.reserve(smallestSize);
+
+				for (EntityID entity : entities)
+				{
+					bool hasAll = true;
+
+					// check if it has the other entities
+					for (auto* pool : pools)
+					{
+						if (pool == smallestPool) continue;
+
+						if (!pool->Contains(entity))
+						{
+							hasAll = false;
+							break;
+						}
+					}
+
+					if (hasAll)
+					{
+						result.push_back(entity);
+					}
+				}
+				return result;
+			}
+
 			EntityWorld();
 			~EntityWorld();
 
