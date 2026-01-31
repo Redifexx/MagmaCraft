@@ -90,6 +90,7 @@ void GameLayer::OnUpdate(float dt)
 {
 	if (dt > 0.1f) dt = 0.1f; // safaty
 
+
 	// Mouse look
 	ImGuiIO& io = ImGui::GetIO();
 	if (!io.WantCaptureMouse && Magma::Input::IsMouseButtonPressed(SDL_BUTTON_LEFT))
@@ -101,6 +102,16 @@ void GameLayer::OnUpdate(float dt)
 	{
 		m_ScriptSystem->Update(*m_EntityWorld, dt);
 		m_CameraSystem->Update(*m_EntityWorld);
+
+		if (m_AutoSaveTimer <= 0.0f)
+		{
+			m_AutoSaveTimer = m_AutoSaveInterval;
+			m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
+		}
+		else
+		{
+			m_AutoSaveTimer -= dt;
+		}
 
 		auto& camTransform = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
 		// ---- INPUT ----
@@ -151,10 +162,11 @@ void GameLayer::OnDetach()
 {
 	// --- GAME CLEANUP LOGIC ----
 
-	//m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
+	// double clear need to fix
+	m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
 
-	//m_WorldStreamer->UnloadAllChunks();
-	//m_WorldStreamer.reset();
+	m_WorldStreamer->UnloadAllChunks();
+	m_WorldStreamer.reset();
 
 	m_NetworkManager->End();
 
@@ -425,6 +437,7 @@ void GameLayer::OnImGuiRender()
 
 			// In-game menu options would go here
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+			ImGui::Text("Autosave in %.1f seconds", m_AutoSaveTimer);
 			glm::vec3 pos = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera).worldMatrix[3];
 			ImGui::Text("X: %.1f", pos[0]);
 			ImGui::Text("Y: %.1f", pos[1]);
@@ -517,6 +530,7 @@ void GameLayer::SpawnLocalPlayer(const std::string& username)
 	};
 
 	m_IsLocalPlayerLoaded = true;
+	m_AutoSaveTimer = m_AutoSaveInterval;
 }
 
 void GameLayer::CleanupLocalPlayer()
@@ -525,6 +539,7 @@ void GameLayer::CleanupLocalPlayer()
 	m_Player = Craft::NULL_ENTITY;
 	m_PrimaryCamera = Craft::NULL_ENTITY;
 	m_IsLocalPlayerLoaded = false;
+	m_AutoSaveTimer = 0.0f;
 }
 
 void GameLayer::WorldShutdown()

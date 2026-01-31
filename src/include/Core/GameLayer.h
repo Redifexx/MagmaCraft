@@ -113,6 +113,10 @@ namespace Magma
 			char m_ServerportBuf[256] = "";
 			char m_ChatLog[1024 * 16] = ""; // big buffer for chat log
 
+			// Timers
+			float m_AutoSaveTimer = 0.0f;
+			float m_AutoSaveInterval = 180.0f;
+
 			// IMGui Options
 			bool m_AutoConnect = true;
 			bool m_AutoSeed = true;
