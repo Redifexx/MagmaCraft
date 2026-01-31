@@ -26,5 +26,6 @@ Server::Server()
 
 Server::~Server()
 {
-	delete m_Server;
+	enet_host_destroy(m_Server);
+	m_Server = nullptr;
 }

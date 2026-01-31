@@ -32,6 +32,7 @@ namespace Craft
 			WorldStreamer(std::shared_ptr<NetworkManager> networkManager);
 			void Update(float dt, const glm::vec3& playerPosition);
 			void RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunkPos, glm::ivec2 chunkDelta);
+			void UnloadAllChunks();
 
 			void GetPlayerChunkCoords(const glm::vec3& playerPosition, int& chunkX, int& chunkZ);
 

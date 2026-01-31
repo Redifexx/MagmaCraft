@@ -2,6 +2,7 @@
 #include <Datatypes/Components/TransformComponent.h>
 #include <Datatypes/Components/ModelComponent.h>
 #include <Datatypes/Components/CameraComponent.h>
+#include <Datatypes/Components/PlayerComponent.h>
 #include <Core/Model.h>
 #include <glm/glm.hpp>
 
@@ -34,21 +35,27 @@ void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shader
 
 void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& shaderProgram)
 {
-	SparseSet<TransformComponent>* transformPool = world.GetComponentPool<TransformComponent>();
-	SparseSet<ModelComponent>* modelPool = world.GetComponentPool<ModelComponent>();
+	SparseSet<PlayerComponent>* playerPool = world.GetComponentPool<PlayerComponent>();
+
+	auto entities = world.View<TransformComponent, ModelComponent>();
 
 	glm::mat4 worldMatrix = glm::mat4(1.0f);
 
-	for (auto entity : modelPool->GetAllEntities())
+	for (auto entity : entities)
 	{
-		if (!transformPool->Contains(entity)) return;
-
+	
 		// gets component references
-		auto& modelRef = modelPool->Get(entity);
-		auto& transformRef = transformPool->Get(entity);
+		auto& modelRef = world.GetComponent<ModelComponent>(entity);
+		auto& transformRef = world.GetComponent<TransformComponent>(entity);
 		worldMatrix = transformRef.worldMatrix;
 
 		shaderProgram.SetUniform("u_Model", worldMatrix);
+
+		if (playerPool->Contains(entity))
+		{
+			auto& playerRef = playerPool->Get(entity);
+			if (playerRef.isLocalPlayer) return; // dont draw local player model
+		}
 
 		if (modelRef.model)
 		{

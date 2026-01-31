@@ -115,7 +115,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 	}
 }
 
-// finish bro
+
 void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunkPos, glm::ivec2 chunkDelta)
 {
 	std::shared_ptr<WorldManager> worldManager = GetWorldManager();
@@ -153,6 +153,27 @@ void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunk
 			m_WorldRenderer->RemoveFromDrawPool(glm::ivec2(key.x, key.y));
 		}
 	}
+}
+
+void WorldStreamer::UnloadAllChunks()
+{
+	std::shared_ptr<WorldManager> worldManager = GetWorldManager();
+	if (!worldManager) return;
+
+	for (auto const& [coord, renderChunk] : m_ChunkBuffer)
+	{
+		// remove mesh from renderer
+		m_WorldRenderer->RemoveFromDrawPool(coord);
+
+		// remove chunk from world manager buffer
+		worldManager->RemoveChunkFromBuffer(coord.x, coord.y);
+	}
+
+	m_ChunkBuffer.clear();
+
+	// reset flags
+	m_FirstFrame = true;
+	m_LastChunkPos = glm::ivec2(0, 0);
 }
 
 void WorldStreamer::GetPlayerChunkCoords(const glm::vec3& playerPosition, int& chunkX, int& chunkZ)

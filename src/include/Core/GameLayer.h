@@ -66,6 +66,7 @@ namespace Magma
 
 	enum class MenuState
 	{
+		SET_NAME,
 		MAIN_MENU,
 		SINGLEPLAYER,
 		MULTIPLAYER,
@@ -90,9 +91,14 @@ namespace Magma
 
 		private:
 			void SetWindow(SDL_Window* window) { m_Window = window; }
+			void SpawnLocalPlayer(const std::string& username);
+			void CleanupLocalPlayer();
+			void WorldShutdown();
+
+
 			std::vector<Model*> m_Models;
 			std::unique_ptr<ShaderProgram> m_ShaderProgram = nullptr;
-			MenuState m_MenuState = MenuState::MAIN_MENU;
+			MenuState m_MenuState = MenuState::SET_NAME;
 
 			std::shared_ptr<Craft::NetworkManager> m_NetworkManager = nullptr;
 			std::unique_ptr<Craft::WorldStreamer> m_WorldStreamer = nullptr;
@@ -100,6 +106,7 @@ namespace Magma
 			// Text Input Buffers
 			char m_SeedBuf[32] = "";
 			char m_WorldNameBuf[32] = "";
+			char m_UserNameBuf[32] = "Redifexx";
 			char m_WorldPathBuf[128] = "";
 			char m_NetworkMsg[256] = "";
 			char m_ServerAddressBuf[256] = "";
@@ -127,5 +134,7 @@ namespace Magma
 
 			uint32_t m_Player = Craft::NULL_ENTITY;
 			uint32_t m_PrimaryCamera = Craft::NULL_ENTITY;
+			std::string m_Username = "Player";
+			bool m_IsLocalPlayerLoaded = false;
 	};
 }

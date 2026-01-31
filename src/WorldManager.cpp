@@ -5,9 +5,10 @@
 #include <fstream>
 #include <filesystem>
 #include <algorithm>
+#include <iostream>
 
 using namespace Craft;
-
+ 
 void WorldManager::CreateWorld(std::string& worldName, int seed, EntityWorld& eWorld)
 {
 	// Implementation for creating a new world with the given name and seed
@@ -33,11 +34,17 @@ void WorldManager::CreateWorld(std::string& worldName, int seed, EntityWorld& eW
 	WorldFileHeader header;
 	header.seed = seed;
 
+	// 1. Zero out the memory first so there is no garbage
 	std::memset(header.worldName, 0, sizeof(header.worldName));
-	std::strncpy(header.worldName, m_WorldName.c_str(), sizeof(header.worldName)); // no null termination for file (yet)
+
+	// 2. Copy the actual string characters into the array
+	// We use std::min to ensure we don't overflow the 32 byte buffer
+	size_t copyLen = std::min(m_WorldName.size(), sizeof(header.worldName) - 1);
+	std::memcpy(header.worldName, m_WorldName.c_str(), copyLen);
 
 	// the header contains all the data for now until the world needs more
 	outfile.write((char*)&header, sizeof(WorldFileHeader));
+
 	outfile.close();
 
 	// later make player spawn random within chunk
@@ -54,6 +61,7 @@ bool WorldManager::LoadWorld(const char* filepath)
 	// Read Header
 	WorldFileHeader header;
 	infile.read((char*)&header, sizeof(WorldFileHeader));
+
 	if (header.magic != 0X4D435744)
 	{
 		infile.close();
@@ -69,20 +77,8 @@ bool WorldManager::LoadWorld(const char* filepath)
 	return true;
 }
 
-void WorldManager::SaveWorld(std::string& worldName, EntityWorld& eWorld)
+void WorldManager::SaveWorld(EntityWorld& eWorld)
 {
-	std::string folderPath = "saves/" + m_WorldName;
-	std::string filename = folderPath + "/" + m_WorldName + ".mcwd";
-
-	std::ofstream outfile(filename, std::ios::binary);
-	if (!outfile.is_open()) return; // should prob throw an error
-	
-	// doesnt need to rewrite anything for now
-	// the header contains all the data for now until the world needs more
-
-	outfile.close();
-
-	// save players
 	auto playerEntities = eWorld.View<PlayerComponent>();
 	for (uint32_t entity : playerEntities)
 	{
@@ -118,6 +114,8 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 	pData.health = healthRef.health;
 	// skipped max health bc we know it's a player
 
+	// add velocity later
+
 	// write to file
 	std::filesystem::create_directories(GetPlayerFolder());
 	std::string filename = GetPlayerFolder() + std::string(pData.username) + ".mcpl";
@@ -128,6 +126,7 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 	outfile.write((char*)&header, sizeof(PlayerFileHeader));
 
 	outfile.write((char*)&pData, sizeof(SerializedPlayerData));
+
 	outfile.close();
 }
 
@@ -138,8 +137,49 @@ bool WorldManager::LoadPlayerData(std::string& username, SerializedPlayerData& o
 	std::ifstream infile(filename, std::ios::binary);
 	if (!infile.is_open()) return false; // new player
 
+	PlayerFileHeader header; // just a magic number for now
+	infile.read((char*)&header, sizeof(PlayerFileHeader));
+
+	if (header.magic != 0X4D43504C)
+	{
+		infile.close();
+		return false; // Invalid file
+	}
+
 	infile.read((char*)(&outData), sizeof(SerializedPlayerData));
 	return true;
+}
+
+uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, const std::string& username, uint32_t playerID)
+{
+	uint32_t playerEntity = eWorld.AddEntity();
+
+	SerializedPlayerData pData;
+	bool isSaved = LoadPlayerData(const_cast<std::string&>(username), pData);
+
+	// later add randomized spawn based on world placement
+	glm::vec3 spawnPosition = glm::vec3(0.0f, 64.0f, 0.0f);
+	glm::quat spawnRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+	float spawnHealth = 20.0f;
+
+	if (isSaved)
+	{
+		spawnPosition = glm::vec3(pData.posX, pData.posY, pData.posZ);
+		spawnRotation = glm::quat(pData.rotW, pData.rotX, pData.rotY, pData.rotZ);
+		spawnHealth = pData.health;
+		playerID = pData.playerID;
+	}
+
+	// Add Components (Local + Remote)
+	eWorld.AddComponent<TransformComponent>(playerEntity, { spawnPosition, spawnRotation, glm::vec3(1.0f) });
+	eWorld.AddComponent<PlayerComponent>(playerEntity, { playerID, username });
+	eWorld.AddComponent<HealthComponent>(playerEntity, { spawnHealth, 20.0f });
+
+	// will render unless ur a local player
+	Magma::Model* model = new Magma::Model("resources/models/player.fbx");
+	eWorld.AddComponent<ModelComponent>(playerEntity, { std::move(model) });
+
+	return playerEntity;
 }
 
 void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
@@ -305,6 +345,13 @@ void WorldManager::RemoveChunkFromBuffer(int chunkX, int chunkZ)
 {
 	// First check if it's in buffer
 	if (!HasChunkInBuffer(chunkX, chunkZ)) return;
+
+	Chunk* chunk = GetChunkFromBuffer(chunkX, chunkZ);
+
+	if (chunk->m_IsModified)
+	{
+		SaveChunkToFile(*chunk, chunkX, chunkZ);
+	}
 
 	m_ChunkBuffer.erase({ chunkX, chunkZ });
 }

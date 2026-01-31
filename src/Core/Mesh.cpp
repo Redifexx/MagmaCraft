@@ -40,6 +40,13 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) :
 	glBindVertexArray(0);
 }
 
+Mesh::~Mesh() 
+{
+	glDeleteVertexArrays(1, &m_VAO);
+	glDeleteBuffers(1, &m_VBO);
+	glDeleteBuffers(1, &m_EBO);
+}
+
 void Mesh::Draw() const
 {
 	glBindVertexArray(m_VAO);

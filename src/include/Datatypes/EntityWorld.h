@@ -148,26 +148,10 @@ namespace Craft
 			~EntityWorld();
 
 			// add entity function / remove entity function
-			uint32_t AddEntity()
-			{
-				Entity newEntity;
-				newEntity.id = static_cast<uint32_t>(m_Entities.size());
-				m_Entities.push_back(newEntity);
-				return newEntity.id;
-			}
+			uint32_t AddEntity();
+			void RemoveEntity(uint32_t entityID);
 
-			void RemoveEntity(uint32_t entityID)
-			{
-				// remove all components associated with this entity
-				for (ISparseSet* pool : m_ComponentPools)
-				{
-					if (pool)
-					{
-						pool->Remove(entityID);
-					}
-				}
-				// Note: Entity ID is not reused in this simple implementation
-			}
+			void ClearAllEntities();
 			
 		private:
 			std::vector<Entity> m_Entities;

@@ -38,90 +38,20 @@ void GameLayer::OnAttach()
 	m_FileBrowser.SetTitle("World Browser");
 	m_FileBrowser.SetTypeFilters({ ".mcwd" });
 
-
-	// ---- GAME INITIALIZATION ----
-
-	// ECS SETUP
-	// create our entity world (world simulation / logic, NOT the world generation)
 	
-	// setup systems
+	// setup systems & managers
 	m_EntityWorld = std::make_shared<Craft::EntityWorld>();
 	m_TransformSystem = std::make_unique<Craft::TransformSystem>();
 	m_RenderSystem = std::make_unique<Craft::RenderSystem>();
 	m_CameraSystem = std::make_unique<Craft::CameraSystem>();
 	m_ScriptSystem = std::make_unique<Craft::ScriptSystem>();
 
+	m_NetworkManager = std::make_shared<Craft::NetworkManager>();
+	m_WorldStreamer = std::make_unique<Craft::WorldStreamer>(m_NetworkManager);
 
-	// add player entity
-	uint32_t playerEntity = m_EntityWorld->AddEntity();
+	Craft::BlockLibrary::Initialize();
 
-	// add components to player entity
-	m_EntityWorld->AddComponent<Craft::TransformComponent>(playerEntity,
-		{
-			glm::vec3(0.0f, 64.0f, 0.0f), // position
-			glm::quat(1.0f, 0.0f, 0.0f, 0.0f), // rotation quat
-			glm::vec3(1.0f, 1.0f, 1.0f) // scale
-		});
-
-	m_EntityWorld->AddComponent<Craft::HealthComponent>(playerEntity, { 100.0f, 100.0f });
-
-	Magma::Model* playerModelTemp = new Magma::Model("resources/models/player.fbx");
-	//m_EntityWorld->AddComponent<Craft::ModelComponent>(playerEntity, { std::move(playerModelTemp) });
-	m_Player = playerEntity;
-
-
-	m_EntityWorld->AddComponent<Craft::PlayerComponent>(playerEntity,
-		{
-			static_cast<uint32_t>(Magma::Random::UInt(0, UINT_MAX)), // player is given random ID (later add function to avoid duplicates)
-			"LocalPlayer",
-			true
-		});
-
-	// add camera entity
-
-	uint32_t cameraEntity = m_EntityWorld->AddEntity();
-	m_EntityWorld->AddComponent<Craft::TransformComponent>(cameraEntity,
-		{
-			glm::vec3(0.0f, 1.0f, 0.0f), // position
-			glm::quat(1.0f, 0.0f, 0.0f, 0.0f), // rotation quat
-			glm::vec3(1.0f, 1.0f, 1.0f) // scale
-		});
-
-	m_EntityWorld->AddComponent<Craft::CameraComponent>(cameraEntity, {});
-	m_EntityWorld->GetComponent<Craft::CameraComponent>(cameraEntity).isPrimary = true; // set primary camera
-	m_PrimaryCamera = cameraEntity;
-
-	// make camera a child of player
-	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(playerEntity,
-		{
-			Craft::NULL_ENTITY,
-			cameraEntity,
-			Craft::NULL_ENTITY,
-			Craft::NULL_ENTITY
-		});
-
-	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(cameraEntity,
-		{
-			playerEntity,
-			Craft::NULL_ENTITY,
-			Craft::NULL_ENTITY,
-			Craft::NULL_ENTITY
-		});
-
-	// bind scripts
-	auto& scriptComponent = m_EntityWorld->AddComponent<Craft::NativeScriptComponent>(playerEntity, {});
-	scriptComponent.Bind<Craft::PlayerController>();
-
-	// set script window
-	SDL_Window* windowPtr = m_Window;
-	scriptComponent.instantiateScript = [windowPtr]()
-	{
-		auto* controller = new Craft::PlayerController();
-		controller->SetWindow(windowPtr);
-		return static_cast<Craft::ScriptableEntity*>(controller);
-	};
-
-
+	// move into resource manager later
 	// Shader setup (Shader.h & ShaderProgram.h)
 	std::string vertpath = "resources/shaders/basic.vert";
 	std::string fragpath = "resources/shaders/block.frag";
@@ -145,13 +75,6 @@ void GameLayer::OnAttach()
 		return;
 	}
 
-	// Network Manager Setup
-	m_NetworkManager = std::make_shared<Craft::NetworkManager>();
-	m_WorldStreamer = std::make_unique<Craft::WorldStreamer>(m_NetworkManager);
-
-	//BlockLibrary Setup
-	Craft::BlockLibrary::Initialize();
-
 	// Single Texture setup
 	m_Texture = std::make_unique<Texture>(texturePath.c_str(), false);
 	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -167,23 +90,6 @@ void GameLayer::OnUpdate(float dt)
 {
 	if (dt > 0.1f) dt = 0.1f; // safaty
 
-	m_ScriptSystem->Update(*m_EntityWorld, dt);
-	m_CameraSystem->Update(*m_EntityWorld);
-
-	auto& camTransform = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
-	// ---- INPUT ----
-	// Basic input handling for Camera movement (Input.h)
-	// Should probably be handled by a manager class
-
-	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_T))
-	{
-		//Magma::AudioEngine::PlayGlobal("resources/audio/music_6.ogg", 0.1f, true);
-		//Magma::AudioEngine::PlayAtLocation("resources/audio/pickitup.mp3", glm::vec3(0.0f, 0.0f, 0.0f), 1.5f, true);
-	}
-
-	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_G))
-		Magma::AudioEngine::StopGlobal();
-
 	// Mouse look
 	ImGuiIO& io = ImGui::GetIO();
 	if (!io.WantCaptureMouse && Magma::Input::IsMouseButtonPressed(SDL_BUTTON_LEFT))
@@ -191,22 +97,43 @@ void GameLayer::OnUpdate(float dt)
 		SDL_SetWindowRelativeMouseMode(m_Window, true);
 	}
 
-	// ---- WORLD UPDATE ---- FINISH
-	m_WorldStreamer->Update(dt, glm::vec3(camTransform.worldMatrix[3]));
+	if (m_IsLocalPlayerLoaded)
+	{
+		m_ScriptSystem->Update(*m_EntityWorld, dt);
+		m_CameraSystem->Update(*m_EntityWorld);
 
-	// ---- AUDIO UPDATE ----
-	// Audio Listener Update
-	Magma::AudioEngine::UpdateListener(glm::vec3(camTransform.worldMatrix[3]), -glm::vec3(camTransform.worldMatrix[2]), glm::vec3(camTransform.worldMatrix[1]));
+		auto& camTransform = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
+		// ---- INPUT ----
+		// Basic input handling for Camera movement (Input.h)
+		// Should probably be handled by a manager class
 
-	// --- TRANSFORMS UPDATE ----
-	m_TransformSystem->Update(*m_EntityWorld);
+		if (Magma::Input::IsKeyPressed(SDL_SCANCODE_T))
+		{
+			//Magma::AudioEngine::PlayGlobal("resources/audio/music_6.ogg", 0.1f, true);
+			//Magma::AudioEngine::PlayAtLocation("resources/audio/pickitup.mp3", glm::vec3(0.0f, 0.0f, 0.0f), 1.5f, true);
+		}
 
-	// ---- RENDERING ----
-	// Shader uniforms update and model drawing
-	m_ShaderProgram->Use();
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
-	m_ShaderProgram->SetUniform("u_Texture", 0);
+		if (Magma::Input::IsKeyPressed(SDL_SCANCODE_G))
+			Magma::AudioEngine::StopGlobal();
+
+
+		// ---- WORLD UPDATE ---- FINISH
+		m_WorldStreamer->Update(dt, glm::vec3(camTransform.worldMatrix[3]));
+
+		// ---- AUDIO UPDATE ----
+		// Audio Listener Update
+		Magma::AudioEngine::UpdateListener(glm::vec3(camTransform.worldMatrix[3]), -glm::vec3(camTransform.worldMatrix[2]), glm::vec3(camTransform.worldMatrix[1]));
+
+		// --- TRANSFORMS UPDATE ----
+		m_TransformSystem->Update(*m_EntityWorld);
+
+		// ---- RENDERING ----
+		// Shader uniforms update and model drawing
+		m_ShaderProgram->Use();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
+		m_ShaderProgram->SetUniform("u_Texture", 0);
+	}
 
 	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window);
 
@@ -223,6 +150,14 @@ void GameLayer::OnUpdate(float dt)
 void GameLayer::OnDetach()
 {
 	// --- GAME CLEANUP LOGIC ----
+
+	//m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
+
+	//m_WorldStreamer->UnloadAllChunks();
+	//m_WorldStreamer.reset();
+
+	m_NetworkManager->End();
+
 
 	for (Model* model : m_Models)
 	{
@@ -259,6 +194,24 @@ void GameLayer::OnImGuiRender()
 
 	switch (m_MenuState)
 	{
+		case (MenuState::SET_NAME):
+			ImGui::InputText("Username", m_UserNameBuf, IM_ARRAYSIZE(m_UserNameBuf));
+			if (strlen(m_UserNameBuf) > 0)
+			{
+				if (ImGui::Button("Play Game"))
+				{
+					m_Username = std::string(m_UserNameBuf);
+					m_MenuState = MenuState::MAIN_MENU;
+				}
+			}
+			if (ImGui::Button("Exit"))
+			{
+				SDL_Event quitEvent;
+				quitEvent.type = SDL_EVENT_QUIT;
+				SDL_PushEvent(&quitEvent);
+			}
+			break;
+
 		case (MenuState::MAIN_MENU):
 			if (ImGui::Button("Singleplayer"))
 			{
@@ -267,6 +220,10 @@ void GameLayer::OnImGuiRender()
 			if (ImGui::Button("Multiplayer"))
 			{
 				m_MenuState = MenuState::MULTIPLAYER;
+			}
+			if (ImGui::Button("Back"))
+			{
+				m_MenuState = MenuState::SET_NAME;
 			}
 			break;
 
@@ -340,6 +297,9 @@ void GameLayer::OnImGuiRender()
 					}
 					m_NetworkManager->GetWorldManager()->CreateWorld(worldName, seed, *m_EntityWorld);
 					m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
+
+					// spawn player
+					SpawnLocalPlayer(m_Username);
 				}
 			}
 			if (ImGui::Button("Back"))
@@ -382,6 +342,9 @@ void GameLayer::OnImGuiRender()
 					else
 					{
 						m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
+
+						// spawn player
+						SpawnLocalPlayer(m_Username);
 					}
 				}
 			}
@@ -429,6 +392,9 @@ void GameLayer::OnImGuiRender()
 				{
 					m_NetworkManager->Begin();
 
+					// spawn player
+					SpawnLocalPlayer(m_Username);
+
 					std::string address = std::string(m_ServerAddressBuf);
 					enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
 					m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
@@ -469,6 +435,10 @@ void GameLayer::OnImGuiRender()
 				if (ImGui::Button("Save & Exit"))
 				{
 					m_MenuState = MenuState::MAIN_MENU;
+					m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
+					m_WorldStreamer->UnloadAllChunks();
+					m_NetworkManager->End();
+					CleanupLocalPlayer();
 				}
 			}
 			else if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::CLIENT)
@@ -476,6 +446,7 @@ void GameLayer::OnImGuiRender()
 				if (ImGui::Button("Exit"))
 				{
 					m_MenuState = MenuState::MAIN_MENU;
+					// CALL NEXIT ON NETWORK MANAGER PACKET OR SOMETHING
 				}
 			}
 			break;
@@ -488,6 +459,80 @@ void GameLayer::OnResize(int width, int height)
 	// Resizing callback handling
 
 	if (height == 0) height = 1;
-	auto& camRef = m_EntityWorld->GetComponent<Craft::CameraComponent>(m_PrimaryCamera);
-	camRef.aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+	if (m_PrimaryCamera != Craft::NULL_ENTITY)
+	{
+		auto& camRef = m_EntityWorld->GetComponent<Craft::CameraComponent>(m_PrimaryCamera);
+		camRef.aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+	}
 }
+
+void GameLayer::SpawnLocalPlayer(const std::string& username)
+{
+	// create player using world manager
+	uint32_t playerEntity = m_NetworkManager->GetWorldManager()->CreatePlayerEntity(
+		*m_EntityWorld,
+		username,
+		static_cast<uint32_t>(Magma::Random::UInt(0, UINT_MAX))
+	);
+
+	// set local player flag
+	auto& playerRef = m_EntityWorld->GetComponent<Craft::PlayerComponent>(playerEntity);
+	playerRef.isLocalPlayer = true;
+	m_Player = playerEntity;
+
+	// add camera
+	uint32_t cameraEntity = m_EntityWorld->AddEntity();
+	m_EntityWorld->AddComponent<Craft::TransformComponent>(cameraEntity, { glm::vec3(0.0f, 1.6f, 0.0f) });
+	m_EntityWorld->AddComponent<Craft::CameraComponent>(cameraEntity, { true });
+	m_PrimaryCamera = cameraEntity;
+
+	// make camera a child of player
+	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(playerEntity,
+	{
+		Craft::NULL_ENTITY,
+		cameraEntity,
+		Craft::NULL_ENTITY,
+		Craft::NULL_ENTITY
+	});
+
+	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(cameraEntity,
+	{
+		playerEntity,
+		Craft::NULL_ENTITY,
+		Craft::NULL_ENTITY,
+		Craft::NULL_ENTITY
+	});
+
+	// bind scripts
+	auto& scriptComponent = m_EntityWorld->AddComponent<Craft::NativeScriptComponent>(playerEntity, {});
+	scriptComponent.Bind<Craft::PlayerController>();
+
+	// set script window / inject dependencies
+	SDL_Window* windowPtr = m_Window;
+	scriptComponent.instantiateScript = [windowPtr]()
+	{
+		auto* controller = new Craft::PlayerController();
+		controller->SetWindow(windowPtr);
+		return static_cast<Craft::ScriptableEntity*>(controller);
+	};
+
+	m_IsLocalPlayerLoaded = true;
+}
+
+void GameLayer::CleanupLocalPlayer()
+{
+	m_EntityWorld->RemoveEntity(m_Player);
+	m_Player = Craft::NULL_ENTITY;
+	m_PrimaryCamera = Craft::NULL_ENTITY;
+	m_IsLocalPlayerLoaded = false;
+}
+
+void GameLayer::WorldShutdown()
+{
+	m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
+	m_WorldStreamer->UnloadAllChunks();
+	m_NetworkManager->End();
+	CleanupLocalPlayer();
+}
+
+

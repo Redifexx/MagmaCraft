@@ -19,6 +19,7 @@ namespace Magma
 	{
 		public:
 			Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+			~Mesh();
 
 			void Draw() const;
 		private:

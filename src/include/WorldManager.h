@@ -17,34 +17,40 @@
 // Manages world data, including loading, saving, and updating chunks
 namespace Craft
 {
+	#pragma pack(push, 1)
 	struct ChunkFileHeader
 	{
-		uint32_t magic = 0X4D43484B; // Magma Chunk 'MCHK' Magic Number
+		const uint32_t magic = 0X4D43484B; // Magma Chunk 'MCHK' Magic Number
 		int32_t chunkX;
 		int32_t chunkZ;
 	};
+	#pragma pack(pop)
 
+	#pragma pack(push, 1)
 	struct WorldFileHeader
 	{
-		uint32_t magic = 0X4D435744; // Magma Craft World 'MCWD' Magic Number
+		const uint32_t magic = 0X4D435744; // Magma Craft World 'MCWD' Magic Number
 		uint32_t seed;
 		char worldName[32];
 	};
+	#pragma pack(pop)
 
 	// not sure if needed, but keeping here for consistency
+	#pragma pack(push, 1)
 	struct PlayerFileHeader
 	{
-		uint32_t magic = 0X4D43504C; // Magma Craft Player 'MCPL' Magic Number
+		const uint32_t magic = 0X4D43504C; // Magma Craft Player 'MCPL' Magic Number
 	};
+	#pragma pack(pop)
 
+	#pragma pack(push, 1)
 	struct PlayerData
 	{
-
 		glm::vec3 position;
 		glm::vec3 rotation;
 		float health;
-		glm::vec3 velocity;
 	};
+	#pragma pack(pop)
 
 	#pragma pack(push, 1)
 	struct SerializedPlayerData
@@ -54,7 +60,6 @@ namespace Craft
 		float posX, posY, posZ;
 		float rotW, rotX, rotY, rotZ;
 		float health;
-		float velX, velY, velZ;
 	};
 	#pragma pack(pop)
 
@@ -72,12 +77,13 @@ namespace Craft
 			// Only ever called if server
 			void CreateWorld(std::string& worldName, int seed, EntityWorld& eWorld);
 			bool LoadWorld(const char* filepath);
-			void SaveWorld(std::string& worldName, EntityWorld& eWorld); // saves metadata
+			void SaveWorld(EntityWorld& eWorld); // saves metadata
 
 			// Player Functions
 			std::string GetPlayerFolder();
 			void SavePlayerData(EntityWorld& eWorld, uint32_t entityID);
 			bool LoadPlayerData(std::string& username, SerializedPlayerData& outData);
+			uint32_t CreatePlayerEntity(EntityWorld& eWorld, const std::string& username, uint32_t playerID);
 
 			// Generates initial world data around player spawn
 			// Only ever called if server
