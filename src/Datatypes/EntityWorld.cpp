@@ -10,7 +10,8 @@ EntityWorld::EntityWorld()
 	GetComponentPool<ModelComponent>();				// 2
 	GetComponentPool<CameraComponent>();			// 3
 	GetComponentPool<HealthComponent>();			// 4
-
+	GetComponentPool<PlayerComponent>();			// 5
+	GetComponentPool<PhysicsComponent>();			// 6
 }
 
 EntityWorld::~EntityWorld()

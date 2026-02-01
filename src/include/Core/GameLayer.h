@@ -115,7 +115,9 @@ namespace Magma
 
 			// Timers
 			float m_AutoSaveTimer = 0.0f;
-			float m_AutoSaveInterval = 180.0f;
+			float m_AutoSaveRate = 180.0f;
+			float m_NetworkTickTimer = 0.0f;
+			float m_NetworkTickRate = 1.0f / 20.0f;
 
 			// IMGui Options
 			bool m_AutoConnect = true;

@@ -35,7 +35,7 @@ namespace Craft
 	};
 	#pragma pack(pop)
 
-	// not sure if needed, but keeping here for consistency
+	// only applies to file, not packet
 	#pragma pack(push, 1)
 	struct PlayerFileHeader
 	{
@@ -44,22 +44,22 @@ namespace Craft
 	#pragma pack(pop)
 
 	#pragma pack(push, 1)
-	struct PlayerData
+	struct SerializedPlayerData
 	{
-		glm::vec3 position;
-		glm::vec3 rotation;
+		char username[32];
+		float posX, posY, posZ;
+		float rotW, rotX, rotY, rotZ;
 		float health;
+		float velX, velY, velZ;
 	};
 	#pragma pack(pop)
 
 	#pragma pack(push, 1)
-	struct SerializedPlayerData
+	struct PlayerPacket
 	{
-		char username[32];
-		uint32_t playerID;
-		float posX, posY, posZ;
-		float rotW, rotX, rotY, rotZ;
-		float health;
+		uint8_t packetType;
+		uint32_t sequenceID;
+		SerializedPlayerData playerData; // should reaplce with player ID at somepoint
 	};
 	#pragma pack(pop)
 
@@ -83,7 +83,7 @@ namespace Craft
 			std::string GetPlayerFolder();
 			void SavePlayerData(EntityWorld& eWorld, uint32_t entityID);
 			bool LoadPlayerData(std::string& username, SerializedPlayerData& outData);
-			uint32_t CreatePlayerEntity(EntityWorld& eWorld, const std::string& username, uint32_t playerID);
+			uint32_t CreatePlayerEntity(EntityWorld& eWorld, const std::string& username);
 
 			// Generates initial world data around player spawn
 			// Only ever called if server

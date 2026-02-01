@@ -3,12 +3,16 @@
 #include <cstdint>
 #include <limits>
 #include <vector>
+#include <map>
+#include <unordered_map>
 #include "Datatypes/SparseSet.h"
 #include <Datatypes/Components/TransformComponent.h>
 #include <Datatypes/Components/RelationshipComponent.h>
 #include <Datatypes/Components/ModelComponent.h>
 #include <Datatypes/Components/CameraComponent.h>
 #include <Datatypes/Components/HealthComponent.h>
+#include <Datatypes/Components/PhysicsComponent.h>
+#include <Datatypes/Components/PlayerComponent.h>
 
 /*
 ECS RULES
@@ -83,6 +87,12 @@ namespace Craft
 				return GetComponentPool<T>()->Get(entityID);
 			}
 
+			template <typename T>
+			bool Contains(uint32_t entityID)
+			{
+				return GetComponentPool<T>()->Contains(entityID);
+			}
+
 			// provide a view of entities that have all specified components
 			// variadic templates - can take in any number of arguments/component types
 			// very nice, very useful
@@ -152,10 +162,16 @@ namespace Craft
 			void RemoveEntity(uint32_t entityID);
 
 			void ClearAllEntities();
+
+			void SetLocalPlayerID(uint32_t entityID) { m_LocalPlayerID = entityID; }
+			uint32_t GetLocalPlayerID() { return m_LocalPlayerID; }
+
+			// Player Username - Entity map based on current world session
+			std::unordered_map<std::string, uint32_t> m_PlayerEntityMap;
 			
 		private:
+			uint32_t m_LocalPlayerID = NULL_ENTITY;
 			std::vector<Entity> m_Entities;
 			std::vector<ISparseSet*> m_ComponentPools; // one per component type
-
 	};
 }

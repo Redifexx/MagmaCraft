@@ -96,11 +96,11 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 	auto& playerRef = eWorld.GetComponent<PlayerComponent>(entityID);
 	auto& transformRef = eWorld.GetComponent<TransformComponent>(entityID);
 	auto& healthRef = eWorld.GetComponent<HealthComponent>(entityID);
+	auto& physicsRef = eWorld.GetComponent<PhysicsComponent>(entityID);
 
 	SerializedPlayerData pData = {};
 
 	std::strncpy(pData.username, playerRef.username.c_str(), sizeof(pData.username) - 1);
-	pData.playerID = playerRef.playerID;
 
 	pData.posX = transformRef.localPosition.x;
 	pData.posY = transformRef.localPosition.y;
@@ -112,9 +112,10 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 	pData.rotZ = transformRef.localRotation.z;
 
 	pData.health = healthRef.health;
-	// skipped max health bc we know it's a player
 
-	// add velocity later
+	pData.velX = physicsRef.velocity.x;
+	pData.velY = physicsRef.velocity.y;
+	pData.velZ = physicsRef.velocity.z;
 
 	// write to file
 	std::filesystem::create_directories(GetPlayerFolder());
@@ -150,7 +151,7 @@ bool WorldManager::LoadPlayerData(std::string& username, SerializedPlayerData& o
 	return true;
 }
 
-uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, const std::string& username, uint32_t playerID)
+uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, const std::string& username)
 {
 	uint32_t playerEntity = eWorld.AddEntity();
 
@@ -167,13 +168,14 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, const std::string
 		spawnPosition = glm::vec3(pData.posX, pData.posY, pData.posZ);
 		spawnRotation = glm::quat(pData.rotW, pData.rotX, pData.rotY, pData.rotZ);
 		spawnHealth = pData.health;
-		playerID = pData.playerID;
 	}
 
 	// Add Components (Local + Remote)
 	eWorld.AddComponent<TransformComponent>(playerEntity, { spawnPosition, spawnRotation, glm::vec3(1.0f) });
-	eWorld.AddComponent<PlayerComponent>(playerEntity, { playerID, username });
+	eWorld.AddComponent<PlayerComponent>(playerEntity, { username });
 	eWorld.AddComponent<HealthComponent>(playerEntity, { spawnHealth, 20.0f });
+	eWorld.AddComponent<PhysicsComponent>(playerEntity, { glm::vec3(0.0f), true });
+
 
 	// will render unless ur a local player
 	Magma::Model* model = new Magma::Model("resources/models/player.fbx");

@@ -13,6 +13,10 @@ void PlayerController::OnAttach()
 	// get camera entity from relationship component
 	// assuming first child is camera (should be)
 	auto& relRef = GetComponent<RelationshipComponent>();
+
+	auto& transform = GetComponent<TransformComponent>();
+	m_LastPosition = transform.localPosition;
+
 	if (relRef.firstChild != NULL_ENTITY)
 	{
 		m_CameraEntity = relRef.firstChild;
@@ -28,6 +32,21 @@ void PlayerController::OnUpdate(float dt)
 void PlayerController::HandleMovement(float dt)
 {
 	auto& transform = GetComponent<TransformComponent>();
+	glm::vec3 curPosition = transform.localPosition;
+
+	// calculate velocity for server
+	if (dt > 0.0001f) // avoid accedental divide by 0
+	{
+		glm::vec3 velocity = (curPosition - m_LastPosition) / dt;
+
+		if (Contains<PhysicsComponent>(entityID))
+		{
+			auto& physicsRef = GetComponent<PhysicsComponent>();
+			physicsRef.velocity = velocity;
+		}
+	}
+
+	m_LastPosition = curPosition;
 
 	glm::vec3 forward = transform.localRotation * glm::vec3(0.0f, 0.0f, -1.0f); // -z forward
 	glm::vec3 right = transform.localRotation *  glm::vec3(1.0f, 0.0f, 0.0f);    // +x right

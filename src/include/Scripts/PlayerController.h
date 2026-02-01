@@ -24,5 +24,7 @@ namespace Craft
 			float m_Yaw = 0.0f;
 			float m_Pitch = 0.0f;
 			SDL_Window* m_Window;
+
+			glm::vec3 m_LastPosition = glm::vec3(0.0f);
 	};
 }

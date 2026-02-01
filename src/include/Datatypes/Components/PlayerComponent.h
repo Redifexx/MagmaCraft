@@ -5,8 +5,8 @@ namespace Craft
 {
 	struct PlayerComponent
 	{
-		uint32_t playerID;
 		std::string username;
 		bool isLocalPlayer = false;
+		uint32_t lastSequenceID = 0; // for packets
 	};
 }

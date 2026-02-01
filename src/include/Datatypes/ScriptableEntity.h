@@ -20,6 +20,12 @@ namespace Craft
 			template <typename T>
 			T& GetComponent() { return world->GetComponent<T>(entityID); }
 
+			template <typename T>
+			bool Contains(uint32_t entityID)
+			{
+				return world->Contains<T>(entityID);
+			}
+
 			virtual void OnAttach() {}
 			virtual void OnUpdate(float dt) {}
 			virtual void OnDestroy() {}

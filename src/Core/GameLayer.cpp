@@ -48,6 +48,7 @@ void GameLayer::OnAttach()
 
 	m_NetworkManager = std::make_shared<Craft::NetworkManager>();
 	m_WorldStreamer = std::make_unique<Craft::WorldStreamer>(m_NetworkManager);
+	m_NetworkManager->SetEntityWorld(m_EntityWorld);
 
 	Craft::BlockLibrary::Initialize();
 
@@ -90,7 +91,6 @@ void GameLayer::OnUpdate(float dt)
 {
 	if (dt > 0.1f) dt = 0.1f; // safaty
 
-
 	// Mouse look
 	ImGuiIO& io = ImGui::GetIO();
 	if (!io.WantCaptureMouse && Magma::Input::IsMouseButtonPressed(SDL_BUTTON_LEFT))
@@ -105,7 +105,7 @@ void GameLayer::OnUpdate(float dt)
 
 		if (m_AutoSaveTimer <= 0.0f)
 		{
-			m_AutoSaveTimer = m_AutoSaveInterval;
+			m_AutoSaveTimer = m_AutoSaveRate;
 			m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
 		}
 		else
@@ -144,6 +144,25 @@ void GameLayer::OnUpdate(float dt)
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
 		m_ShaderProgram->SetUniform("u_Texture", 0);
+	}
+
+	// network tick
+	m_NetworkTickTimer += dt;
+
+	while (m_NetworkTickTimer >= m_NetworkTickRate)
+	{
+		m_NetworkTickTimer = 0.0f;
+
+		// local player is only loaded when logged in
+		if (m_IsLocalPlayerLoaded && m_NetworkManager->GetNetworkRole() != Craft::NetworkRole::NONE)
+		{
+			auto& transformRef = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_Player);
+			auto& playerRef = m_EntityWorld->GetComponent<Craft::PlayerComponent>(m_Player);
+
+			// set velocity here
+
+			m_NetworkManager->SendPlayerData(*m_EntityWorld, m_Player);
+		}
 	}
 
 	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window);
@@ -213,6 +232,7 @@ void GameLayer::OnImGuiRender()
 				if (ImGui::Button("Play Game"))
 				{
 					m_Username = std::string(m_UserNameBuf);
+					m_NetworkManager->SetLocalPlayerUsername(m_Username); // important for login packets
 					m_MenuState = MenuState::MAIN_MENU;
 				}
 			}
@@ -484,8 +504,7 @@ void GameLayer::SpawnLocalPlayer(const std::string& username)
 	// create player using world manager
 	uint32_t playerEntity = m_NetworkManager->GetWorldManager()->CreatePlayerEntity(
 		*m_EntityWorld,
-		username,
-		static_cast<uint32_t>(Magma::Random::UInt(0, UINT_MAX))
+		username
 	);
 
 	// set local player flag
@@ -529,8 +548,9 @@ void GameLayer::SpawnLocalPlayer(const std::string& username)
 		return static_cast<Craft::ScriptableEntity*>(controller);
 	};
 
+	m_EntityWorld->SetLocalPlayerID(playerEntity);
 	m_IsLocalPlayerLoaded = true;
-	m_AutoSaveTimer = m_AutoSaveInterval;
+	m_AutoSaveTimer = m_AutoSaveRate;
 }
 
 void GameLayer::CleanupLocalPlayer()
@@ -538,6 +558,7 @@ void GameLayer::CleanupLocalPlayer()
 	m_EntityWorld->RemoveEntity(m_Player);
 	m_Player = Craft::NULL_ENTITY;
 	m_PrimaryCamera = Craft::NULL_ENTITY;
+	m_EntityWorld->SetLocalPlayerID(Craft::NULL_ENTITY);
 	m_IsLocalPlayerLoaded = false;
 	m_AutoSaveTimer = 0.0f;
 }
