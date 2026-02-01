@@ -43,26 +43,6 @@ namespace Craft
 	};
 	#pragma pack(pop)
 
-	#pragma pack(push, 1)
-	struct SerializedPlayerData
-	{
-		char username[32];
-		float posX, posY, posZ;
-		float rotW, rotX, rotY, rotZ;
-		float health;
-		float velX, velY, velZ;
-	};
-	#pragma pack(pop)
-
-	#pragma pack(push, 1)
-	struct PlayerPacket
-	{
-		uint8_t packetType;
-		uint32_t sequenceID;
-		SerializedPlayerData playerData; // should reaplce with player ID at somepoint
-	};
-	#pragma pack(pop)
-
 	inline int WorldToChunkPos(int coord)
 	{
 		// maps negative chunks correctly
@@ -83,7 +63,7 @@ namespace Craft
 			std::string GetPlayerFolder();
 			void SavePlayerData(EntityWorld& eWorld, uint32_t entityID);
 			bool LoadPlayerData(std::string& username, SerializedPlayerData& outData);
-			uint32_t CreatePlayerEntity(EntityWorld& eWorld, const std::string& username);
+			uint32_t CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID);
 
 			// Generates initial world data around player spawn
 			// Only ever called if server
@@ -114,11 +94,14 @@ namespace Craft
 			// Returns block type
 			const uint32_t GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec2 chunkPos, Direction direction);
 			
+			void SetNetworkIDToNameMap(std::shared_ptr<std::unordered_map <uint8_t, std::string>> map) { m_NetworkIDToNameMap = map; }
 			
 		private:
 			std::unique_ptr<WorldGenerator> m_WorldGenerator;
 			std::string m_WorldName = "New World";
 			uint8_t m_ChunkRenderDistance = 8; // allocated for each client in the server
 			std::unordered_map<glm::ivec2, std::unique_ptr<Chunk>> m_ChunkBuffer;
+
+			std::weak_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap;
 	};
 }

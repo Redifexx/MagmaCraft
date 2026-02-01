@@ -206,7 +206,7 @@ ___  ___  ___  _____ ___  ___  ___  _____ ______  ___  ______ _____
 \_|  |_/\_| |_/\____/\_|  |_/\_| |_/\____/\_| \_\_| |_/\_|     \_/  
 )";
 
-void GameLayer::OnImGuiRender()
+void GameLayer::OnImGuiRender(float dt)
 {
 	// --- IMGUI RENDERING ----
 	static char buf[256] = "";
@@ -292,98 +292,170 @@ void GameLayer::OnImGuiRender()
 			break;
 
 		case (MenuState::CREATE_WORLD):
-			ImGui::InputText("World Name", m_WorldNameBuf, IM_ARRAYSIZE(m_WorldNameBuf));
-			ImGui::Checkbox("Auto Seed", &m_AutoSeed);
-			if (!m_AutoSeed)
+		{
+			if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::DISCONNECTED)
 			{
-				ImGui::InputText("Seed", m_SeedBuf, IM_ARRAYSIZE(m_SeedBuf));
-			}
-			else
-			{
-				int randSeed = Magma::Random::Int(INT_MIN, INT_MAX);
-				std::snprintf(m_SeedBuf, sizeof(m_SeedBuf), "%d", randSeed);
-			}
-			if (m_AutoSeed || strlen(m_SeedBuf) > 0) // catch non number seeds
-			{
-				if (ImGui::Button("Create"))
+				ImGui::InputText("World Name", m_WorldNameBuf, IM_ARRAYSIZE(m_WorldNameBuf));
+				ImGui::Checkbox("Auto Seed", &m_AutoSeed);
+				if (!m_AutoSeed)
 				{
-					// initialize server
-					m_NetworkManager->Begin();
-
-					m_MenuState = MenuState::LOADING;
-					// Create world
-					std::string worldName = "New World";
-					if (strlen(m_WorldNameBuf) > 0)
+					ImGui::InputText("Seed", m_SeedBuf, IM_ARRAYSIZE(m_SeedBuf));
+				}
+				else
+				{
+					int randSeed = Magma::Random::Int(INT_MIN, INT_MAX);
+					std::snprintf(m_SeedBuf, sizeof(m_SeedBuf), "%d", randSeed);
+				}
+				if (m_AutoSeed || strlen(m_SeedBuf) > 0) // catch non number seeds
+				{
+					if (ImGui::Button("Create"))
 					{
-						worldName = std::string(m_WorldNameBuf);
-					}
+						// initialize server
+						m_NetworkManager->Begin();
 
-					int seed;
-					try 
-					{
-						seed = std::stoi(m_SeedBuf);
-					}
-					catch (std::invalid_argument)
-					{
-						seed = Magma::Random::Int(INT_MIN, INT_MAX);
-					}
-					m_NetworkManager->GetWorldManager()->CreateWorld(worldName, seed, *m_EntityWorld);
-					m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
+						// Connect to ourselves
+						strcpy_s(m_ServerAddressBuf, "localhost");
+						strcpy_s(m_ServerportBuf, "1233");
 
-					// spawn player
-					SpawnLocalPlayer(m_Username);
+						std::string address = std::string(m_ServerAddressBuf);
+						enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
+						m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
+						m_NetworkManager->GetClient()->ConnectToServer();
+
+						m_ConnectionFailTimer = m_ConnectionFailRate;
+					}
+				}
+				if (ImGui::Button("Back"))
+				{
+					m_NetworkManager->SetNetworkRole(Craft::NetworkRole::NONE);
+					m_MenuState = MenuState::SINGLEPLAYER;
 				}
 			}
-			if (ImGui::Button("Back"))
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTING)
 			{
-				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::NONE);
-				m_MenuState = MenuState::SINGLEPLAYER;
+				ImGui::Text("Connecting... %.1f s", m_NetworkManager->GetClient()->m_ConnectionTimer);
 			}
-			break;
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::AUTHENTICATING)
+			{
+				ImGui::Text("Logging In...");
+			}
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::LOGGED_IN)
+			{
+				// Create world
+				std::string worldName = "New World";
+				if (strlen(m_WorldNameBuf) > 0)
+				{
+					worldName = std::string(m_WorldNameBuf);
+				}
 
+				int seed;
+				try
+				{
+					seed = std::stoi(m_SeedBuf);
+				}
+				catch (std::invalid_argument)
+				{
+					seed = Magma::Random::Int(INT_MIN, INT_MAX);
+				}
+				m_NetworkManager->GetWorldManager()->CreateWorld(worldName, seed, *m_EntityWorld);
+
+				m_MenuState = MenuState::IN_GAME;
+
+				// spawn player
+				SpawnLocalPlayer();
+			}
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::FAILED) // shouldn't occur on localhost
+			{
+				ImGui::TextColored(ImVec4(1, 0, 0, 1), "Connection Timed Out!");
+				m_ConnectionFailTimer -= dt;
+
+				if (m_ConnectionFailTimer <= 0.0f)
+				{
+					m_NetworkManager->GetClient()->SetConnectionState(ConnectionState::DISCONNECTED);
+					m_ConnectionFailTimer = 0.0f;
+				}
+			}
+
+			break;
+		}
 		case (MenuState::LOAD_WORLD):
 		{
-			ImGui::InputText("World Path", m_WorldPathBuf, IM_ARRAYSIZE(m_WorldPathBuf));
-			if (ImGui::Button("Browse"))
+			if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::DISCONNECTED)
 			{
-				m_FileBrowser.Open();
-			}
-
-			m_FileBrowser.Display();
-
-			if (m_FileBrowser.HasSelected())
-			{
-				std::memset(m_WorldPathBuf, 0, sizeof(m_WorldPathBuf));
-				std::strncpy(m_WorldPathBuf, m_FileBrowser.GetSelected().string().c_str(), sizeof(m_WorldPathBuf));
-				m_FileBrowser.ClearSelected();
-			}
-
-			if (strlen(m_WorldPathBuf) > 0)
-			{
-				if (ImGui::Button("Join"))
+				ImGui::InputText("World Path", m_WorldPathBuf, IM_ARRAYSIZE(m_WorldPathBuf));
+				if (ImGui::Button("Browse"))
 				{
-					// initialize server
-					m_NetworkManager->Begin();
+					m_FileBrowser.Open();
+				}
 
-					m_MenuState = MenuState::LOADING;
+				m_FileBrowser.Display();
 
-					if (!m_NetworkManager->GetWorldManager()->LoadWorld(m_WorldPathBuf))
+				if (m_FileBrowser.HasSelected())
+				{
+					std::memset(m_WorldPathBuf, 0, sizeof(m_WorldPathBuf));
+					std::strncpy(m_WorldPathBuf, m_FileBrowser.GetSelected().string().c_str(), sizeof(m_WorldPathBuf));
+					m_FileBrowser.ClearSelected();
+				}
+
+				if (strlen(m_WorldPathBuf) > 0)
+				{
+					if (ImGui::Button("Join"))
 					{
-						ImGui::Text("Invalid file path.");
-					}
-					else
-					{
-						m_MenuState = MenuState::IN_GAME; // FIX LOADING LATER
+						// initialize server
+						m_NetworkManager->Begin();
 
-						// spawn player
-						SpawnLocalPlayer(m_Username);
+						// Connect to ourselves
+						strcpy_s(m_ServerAddressBuf, "localhost");
+						strcpy_s(m_ServerportBuf, "1233");
+
+						std::string address = std::string(m_ServerAddressBuf);
+						enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
+						m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
+						m_NetworkManager->GetClient()->ConnectToServer();
+
+						m_ConnectionFailTimer = m_ConnectionFailRate;
 					}
 				}
+
+				if (ImGui::Button("Back"))
+				{
+					m_NetworkManager->SetNetworkRole(Craft::NetworkRole::NONE);
+					m_MenuState = MenuState::SINGLEPLAYER;
+				}
 			}
-			if (ImGui::Button("Back"))
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTING)
 			{
-				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::NONE);
-				m_MenuState = MenuState::SINGLEPLAYER;
+				ImGui::Text("Connecting... %.1f s", m_NetworkManager->GetClient()->m_ConnectionTimer);
+			}
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::AUTHENTICATING)
+			{
+				ImGui::Text("Logging In...");
+			}
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::LOGGED_IN)
+			{
+				if (!m_NetworkManager->GetWorldManager()->LoadWorld(m_WorldPathBuf))
+				{
+					ImGui::Text("Invalid file path.");
+					m_NetworkManager->GetClient()->SetConnectionState(ConnectionState::DISCONNECTED);
+				}
+				else
+				{
+					m_MenuState = MenuState::IN_GAME;
+
+					// spawn player
+					SpawnLocalPlayer();
+				}
+			}
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::FAILED) // shouldn't occur on localhost
+			{
+				ImGui::TextColored(ImVec4(1, 0, 0, 1), "Connection Timed Out!");
+				m_ConnectionFailTimer -= dt;
+
+				if (m_ConnectionFailTimer <= 0.0f)
+				{
+					m_NetworkManager->GetClient()->SetConnectionState(ConnectionState::DISCONNECTED);
+					m_ConnectionFailTimer = 0.0f;
+				}
 			}
 			break;
 		}
@@ -408,57 +480,67 @@ void GameLayer::OnImGuiRender()
 			// Joining options would go here
 			// Join Server -> Connect -> Login -> Enter World
 			m_NetworkManager->SetNetworkRole(Craft::NetworkRole::CLIENT);
-			ImGui::Checkbox("Localhost", &m_AutoConnect);
-			if (!m_AutoConnect)
+
+			if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::DISCONNECTED)
 			{
-				ImGui::InputText("Server Address", m_ServerAddressBuf, IM_ARRAYSIZE(m_ServerAddressBuf));
-				ImGui::InputText("Server Port", m_ServerportBuf, IM_ARRAYSIZE(m_ServerportBuf));
-			}
-			else
-			{
-				strcpy_s(m_ServerAddressBuf, "localhost");
-				strcpy_s(m_ServerportBuf, "1233");
-			}
-			if ((m_AutoConnect || (strlen(m_ServerAddressBuf) > 0) && (strlen(m_ServerportBuf) > 0)))
-			{
-				if (ImGui::Button("Connect"))
+				ImGui::Checkbox("Localhost", &m_AutoConnect);
+				if (!m_AutoConnect)
 				{
-					m_NetworkManager->Begin();
+					ImGui::InputText("Server Address", m_ServerAddressBuf, IM_ARRAYSIZE(m_ServerAddressBuf));
+					ImGui::InputText("Server Port", m_ServerportBuf, IM_ARRAYSIZE(m_ServerportBuf));
+				}
+				else
+				{
+					strcpy_s(m_ServerAddressBuf, "localhost");
+					strcpy_s(m_ServerportBuf, "1233");
+				}
 
-					std::string address = std::string(m_ServerAddressBuf);
-					enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
-					m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
-					m_NetworkManager->GetClient()->ConnectToServer();
-
-					if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::FAILED)
+				if ((m_AutoConnect || (strlen(m_ServerAddressBuf) > 0) && (strlen(m_ServerportBuf) > 0)))
+				{
+					if (ImGui::Button("Connect"))
 					{
-						ImGui::TextColored(ImVec4(1, 0, 0, 1), "Connection Timed Out!");
+						m_NetworkManager->Begin();
+
+						std::string address = std::string(m_ServerAddressBuf);
+						enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
+						m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
+						m_NetworkManager->GetClient()->ConnectToServer();
+
+						m_ConnectionFailTimer = m_ConnectionFailRate;
 					}
+				}
+				if (ImGui::Button("Back"))
+				{
+					m_MenuState = MenuState::MULTIPLAYER;
 				}
 			}
 			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTING)
 			{
 				ImGui::Text("Connecting... %.1f s", m_NetworkManager->GetClient()->m_ConnectionTimer);
 			}
-			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTED)
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::AUTHENTICATING)
 			{
-				if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::AUTHENTICATING)
-				{
-					ImGui::Text("Logging In...");
-				}
-				else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::LOGGED_IN)
-				{
-					m_MenuState = MenuState::IN_GAME;
+				ImGui::Text("Logging In...");
+			}
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::LOGGED_IN)
+			{
+				m_MenuState = MenuState::IN_GAME;
 
-					// spawn player
-					SpawnLocalPlayer();
+				// spawn player
+				SpawnLocalPlayer();
+			}
+			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::FAILED)
+			{
+				ImGui::TextColored(ImVec4(1, 0, 0, 1), "Connection Timed Out!");
+				m_ConnectionFailTimer -= dt;
+
+				if (m_ConnectionFailTimer <= 0.0f)
+				{
+					m_NetworkManager->GetClient()->SetConnectionState(ConnectionState::DISCONNECTED);
+					m_ConnectionFailTimer = 0.0f;
 				}
 			}
 
-			if (ImGui::Button("Back"))
-			{
-				m_MenuState = MenuState::MULTIPLAYER;
-			}
 			break;
 
 		case (MenuState::IN_GAME):
@@ -487,7 +569,6 @@ void GameLayer::OnImGuiRender()
 				if (ImGui::Button("Exit"))
 				{
 					m_MenuState = MenuState::MAIN_MENU;
-					// CALL NEXIT ON NETWORK MANAGER PACKET OR SOMETHING
 				}
 			}
 			break;

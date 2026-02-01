@@ -26,11 +26,13 @@ bool NetworkManager::Begin()
 			m_Server = std::make_unique<Magma::Server>();
 			m_Client = std::make_unique<Magma::Client>();
 			m_WorldManager = std::make_shared<WorldManager>();
+			m_WorldManager->SetNetworkIDToNameMap(m_NetworkIDToNameMap);
 			return true;
 
 		case NetworkRole::CLIENT:
 			m_Client = std::make_unique<Magma::Client>();
 			m_WorldManager = std::make_shared<WorldManager>();
+			m_WorldManager->SetNetworkIDToNameMap(m_NetworkIDToNameMap);
 			return true;
 
 		default:
@@ -109,9 +111,9 @@ void NetworkManager::SendPlayerData(EntityWorld& eWorld, uint32_t entityID)
 
 	pData.packetType = static_cast<uint8_t>(PacketType::PLAYER_DATA);
 	pData.sequenceID = m_PlayerPacketSequence++;
-	pData.playerData = {};
+	pData.networkID = playerRef.networkID;
 
-	std::strncpy(pData.playerData.username, playerRef.username.c_str(), sizeof(pData.playerData.username));
+	pData.playerData = {};
 
 	pData.playerData.posX = transformRef.localPosition.x;
 	pData.playerData.posY = transformRef.localPosition.y;
@@ -149,15 +151,11 @@ void NetworkManager::SendPlayerData(EntityWorld& eWorld, uint32_t entityID)
 	}
 }
 
-void NetworkManager::SendPlayerDisconnect(const std::string& username)
+void NetworkManager::SendPlayerDisconnect(uint8_t networkID)
 {
 	PacketWriter writer;
 	writer.WriteByte(static_cast<uint8_t>(PacketType::PLAYER_DISCONNECT));
-
-	char usernameChar[32];
-	memset(usernameChar, 0, sizeof(usernameChar));
-	strncpy(usernameChar, username.c_str(), sizeof(usernameChar));
-	writer.WriteData(&usernameChar, sizeof(usernameChar));
+	writer.WriteByte(networkID);
 
 	// create ENet packet
 	ENetPacket* packet = enet_packet_create(
@@ -170,7 +168,7 @@ void NetworkManager::SendPlayerDisconnect(const std::string& username)
 	enet_host_broadcast(m_Server->GetENetHost(), 0, packet);
 }
 
-void NetworkManager::LoginRequest(const std::string& username)
+void NetworkManager::LoginRequestPacket(const std::string& username)
 {
 
 	m_Client->SetConnectionState(Magma::ConnectionState::AUTHENTICATING);
@@ -194,7 +192,7 @@ void NetworkManager::LoginRequest(const std::string& username)
 	enet_peer_send(m_Client->GetENetPeer(), 0, packet);
 }
 
-void NetworkManager::LoginSuccess(ENetPeer* peer, uint8_t networkID, const std::string& username)
+void NetworkManager::LoginSuccessPacket(ENetPeer* peer, uint8_t networkID, const std::string& username)
 {
 	PacketWriter writer;
 	writer.WriteByte(static_cast<uint8_t>(PacketType::LOGIN_SUCCESS));
@@ -262,6 +260,7 @@ void NetworkManager::Update(float dt)
 					std::cout << "Player " << event.peer->address.host << " disconnected." << std::endl;
 
 					std::string username;
+					uint8_t networkID = 0;
 
 					// Remove from entity world and maps
 					if (m_PeerToEntityMap.find(event.peer->incomingPeerID) != m_PeerToEntityMap.end())
@@ -271,19 +270,17 @@ void NetworkManager::Update(float dt)
 						{
 							m_WorldManager->SavePlayerData(*eWorld, entityID);
 							auto& playerRef = eWorld->GetComponent<PlayerComponent>(entityID);
-							eWorld->m_PlayerEntityMap.erase(playerRef.username);
-							username = playerRef.username;
+
+							username = (*m_NetworkIDToNameMap)[playerRef.networkID];
+							networkID = m_NameToNetworkIDMap[username]; // optimize
+							eWorld->m_PlayerIDEntityMap.erase(networkID);
 							eWorld->RemoveEntity(entityID);
 						}
 						m_PeerToEntityMap.erase(event.peer->incomingPeerID);
 					}
 
 					// relay player exit
-					if (m_Role == NetworkRole::SERVER)
-					{
-						// send exit packet
-						SendPlayerDisconnect(username);
-					}
+					SendPlayerDisconnect(networkID);
 
 					m_Server->GetClients().erase(event.peer->incomingPeerID);
 					event.peer->data = NULL;
@@ -303,7 +300,7 @@ void NetworkManager::Update(float dt)
 				case ENET_EVENT_TYPE_CONNECT:
 				{
 					std::cout << "Connected to server." << std::endl;
-					LoginRequest(m_LocalPlayerUsername);
+					LoginRequestPacket(m_LocalPlayerUsername);
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE:
@@ -379,14 +376,14 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			uint32_t entityID = NULL_ENTITY;
 
 			// add to entity map
-			entityID = m_WorldManager->CreatePlayerEntity(*eWorld, username);
+			entityID = m_WorldManager->CreatePlayerEntity(*eWorld, networkID);
 			eWorld->m_PlayerIDEntityMap[networkID] = entityID;
 
 			// Add to peer map
 			m_PeerToEntityMap[peer->incomingPeerID] = entityID;
 
 			// Send player login success to everyone
-			LoginSuccess(peer, networkID, username);
+			LoginSuccessPacket(peer, networkID, username);
 
 			break;
 		}
@@ -395,6 +392,8 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 		{
 			// Player Receieves Login Success, Server relays to all other clients
 			// this is a client packet, read as if client
+
+			// i shoudl send all player packets
 
 			uint8_t networkID = 0;
 
@@ -417,14 +416,16 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			uint32_t entityID = NULL_ENTITY;
 
-			entityID = m_WorldManager->CreatePlayerEntity(*eWorld, username);
+			entityID = m_WorldManager->CreatePlayerEntity(*eWorld, networkID);
 
-			if (username != m_LocalPlayerUsername) m_NetworkID = networkID;
+			if (username == m_LocalPlayerUsername)
+			{
+				m_Client->SetConnectionState(Magma::ConnectionState::LOGGED_IN);
+				m_NetworkID = networkID;
+			}
 
 			eWorld->m_PlayerIDEntityMap[networkID] = entityID;
-			m_NetworkIDToNameMap[networkID] = username;
-
-			m_Client->SetConnectionState(Magma::ConnectionState::LOGGED_IN);
+			(*m_NetworkIDToNameMap)[networkID] = username;
 
 			break;
 		}
@@ -486,6 +487,10 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			std::memcpy(&sequenceID, &data[offset], sizeof(uint32_t));
 			offset += sizeof(uint32_t);
 
+			uint8_t networkID = 0;
+			std::memcpy(&networkID, &data[offset], sizeof(uint8_t));
+			offset += sizeof(uint8_t);
+
 			// 76 Bytes
 			SerializedPlayerData pData = {};
 
@@ -506,7 +511,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			}
 			else if (m_Role == NetworkRole::CLIENT)
 			{
-				entityID = eWorld->m_PlayerEntityMap[static_cast<std::string>(pData.username)];
+				entityID = eWorld->m_PlayerIDEntityMap[networkID];
 			}
 
 			// move data to player components
@@ -527,9 +532,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			transformRef.localRotation.w = pData.rotW;
 			transformRef.localRotation.x = pData.rotX;
 			transformRef.localRotation.y = pData.rotY;
-			transformRef.localRotation.z = pData.rotZ;
-
-			playerRef.username = pData.username; // pointless to do every tick will fix later
+			transformRef.localRotation.z = pData.rotZ;	
 
 			healthRef.health = pData.health;
 
@@ -563,19 +566,18 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 		{
 			size_t dataSize = length;
 
-			char usernameChar[32];
-			std::memcpy(&usernameChar, &data[1], sizeof(usernameChar));
+			uint8_t networkID = 0;
 
-			std::string username = usernameChar;
+			std::memcpy(&networkID, &data[1], sizeof(uint8_t));
 
 			auto eWorld = m_EntityWorld.lock();
 			if (!eWorld) return;
 
-			uint32_t entityID = eWorld->m_PlayerEntityMap[username];
+			uint32_t entityID = eWorld->m_PlayerIDEntityMap[networkID];
 			m_WorldManager->SavePlayerData(*eWorld, entityID);
 			if (auto eWorld = m_EntityWorld.lock())
 			{
-				eWorld->m_PlayerEntityMap.erase(username);
+				eWorld->m_PlayerIDEntityMap.erase(networkID);
 				eWorld->RemoveEntity(entityID);
 			}
 		}

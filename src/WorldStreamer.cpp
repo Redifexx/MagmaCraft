@@ -90,26 +90,15 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 			}
 			else if (!renderChunk->isPending && chunkRequestsSentThisFrame < MAX_CHUNK_REQUESTS_PER_FRAME)
 			{
-				NetworkRole role = networkManager->GetNetworkRole();
+				networkManager.get()->RequestChunkData(
+					networkManager.get()->GetClient()->GetENetPeer(),
+					curChunkX,
+					curChunkZ);
 
-				if (role == NetworkRole::CLIENT)
-				{
-					networkManager.get()->RequestChunkData(
-						networkManager.get()->GetClient()->GetENetPeer(),
-						curChunkX,
-						curChunkZ);
+				// mark as pending
+				renderChunk->isPending = true;
 
-					// mark as pending
-					renderChunk->isPending = true;
-
-					chunkRequestsSentThisFrame++;
-				}
-				else if (role == NetworkRole::SERVER) // until i made a dedicated server, server == server + client
-				{
-					// skip localhost, send data directly
-					worldManager->AddChunkToBuffer(curChunkX, curChunkZ);
-					renderChunk->isPending = true;
-				}
+				chunkRequestsSentThisFrame++;
 			}
 		}
 	}

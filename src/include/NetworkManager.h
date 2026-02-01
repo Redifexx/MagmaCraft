@@ -39,6 +39,28 @@ namespace Craft
 		void WriteData(const void* data, size_t size);
 	};
 
+	// PACKET DEFINTIONS
+	#pragma pack(push, 1)
+	struct SerializedPlayerData
+	{
+		float posX, posY, posZ;
+		float rotW, rotX, rotY, rotZ;
+		float health;
+		float velX, velY, velZ;
+	};
+	#pragma pack(pop)
+
+	#pragma pack(push, 1)
+	struct PlayerPacket
+	{
+		uint8_t packetType;
+		uint32_t sequenceID;
+		uint8_t networkID;
+		SerializedPlayerData playerData; // should reaplce with player ID at somepoint
+	};
+	#pragma pack(pop)
+
+
 
 	class NetworkManager
 	{
@@ -51,10 +73,10 @@ namespace Craft
 			void RequestChunkData(ENetPeer* peer, int chunkX, int chunkZ);
 
 			void SendPlayerData(EntityWorld& eWorld, uint32_t entityID);
-			void SendPlayerDisconnect(const std::string& username);
+			void SendPlayerDisconnect(uint8_t networkID);
 
-			void LoginRequest(const std::string& username);
-			void LoginSuccess(ENetPeer* peer, uint8_t networkID, const std::string& username);
+			void LoginRequestPacket(const std::string& username);
+			void LoginSuccessPacket(ENetPeer* peer, uint8_t networkID, const std::string& username);
 			uint8_t GetAvailableNetworkID();
 
 			// Receive
@@ -74,6 +96,8 @@ namespace Craft
 			void SetLocalPlayerUsername(const std::string& username) { m_LocalPlayerUsername = username; }
 
 			uint8_t GetNetworkID() { return m_NetworkID; }
+
+			std::shared_ptr<std::unordered_map <uint8_t, std::string>> GetNetworkIDToNameMap() { return m_NetworkIDToNameMap; }
 
 		private:
 			std::unique_ptr<Magma::Server> m_Server = nullptr;
@@ -101,6 +125,6 @@ namespace Craft
 			std::unordered_map <std::string, uint8_t> m_NameToNetworkIDMap; // only used by server
 
 			// NetworkID -> Player Username
-			std::unordered_map <uint8_t, std::string> m_NetworkIDToNameMap; // only used by client
+			std::shared_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap; // only used by client
 	};
 }

@@ -6,6 +6,9 @@
 #include <filesystem>
 #include <algorithm>
 #include <iostream>
+#include "NetworkManager.h"
+
+#undef min
 
 using namespace Craft;
  
@@ -98,9 +101,12 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 	auto& healthRef = eWorld.GetComponent<HealthComponent>(entityID);
 	auto& physicsRef = eWorld.GetComponent<PhysicsComponent>(entityID);
 
-	SerializedPlayerData pData = {};
+	auto idMap = m_NetworkIDToNameMap.lock();
+	if (!idMap) return;
 
-	std::strncpy(pData.username, playerRef.username.c_str(), sizeof(pData.username) - 1);
+	std::string username = (*idMap)[playerRef.networkID];
+
+	SerializedPlayerData pData = {};
 
 	pData.posX = transformRef.localPosition.x;
 	pData.posY = transformRef.localPosition.y;
@@ -119,7 +125,7 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 
 	// write to file
 	std::filesystem::create_directories(GetPlayerFolder());
-	std::string filename = GetPlayerFolder() + std::string(pData.username) + ".mcpl";
+	std::string filename = GetPlayerFolder() + std::string(username) + ".mcpl";
 	std::ofstream outfile(filename, std::ios::binary);
 	if (!outfile.is_open()) return; // should prob throw an error
 
@@ -151,12 +157,17 @@ bool WorldManager::LoadPlayerData(std::string& username, SerializedPlayerData& o
 	return true;
 }
 
-uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, const std::string& username)
+uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID)
 {
 	uint32_t playerEntity = eWorld.AddEntity();
 
-	SerializedPlayerData pData;
-	bool isSaved = LoadPlayerData(const_cast<std::string&>(username), pData);
+	auto idMap = m_NetworkIDToNameMap.lock();
+	if (!idMap) return;
+
+	std::string username = (*idMap)[networkID];
+
+	SerializedPlayerData pData = {};
+	bool isSaved = LoadPlayerData(username, pData);
 
 	// later add randomized spawn based on world placement
 	glm::vec3 spawnPosition = glm::vec3(0.0f, 64.0f, 0.0f);
@@ -172,7 +183,7 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, const std::string
 
 	// Add Components (Local + Remote)
 	eWorld.AddComponent<TransformComponent>(playerEntity, { spawnPosition, spawnRotation, glm::vec3(1.0f) });
-	eWorld.AddComponent<PlayerComponent>(playerEntity, { username });
+	eWorld.AddComponent<PlayerComponent>(playerEntity, { networkID });
 	eWorld.AddComponent<HealthComponent>(playerEntity, { spawnHealth, 20.0f });
 	eWorld.AddComponent<PhysicsComponent>(playerEntity, { glm::vec3(0.0f), true });
 

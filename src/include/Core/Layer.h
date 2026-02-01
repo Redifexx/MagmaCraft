@@ -17,7 +17,7 @@ namespace Magma
 			virtual void OnAttach() {}
 			virtual void OnDetach() {}
 			virtual void OnUpdate(float dt) {}
-			virtual void OnImGuiRender() {}
+			virtual void OnImGuiRender(float dt) {}
 
 		protected:
 			std::string m_DebugName;

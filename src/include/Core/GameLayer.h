@@ -86,7 +86,7 @@ namespace Magma
 			void OnAttach() override;
 			void OnUpdate(float dt) override;
 			void OnDetach() override;
-			void OnImGuiRender() override;
+			void OnImGuiRender(float dt) override;
 			void OnResize(int width, int height);
 
 		private:
@@ -118,6 +118,8 @@ namespace Magma
 			float m_AutoSaveRate = 180.0f;
 			float m_NetworkTickTimer = 0.0f;
 			float m_NetworkTickRate = 1.0f / 20.0f;
+			float m_ConnectionFailTimer = 0.0f;
+			float m_ConnectionFailRate = 3.0f;
 
 			// IMGui Options
 			bool m_AutoConnect = true;

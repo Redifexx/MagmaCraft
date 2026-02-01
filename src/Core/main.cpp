@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 		imGuiLayer->Begin();
         for (Magma::Layer* layer : layerStack)
         {
-			layer->OnImGuiRender();
+			layer->OnImGuiRender(deltaTime);
         }
 		imGuiLayer->End();
 

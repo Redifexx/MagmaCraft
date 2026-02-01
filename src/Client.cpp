@@ -39,6 +39,7 @@ bool Client::ConnectToServer()
 {
 	if (!m_Client) return false;
 
+	m_ConnectionState = ConnectionState::CONNECTING;
 	m_ConnectionTimer = CONNECTION_TIMEOUT;
 	m_Server = enet_host_connect(m_Client, &m_ServerHint, 2, 0);
 
