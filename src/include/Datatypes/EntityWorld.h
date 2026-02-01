@@ -167,7 +167,7 @@ namespace Craft
 			uint32_t GetLocalPlayerID() { return m_LocalPlayerID; }
 
 			// Player Username - Entity map based on current world session
-			std::unordered_map<std::string, uint32_t> m_PlayerEntityMap;
+			std::unordered_map<uint8_t, uint32_t> m_PlayerIDEntityMap;
 			
 		private:
 			uint32_t m_LocalPlayerID = NULL_ENTITY;

@@ -73,6 +73,8 @@ namespace Craft
 			const std::string& GetLocalPlayerUsername() { return m_LocalPlayerUsername; }
 			void SetLocalPlayerUsername(const std::string& username) { m_LocalPlayerUsername = username; }
 
+			uint8_t GetNetworkID() { return m_NetworkID; }
+
 		private:
 			std::unique_ptr<Magma::Server> m_Server = nullptr;
 			std::unique_ptr<Magma::Client> m_Client = nullptr;

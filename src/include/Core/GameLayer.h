@@ -91,7 +91,7 @@ namespace Magma
 
 		private:
 			void SetWindow(SDL_Window* window) { m_Window = window; }
-			void SpawnLocalPlayer(const std::string& username);
+			void SpawnLocalPlayer();
 			void CleanupLocalPlayer();
 			void WorldShutdown();
 

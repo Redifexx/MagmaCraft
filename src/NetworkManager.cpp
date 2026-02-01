@@ -172,6 +172,9 @@ void NetworkManager::SendPlayerDisconnect(const std::string& username)
 
 void NetworkManager::LoginRequest(const std::string& username)
 {
+
+	m_Client->SetConnectionState(Magma::ConnectionState::AUTHENTICATING);
+
 	PacketWriter writer;
 	writer.WriteByte(static_cast<uint8_t>(PacketType::LOGIN_REQUEST));
 
@@ -377,13 +380,13 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			// add to entity map
 			entityID = m_WorldManager->CreatePlayerEntity(*eWorld, username);
-			eWorld->m_PlayerEntityMap[static_cast<std::string>(username)] = entityID;
+			eWorld->m_PlayerIDEntityMap[networkID] = entityID;
 
 			// Add to peer map
 			m_PeerToEntityMap[peer->incomingPeerID] = entityID;
 
 			// Send player login success to everyone
-			LoginSuccess(peer, networkID);
+			LoginSuccess(peer, networkID, username);
 
 			break;
 		}
@@ -407,23 +410,21 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			}
 
 			// Create Entity on Client
+			// If this was our request, we already created our player locally
+
 			auto eWorld = m_EntityWorld.lock();
 			if (!eWorld) return;
 
 			uint32_t entityID = NULL_ENTITY;
 
 			entityID = m_WorldManager->CreatePlayerEntity(*eWorld, username);
-			eWorld->m_PlayerEntityMap[static_cast<std::string>(username)] = entityID;
 
-			if (!eWorld->m_PlayerEntityMap.contains(static_cast<std::string>(pData.username)))
-			{
-				entityID = m_WorldManager->CreatePlayerEntity(*eWorld, pData.username);
-				eWorld->m_PlayerEntityMap[static_cast<std::string>(pData.username)] = entityID;
-			}
-			else
-			{
-				entityID = eWorld->m_PlayerEntityMap[static_cast<std::string>(pData.username)];
-			}
+			if (username != m_LocalPlayerUsername) m_NetworkID = networkID;
+
+			eWorld->m_PlayerIDEntityMap[networkID] = entityID;
+			m_NetworkIDToNameMap[networkID] = username;
+
+			m_Client->SetConnectionState(Magma::ConnectionState::LOGGED_IN);
 
 			break;
 		}
@@ -505,15 +506,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			}
 			else if (m_Role == NetworkRole::CLIENT)
 			{
-				if (!eWorld->m_PlayerEntityMap.contains(static_cast<std::string>(pData.username)))
-				{
-					entityID = m_WorldManager->CreatePlayerEntity(*eWorld, pData.username);
-					eWorld->m_PlayerEntityMap[static_cast<std::string>(pData.username)] = entityID;
-				}
-				else
-				{
-					entityID = eWorld->m_PlayerEntityMap[static_cast<std::string>(pData.username)];
-				}
+				entityID = eWorld->m_PlayerEntityMap[static_cast<std::string>(pData.username)];
 			}
 
 			// move data to player components

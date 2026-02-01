@@ -406,6 +406,7 @@ void GameLayer::OnImGuiRender()
 			break;
 		case (MenuState::JOIN_GAME):
 			// Joining options would go here
+			// Join Server -> Connect -> Login -> Enter World
 			m_NetworkManager->SetNetworkRole(Craft::NetworkRole::CLIENT);
 			ImGui::Checkbox("Localhost", &m_AutoConnect);
 			if (!m_AutoConnect)
@@ -424,9 +425,6 @@ void GameLayer::OnImGuiRender()
 				{
 					m_NetworkManager->Begin();
 
-					// spawn player
-					SpawnLocalPlayer(m_Username);
-
 					std::string address = std::string(m_ServerAddressBuf);
 					enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
 					m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
@@ -444,7 +442,17 @@ void GameLayer::OnImGuiRender()
 			}
 			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTED)
 			{
-				m_MenuState = MenuState::IN_GAME;
+				if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::AUTHENTICATING)
+				{
+					ImGui::Text("Logging In...");
+				}
+				else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::LOGGED_IN)
+				{
+					m_MenuState = MenuState::IN_GAME;
+
+					// spawn player
+					SpawnLocalPlayer();
+				}
 			}
 
 			if (ImGui::Button("Back"))
@@ -499,13 +507,10 @@ void GameLayer::OnResize(int width, int height)
 	}
 }
 
-void GameLayer::SpawnLocalPlayer(const std::string& username)
+void GameLayer::SpawnLocalPlayer()
 {
 	// create player using world manager
-	uint32_t playerEntity = m_NetworkManager->GetWorldManager()->CreatePlayerEntity(
-		*m_EntityWorld,
-		username
-	);
+	uint32_t playerEntity = m_EntityWorld->m_PlayerIDEntityMap[m_NetworkManager->GetNetworkID()];
 
 	// set local player flag
 	auto& playerRef = m_EntityWorld->GetComponent<Craft::PlayerComponent>(playerEntity);
