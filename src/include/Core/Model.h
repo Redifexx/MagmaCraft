@@ -14,6 +14,13 @@ namespace Magma
 	{
 		public:
 			Model(const std::string& filepath);
+
+			Model(Model&&) noexcept = default;
+			Model& operator=(Model&&) noexcept = default;
+
+			Model(const Model&) = delete;
+			Model& operator=(const Model&) = delete;
+
 			void Draw() const;
 
 		private:

@@ -3,11 +3,11 @@
 using namespace Craft;
 
 std::vector<BlockData> BlockLibrary::blockTypes;
-const float BlockLibrary::ATLAS_SIZE = 256.0f;
-const float BlockLibrary::TILE_SIZE = 16.0f;
-const int BlockLibrary::TILES_PER_ROW = 16;
-const float BlockLibrary::PADDING = 0.0005f; // added padding until i fix the texture bleeding
-float BlockLibrary::m_UVTileScale = 1.0f / (float)TILES_PER_ROW;
+const float BlockLibrary::ATLAS_SIZE = 512.0f;
+const float BlockLibrary::TILE_SIZE = 32.0f;
+const int BlockLibrary::TILES_PER_ROW = 10;
+const float BlockLibrary::TILE_PADDING = 16.0f;
+float BlockLibrary::m_UVTileScale = BlockLibrary::TILE_SIZE / BlockLibrary::ATLAS_SIZE;
 
 void BlockLibrary::Initialize()
 {
@@ -15,22 +15,30 @@ void BlockLibrary::Initialize()
 
 	// ID 0: Air
 	blockTypes[0] = { "Air", true, false, -1, -1, -1, -1, -1, -1 };
+
 	// ID 1: Stone
-	blockTypes[1] = { "Stone", false, false, 1, 1, 1, 1, 1, 1 };
+	blockTypes[1] = { "Stone", false, false, 31, 31, 31, 31, 31, 31 };
+
 	// ID 2: Cobblestone
-	blockTypes[2] = { "Cobblestone", false, false, 16, 16, 16, 16, 16, 16 };
+	blockTypes[2] = { "Cobblestone", false, false, 2, 2, 2, 2, 2, 2 };
+
 	// ID 3: Dirt
-	blockTypes[3] = { "Dirt", false, false, 2, 2, 2, 2, 2, 2 };
+	blockTypes[3] = { "Dirt", false, false, 16, 16, 16, 16, 16, 16 };
+
 	// ID 4: Grass
-	blockTypes[4] = { "Grass", false, false, 0, 3, 3, 3, 3, 2 };
+	blockTypes[4] = { "Grass", false, false, 19, 20, 20, 20, 20, 16 };
+
 	// ID 5: Sand
-	blockTypes[5] = { "Sand", false, true, 18, 18, 18, 18, 18, 18 };
+	blockTypes[5] = { "Sand", false, true, 30, 30, 30, 30, 30, 30 };
+
 	// ID 6: Gravel
-	blockTypes[6] = { "Gravel", false, true, 19, 19, 19, 19, 19, 19 };
+	blockTypes[6] = { "Gravel", false, true, 21, 21, 21, 21, 21, 21 };
+
 	// ID 7: Wood
-	blockTypes[7] = { "Wood", false, false, 20, 21, 21, 21, 21, 20 };
+	blockTypes[7] = { "Wood", false, false, 24, 23, 23, 23, 23, 24 };
+
 	// ID 8: Wooden Planks
-	blockTypes[8] = { "WoodenPlanks", false, false, 4, 4, 4, 4, 4, 4 };
+	blockTypes[8] = { "WoodenPlanks", false, false, 25, 25, 25, 25, 25, 25 };
 
 	// ID 9: Leaves
 	// ID 10: Brick
@@ -43,8 +51,12 @@ const glm::vec2 BlockLibrary::GetTexCoords(uint8_t texID)
 	int column = texID % TILES_PER_ROW;
 	int row = texID / TILES_PER_ROW;
 
-	float u = column * m_UVTileScale;
-	float v = row * m_UVTileScale;
+	float xPixel = column * (TILE_SIZE + TILE_PADDING) + TILE_PADDING;
+	float yPixel = row * (TILE_SIZE + TILE_PADDING) + TILE_PADDING;
+
+
+	float u = xPixel / ATLAS_SIZE;
+	float v = yPixel / ATLAS_SIZE;
 
 	// might have to handle flipped textures if not already
 	return glm::vec2(u, v);

@@ -61,6 +61,7 @@ add_executable(MagmaFramework
      "resources/app-icon.rc"
 )
 
+add_compile_definitions(WIN32_LEAN_AND_MEAN)
 
 # Inject the project root directory as a definition named "MAGMA_ROOT_DIR"
 target_compile_definitions(MagmaFramework PUBLIC "MAGMA_ROOT_DIR=\"${CMAKE_SOURCE_DIR}/\"")

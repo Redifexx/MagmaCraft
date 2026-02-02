@@ -5,6 +5,7 @@
 #include <Datatypes/Components/PlayerComponent.h>
 #include <Core/Model.h>
 #include <glm/glm.hpp>
+#include "Core/Texture.h"
 
 using namespace Craft;
 
@@ -27,7 +28,7 @@ void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shader
 
 	if (worldStreamer)
 	{
-		//worldStreamer->GetWorldRenderer()->DrawWorld();
+		worldStreamer->GetWorldRenderer()->DrawWorld();
 	}
 
 	DrawEntities(world, shaderProgram);
@@ -65,9 +66,14 @@ void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& 
 		if (playerPool->Contains(entity))
 		{
 			auto& playerRef = playerPool->Get(entity);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, playerRef.texture->GetID());
+			shaderProgram.SetUniform("u_Texture", 0);
+
 			if (playerRef.isLocalPlayer)
 			{
-				//continue;
+				continue;
 			}
 		}
 

@@ -77,8 +77,8 @@ void GameLayer::OnAttach()
 	}
 
 	// Single Texture setup
-	m_Texture = std::make_unique<Texture>(texturePath.c_str(), false);
-	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_Texture = std::make_unique<Texture>(texturePath.c_str(), true);
+	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	//pModel = new Model("resources/models/player.fbx");
@@ -170,91 +170,6 @@ void GameLayer::OnUpdate(float dt)
 	}
 
 	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window);
-	/*
-	//clear screen
-	int w_, h_;
-	SDL_GetWindowSize(m_Window, &w_, &h_);
-	glViewport(0, 0, w_, h_);
-	glClearColor(0.643f, 0.827f, 0.984f, 1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	m_ShaderProgram->Use();
-	Craft::SparseSet<Craft::TransformComponent>* transformPool = m_EntityWorld->GetComponentPool<Craft::TransformComponent>();
-	Craft::SparseSet<Craft::CameraComponent>* cameraPool = m_EntityWorld->GetComponentPool<Craft::CameraComponent>();
-
-	// find primary camera
-	const std::vector<uint32_t>& entities = cameraPool->GetAllEntities();
-	for (uint32_t entity : entities)
-	{
-		// gets cam reference
-		auto& camRef = cameraPool->Get(entity);
-
-		if (camRef.isPrimary)
-		{
-			glm::mat4 viewProj = camRef.projectionMatrix * camRef.viewMatrix;
-
-			m_ShaderProgram->SetUniform("u_ViewProjection", viewProj);
-
-			if (transformPool->Contains(entity))
-			{
-				// dont send cam pos until defered rendering is added
-				//shaderProgram.SetUniform("u_CameraPosition", glm::vec3(transformPool->Get(entity).worldMatrix[3]));
-			}
-			break;
-		}
-	}
-
-
-	Craft::SparseSet<Craft::PlayerComponent>* playerPool = m_EntityWorld->GetComponentPool<Craft::PlayerComponent>();
-	transformPool = m_EntityWorld->GetComponentPool<Craft::TransformComponent>();
-	Craft::SparseSet<Craft::ModelComponent>* modelPool = m_EntityWorld->GetComponentPool<Craft::ModelComponent>();
-
-	if (!transformPool || !modelPool) return;
-
-	const std::vector<uint32_t>& playerEntities = modelPool->GetAllEntities();
-
-	//auto entities = world.View<TransformComponent, ModelComponent>();
-
-	glm::mat4 worldMatrix = glm::mat4(1.0f);
-
-	for (auto entity : playerEntities)
-	{
-		if (!transformPool->Contains(entity)) continue;
-
-		// gets component references
-		auto& modelRef = m_EntityWorld->GetComponent<Craft::ModelComponent>(entity);
-		auto& transformRef = m_EntityWorld->GetComponent<Craft::TransformComponent>(entity);
-		//worldMatrix = transformRef.worldMatrix;
-
-
-		m_ShaderProgram->SetUniform("u_Model", worldMatrix);
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
-		m_ShaderProgram->SetUniform("u_Texture", 0);
-
-		//shaderProgram.SetUniform("u_Model", glm::mat4(1.0f));
-		//std::cout << "Model World Position: " << worldMatrix[3][0] << " " << worldMatrix[3][1] << " " << worldMatrix[3][2] << std::endl;
-
-		if (playerPool->Contains(entity))
-		{
-			auto& playerRef = playerPool->Get(entity);
-			if (playerRef.isLocalPlayer)
-			{
-				//continue;
-			}
-		}
-
-		if (modelRef.model)
-		{
-			//modelRef.model->Draw();
-		}
-
-		pModel->Draw();
-	}
-
-	*/
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();

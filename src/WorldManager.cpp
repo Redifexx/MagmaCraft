@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iostream>
 #include "NetworkManager.h"
+#include "Core/Texture.h"
 
 #undef min
 
@@ -182,8 +183,24 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 	}
 
 	// Add Components (Local + Remote)
+
+	Magma::Texture* skin = new Magma::Texture("resources/textures/steve.png");
+	skin->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	skin->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	eWorld.AddComponent<TransformComponent>(playerEntity, { spawnPosition, spawnRotation, glm::vec3(1.0f) }); // scale down for model testing
-	eWorld.AddComponent<PlayerComponent>(playerEntity, { networkID });
+	
+	eWorld.AddComponent<PlayerComponent>(playerEntity, {
+		networkID,
+		false,
+		0,
+		std::move(skin) // ensure no mem leak on destruction
+	});
+
+	//eWorld.AddComponent<PlayerComponent>(playerEntity, {
+	//	networkID
+	//});
+
 	eWorld.AddComponent<HealthComponent>(playerEntity, { spawnHealth, 20.0f });
 	eWorld.AddComponent<PhysicsComponent>(playerEntity, { glm::vec3(0.0f), true });
 	eWorld.AddComponent<RelationshipComponent>(playerEntity,
