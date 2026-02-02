@@ -162,7 +162,7 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 	uint32_t playerEntity = eWorld.AddEntity();
 
 	auto idMap = m_NetworkIDToNameMap.lock();
-	if (!idMap) return;
+	if (!idMap) return NULL_ENTITY;
 
 	std::string username = (*idMap)[networkID];
 
@@ -182,11 +182,21 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 	}
 
 	// Add Components (Local + Remote)
-	eWorld.AddComponent<TransformComponent>(playerEntity, { spawnPosition, spawnRotation, glm::vec3(1.0f) });
+	eWorld.AddComponent<TransformComponent>(playerEntity, { spawnPosition, spawnRotation, glm::vec3(1.0f) }); // scale down for model testing
 	eWorld.AddComponent<PlayerComponent>(playerEntity, { networkID });
 	eWorld.AddComponent<HealthComponent>(playerEntity, { spawnHealth, 20.0f });
 	eWorld.AddComponent<PhysicsComponent>(playerEntity, { glm::vec3(0.0f), true });
+	eWorld.AddComponent<RelationshipComponent>(playerEntity,
+	{ 
+		Craft::NULL_ENTITY,
+		Craft::NULL_ENTITY,
+		Craft::NULL_ENTITY,
+		Craft::NULL_ENTITY
+	});
 
+	//safety
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 
 	// will render unless ur a local player
 	Magma::Model* model = new Magma::Model("resources/models/player.fbx");

@@ -19,6 +19,13 @@ namespace Magma
 	{
 		public:
 			Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+
+			Mesh(const Mesh&) = delete;
+			Mesh& operator=(const Mesh&) = delete;
+
+			Mesh(Mesh&& other) noexcept;
+			Mesh& operator=(Mesh&& other) noexcept;
+
 			~Mesh();
 
 			void Draw() const;

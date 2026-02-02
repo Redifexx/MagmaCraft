@@ -4,6 +4,7 @@
 #include <vector>
 #include "Chunk.h"
 #include "WorldGenerator.h"
+#include "NetworkManager.h"
 #include "Datatypes/EntityWorld.h"
 #include "Datatypes/Components/PlayerComponent.h"
 #include <glm/glm.hpp>
@@ -17,6 +18,8 @@
 // Manages world data, including loading, saving, and updating chunks
 namespace Craft
 {
+	struct SerializedPlayerData;
+
 	#pragma pack(push, 1)
 	struct ChunkFileHeader
 	{

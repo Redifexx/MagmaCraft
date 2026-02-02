@@ -16,6 +16,7 @@
 // Renders cached chunks
 namespace Craft
 {
+	class WorldManager;
 
 	class WorldRenderer
 	{

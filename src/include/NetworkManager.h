@@ -9,9 +9,13 @@
 #include "Client.h"
 #include "WorldManager.h"
 #include "WorldRenderer.h"
+#include <Datatypes/EntityWorld.h>
 
 namespace Craft
 {
+
+	class WorldManager; // forward declaration
+
 	enum class NetworkRole
 	{
 		NONE,
@@ -26,6 +30,7 @@ namespace Craft
 		CHUNK_REQUEST, //chunk pos
 		CHUNK_DATA,
 		BLOCK_UPDATE,
+		PLAYER_JOIN,
 		PLAYER_DATA, //pos, rotation, health, velocity
 		PLAYER_DISCONNECT
 	};
@@ -56,10 +61,19 @@ namespace Craft
 		uint8_t packetType;
 		uint32_t sequenceID;
 		uint8_t networkID;
-		SerializedPlayerData playerData; // should reaplce with player ID at somepoint
+		Craft::SerializedPlayerData playerData; // should reaplce with player ID at somepoint
 	};
 	#pragma pack(pop)
 
+	#pragma pack(push, 1)
+	struct PlayerJoinPacket
+	{
+		uint8_t packetType;
+		uint8_t networkID;
+		char username[32];
+		Craft::SerializedPlayerData playerData;
+	};
+	#pragma pack(pop)
 
 
 	class NetworkManager
@@ -76,7 +90,7 @@ namespace Craft
 			void SendPlayerDisconnect(uint8_t networkID);
 
 			void LoginRequestPacket(const std::string& username);
-			void LoginSuccessPacket(ENetPeer* peer, uint8_t networkID, const std::string& username);
+			void LoginSuccessPacket(ENetPeer* peer, uint8_t networkID);
 			uint8_t GetAvailableNetworkID();
 
 			// Receive
@@ -90,7 +104,7 @@ namespace Craft
 			Magma::Client* GetClient() const { return m_Client.get(); }
 			void SetEntityWorld(std::shared_ptr<EntityWorld> eWorld) { m_EntityWorld = eWorld; }
 			bool IsRunning() const { return m_IsRunning; }
-			std::shared_ptr<WorldManager> GetWorldManager() const { return m_WorldManager; }
+			std::shared_ptr<WorldManager> GetWorldManager() { return m_WorldManager; }
 
 			const std::string& GetLocalPlayerUsername() { return m_LocalPlayerUsername; }
 			void SetLocalPlayerUsername(const std::string& username) { m_LocalPlayerUsername = username; }
@@ -98,6 +112,9 @@ namespace Craft
 			uint8_t GetNetworkID() { return m_NetworkID; }
 
 			std::shared_ptr<std::unordered_map <uint8_t, std::string>> GetNetworkIDToNameMap() { return m_NetworkIDToNameMap; }
+
+			// List of Player Names
+			std::vector<std::string> m_PlayerNames;
 
 		private:
 			std::unique_ptr<Magma::Server> m_Server = nullptr;

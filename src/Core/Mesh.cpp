@@ -1,4 +1,5 @@
 #include "Core/Mesh.h"
+#include <iostream>
 
 using namespace Magma;
 
@@ -8,6 +9,10 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) :
 	glGenVertexArrays(1, &m_VAO);
 	glGenBuffers(1, &m_VBO);
 	glGenBuffers(1, &m_EBO);
+	std::cout << "Creating new mesh: ";
+	std::cout << "VAO: " << m_VAO;
+	std::cout << " VBO: " << m_VBO;
+	std::cout << " EBO: " << m_EBO << std::endl;
 
 	glBindVertexArray(m_VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
@@ -38,6 +43,43 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) :
 	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Bitangent));
 
 	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+Mesh::Mesh(Mesh&& other) noexcept
+	: m_Vertices(std::move(other.m_Vertices)),
+	m_Indices(std::move(other.m_Indices)),
+	m_VAO(other.m_VAO),
+	m_VBO(other.m_VBO),
+	m_EBO(other.m_EBO)
+{
+	other.m_VAO = 0;
+	other.m_VBO = 0;
+	other.m_EBO = 0;
+}
+
+Mesh& Mesh::operator=(Mesh&& other) noexcept
+{
+	if (this != &other)
+	{
+		// Delete our current data
+		glDeleteVertexArrays(1, &m_VAO);
+		glDeleteBuffers(1, &m_VBO);
+		glDeleteBuffers(1, &m_EBO);
+
+		// Steal data
+		m_Vertices = std::move(other.m_Vertices);
+		m_Indices = std::move(other.m_Indices);
+		m_VAO = other.m_VAO;
+		m_VBO = other.m_VBO;
+		m_EBO = other.m_EBO;
+
+		// Nullify other
+		other.m_VAO = 0;
+		other.m_VBO = 0;
+		other.m_EBO = 0;
+	}
+	return *this;
 }
 
 Mesh::~Mesh() 

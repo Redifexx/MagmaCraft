@@ -13,6 +13,7 @@
 #include <Datatypes/Components/HealthComponent.h>
 #include <Datatypes/Components/PhysicsComponent.h>
 #include <Datatypes/Components/PlayerComponent.h>
+#include <algorithm> 
 
 /*
 ECS RULES
@@ -25,18 +26,8 @@ ECS RULES
 */
 namespace Craft
 {
-	// just an index
-	struct Entity
-	{
-		uint32_t id;
-	};
-
 	// helpers for vector of sparse sets, turns components into IDs at runtime
-	inline uint32_t GetNextComponentID()
-	{
-		static uint32_t id = 0;
-		return id++;
-	}
+	uint32_t GetNextComponentID();
 
 	template <typename T>
 	uint32_t GetComponentID()
@@ -166,12 +157,15 @@ namespace Craft
 			void SetLocalPlayerID(uint32_t entityID) { m_LocalPlayerID = entityID; }
 			uint32_t GetLocalPlayerID() { return m_LocalPlayerID; }
 
+			bool HasEntityID(uint32_t entityID);
+
 			// Player Username - Entity map based on current world session
 			std::unordered_map<uint8_t, uint32_t> m_PlayerIDEntityMap;
 			
 		private:
 			uint32_t m_LocalPlayerID = NULL_ENTITY;
-			std::vector<Entity> m_Entities;
+			std::vector<uint32_t> m_FreeEntityIDs; // stale ids may later become problem but good for now
+			uint32_t m_NextEntityID = 0;
 			std::vector<ISparseSet*> m_ComponentPools; // one per component type
 	};
 }

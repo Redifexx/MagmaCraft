@@ -17,7 +17,7 @@ namespace Craft
 			void HandleMovement(float dt);
 			void HandleMouseLook(float dt);
 
-			float m_MoveSpeed = 5.0f;
+			float m_MoveSpeed = 12.0f;
 			float m_MouseSensitivity = 0.1f;
 
 			EntityID m_CameraEntity = NULL_ENTITY;

@@ -55,7 +55,7 @@ void GameLayer::OnAttach()
 	// move into resource manager later
 	// Shader setup (Shader.h & ShaderProgram.h)
 	std::string vertpath = "resources/shaders/basic.vert";
-	std::string fragpath = "resources/shaders/block.frag";
+	std::string fragpath = "resources/shaders/basic.frag";
 	std::string texturePath = "resources/textures/terrain.png";
 	#ifdef MAGMA_ROOT_DIR
 		vertpath = std::string(MAGMA_ROOT_DIR) + vertpath;
@@ -81,6 +81,10 @@ void GameLayer::OnAttach()
 	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+	//pModel = new Model("resources/models/player.fbx");
+	//m_Models.push_back(pModel);
+
+	m_ShaderProgram->Use();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
 	m_ShaderProgram->SetUniform("u_Texture", 0);
@@ -101,12 +105,11 @@ void GameLayer::OnUpdate(float dt)
 	if (m_IsLocalPlayerLoaded)
 	{
 		m_ScriptSystem->Update(*m_EntityWorld, dt);
-		m_CameraSystem->Update(*m_EntityWorld);
 
 		if (m_AutoSaveTimer <= 0.0f)
 		{
 			m_AutoSaveTimer = m_AutoSaveRate;
-			m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
+			m_NetworkManager->GetWorldManager().get()->SaveWorld(*m_EntityWorld);
 		}
 		else
 		{
@@ -137,6 +140,7 @@ void GameLayer::OnUpdate(float dt)
 
 		// --- TRANSFORMS UPDATE ----
 		m_TransformSystem->Update(*m_EntityWorld);
+		m_CameraSystem->Update(*m_EntityWorld);
 
 		// ---- RENDERING ----
 		// Shader uniforms update and model drawing
@@ -166,6 +170,91 @@ void GameLayer::OnUpdate(float dt)
 	}
 
 	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window);
+	/*
+	//clear screen
+	int w_, h_;
+	SDL_GetWindowSize(m_Window, &w_, &h_);
+	glViewport(0, 0, w_, h_);
+	glClearColor(0.643f, 0.827f, 0.984f, 1.0f);
+	glEnable(GL_DEPTH_TEST);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	m_ShaderProgram->Use();
+	Craft::SparseSet<Craft::TransformComponent>* transformPool = m_EntityWorld->GetComponentPool<Craft::TransformComponent>();
+	Craft::SparseSet<Craft::CameraComponent>* cameraPool = m_EntityWorld->GetComponentPool<Craft::CameraComponent>();
+
+	// find primary camera
+	const std::vector<uint32_t>& entities = cameraPool->GetAllEntities();
+	for (uint32_t entity : entities)
+	{
+		// gets cam reference
+		auto& camRef = cameraPool->Get(entity);
+
+		if (camRef.isPrimary)
+		{
+			glm::mat4 viewProj = camRef.projectionMatrix * camRef.viewMatrix;
+
+			m_ShaderProgram->SetUniform("u_ViewProjection", viewProj);
+
+			if (transformPool->Contains(entity))
+			{
+				// dont send cam pos until defered rendering is added
+				//shaderProgram.SetUniform("u_CameraPosition", glm::vec3(transformPool->Get(entity).worldMatrix[3]));
+			}
+			break;
+		}
+	}
+
+
+	Craft::SparseSet<Craft::PlayerComponent>* playerPool = m_EntityWorld->GetComponentPool<Craft::PlayerComponent>();
+	transformPool = m_EntityWorld->GetComponentPool<Craft::TransformComponent>();
+	Craft::SparseSet<Craft::ModelComponent>* modelPool = m_EntityWorld->GetComponentPool<Craft::ModelComponent>();
+
+	if (!transformPool || !modelPool) return;
+
+	const std::vector<uint32_t>& playerEntities = modelPool->GetAllEntities();
+
+	//auto entities = world.View<TransformComponent, ModelComponent>();
+
+	glm::mat4 worldMatrix = glm::mat4(1.0f);
+
+	for (auto entity : playerEntities)
+	{
+		if (!transformPool->Contains(entity)) continue;
+
+		// gets component references
+		auto& modelRef = m_EntityWorld->GetComponent<Craft::ModelComponent>(entity);
+		auto& transformRef = m_EntityWorld->GetComponent<Craft::TransformComponent>(entity);
+		//worldMatrix = transformRef.worldMatrix;
+
+
+		m_ShaderProgram->SetUniform("u_Model", worldMatrix);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
+		m_ShaderProgram->SetUniform("u_Texture", 0);
+
+		//shaderProgram.SetUniform("u_Model", glm::mat4(1.0f));
+		//std::cout << "Model World Position: " << worldMatrix[3][0] << " " << worldMatrix[3][1] << " " << worldMatrix[3][2] << std::endl;
+
+		if (playerPool->Contains(entity))
+		{
+			auto& playerRef = playerPool->Get(entity);
+			if (playerRef.isLocalPlayer)
+			{
+				//continue;
+			}
+		}
+
+		if (modelRef.model)
+		{
+			//modelRef.model->Draw();
+		}
+
+		pModel->Draw();
+	}
+
+	*/
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();
@@ -182,7 +271,7 @@ void GameLayer::OnDetach()
 	// --- GAME CLEANUP LOGIC ----
 
 	// double clear need to fix
-	m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
+	m_NetworkManager->GetWorldManager().get()->SaveWorld(*m_EntityWorld);
 
 	m_WorldStreamer->UnloadAllChunks();
 	m_WorldStreamer.reset();
@@ -263,11 +352,15 @@ void GameLayer::OnImGuiRender(float dt)
 			if (ImGui::Button("Create World"))
 			{
 				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SERVER);
+				// initialize server
+				m_NetworkManager->Begin();
 				m_MenuState = MenuState::CREATE_WORLD;
 			}
 			if (ImGui::Button("Load World"))
 			{
 				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SERVER);
+				// initialize server
+				m_NetworkManager->Begin();
 				m_MenuState = MenuState::LOAD_WORLD;
 			}
 			if (ImGui::Button("Back"))
@@ -284,6 +377,8 @@ void GameLayer::OnImGuiRender(float dt)
 			if (ImGui::Button("Join Game"))
 			{
 				m_MenuState = MenuState::JOIN_GAME;
+				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::CLIENT);
+				m_NetworkManager->Begin();
 			}
 			if (ImGui::Button("Back"))
 			{
@@ -310,8 +405,23 @@ void GameLayer::OnImGuiRender(float dt)
 				{
 					if (ImGui::Button("Create"))
 					{
-						// initialize server
-						m_NetworkManager->Begin();
+						// Create world
+						std::string worldName = "New World";
+						if (strlen(m_WorldNameBuf) > 0)
+						{
+							worldName = std::string(m_WorldNameBuf);
+						}
+
+						int seed;
+						try
+						{
+							seed = std::stoi(m_SeedBuf);
+						}
+						catch (std::invalid_argument)
+						{
+							seed = Magma::Random::Int(INT_MIN, INT_MAX);
+						}
+						m_NetworkManager->GetWorldManager().get()->CreateWorld(worldName, seed, *m_EntityWorld);
 
 						// Connect to ourselves
 						strcpy_s(m_ServerAddressBuf, "localhost");
@@ -320,15 +430,15 @@ void GameLayer::OnImGuiRender(float dt)
 						std::string address = std::string(m_ServerAddressBuf);
 						enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
 						m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
-						m_NetworkManager->GetClient()->ConnectToServer();
+						m_NetworkManager->GetClient()->ConnectToServer(); // possible race condition
 
 						m_ConnectionFailTimer = m_ConnectionFailRate;
 					}
 				}
 				if (ImGui::Button("Back"))
 				{
-					m_NetworkManager->SetNetworkRole(Craft::NetworkRole::NONE);
-					m_MenuState = MenuState::SINGLEPLAYER;
+					m_NetworkManager->End();
+					m_MenuState = MenuState::MAIN_MENU;
 				}
 			}
 			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTING)
@@ -341,24 +451,6 @@ void GameLayer::OnImGuiRender(float dt)
 			}
 			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::LOGGED_IN)
 			{
-				// Create world
-				std::string worldName = "New World";
-				if (strlen(m_WorldNameBuf) > 0)
-				{
-					worldName = std::string(m_WorldNameBuf);
-				}
-
-				int seed;
-				try
-				{
-					seed = std::stoi(m_SeedBuf);
-				}
-				catch (std::invalid_argument)
-				{
-					seed = Magma::Random::Int(INT_MIN, INT_MAX);
-				}
-				m_NetworkManager->GetWorldManager()->CreateWorld(worldName, seed, *m_EntityWorld);
-
 				m_MenuState = MenuState::IN_GAME;
 
 				// spawn player
@@ -401,8 +493,11 @@ void GameLayer::OnImGuiRender(float dt)
 				{
 					if (ImGui::Button("Join"))
 					{
-						// initialize server
-						m_NetworkManager->Begin();
+						if (!m_NetworkManager->GetWorldManager().get()->LoadWorld(m_WorldPathBuf))
+						{
+							ImGui::Text("Invalid file path.");
+							return;
+						}
 
 						// Connect to ourselves
 						strcpy_s(m_ServerAddressBuf, "localhost");
@@ -419,8 +514,8 @@ void GameLayer::OnImGuiRender(float dt)
 
 				if (ImGui::Button("Back"))
 				{
-					m_NetworkManager->SetNetworkRole(Craft::NetworkRole::NONE);
-					m_MenuState = MenuState::SINGLEPLAYER;
+					m_NetworkManager->End();
+					m_MenuState = MenuState::MAIN_MENU;
 				}
 			}
 			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::CONNECTING)
@@ -433,18 +528,10 @@ void GameLayer::OnImGuiRender(float dt)
 			}
 			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::LOGGED_IN)
 			{
-				if (!m_NetworkManager->GetWorldManager()->LoadWorld(m_WorldPathBuf))
-				{
-					ImGui::Text("Invalid file path.");
-					m_NetworkManager->GetClient()->SetConnectionState(ConnectionState::DISCONNECTED);
-				}
-				else
-				{
-					m_MenuState = MenuState::IN_GAME;
+				m_MenuState = MenuState::IN_GAME;
 
-					// spawn player
-					SpawnLocalPlayer();
-				}
+				// spawn player
+				SpawnLocalPlayer();
 			}
 			else if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::FAILED) // shouldn't occur on localhost
 			{
@@ -464,7 +551,14 @@ void GameLayer::OnImGuiRender(float dt)
 			if (ImGui::Button("Create World"))
 			{
 				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SERVER);
+				m_NetworkManager->Begin();
 				m_MenuState = MenuState::CREATE_WORLD;
+			}
+			if (ImGui::Button("Load World"))
+			{
+				m_NetworkManager->SetNetworkRole(Craft::NetworkRole::SERVER);
+				m_NetworkManager->Begin();
+				m_MenuState = MenuState::LOAD_WORLD;
 			}
 			if (ImGui::Button("Back"))
 			{
@@ -479,7 +573,6 @@ void GameLayer::OnImGuiRender(float dt)
 		case (MenuState::JOIN_GAME):
 			// Joining options would go here
 			// Join Server -> Connect -> Login -> Enter World
-			m_NetworkManager->SetNetworkRole(Craft::NetworkRole::CLIENT);
 
 			if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::DISCONNECTED)
 			{
@@ -499,8 +592,6 @@ void GameLayer::OnImGuiRender(float dt)
 				{
 					if (ImGui::Button("Connect"))
 					{
-						m_NetworkManager->Begin();
-
 						std::string address = std::string(m_ServerAddressBuf);
 						enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
 						m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
@@ -511,6 +602,7 @@ void GameLayer::OnImGuiRender(float dt)
 				}
 				if (ImGui::Button("Back"))
 				{
+					m_NetworkManager->End();
 					m_MenuState = MenuState::MULTIPLAYER;
 				}
 			}
@@ -548,17 +640,32 @@ void GameLayer::OnImGuiRender(float dt)
 			// In-game menu options would go here
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			ImGui::Text("Autosave in %.1f seconds", m_AutoSaveTimer);
-			glm::vec3 pos = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera).worldMatrix[3];
-			ImGui::Text("X: %.1f", pos[0]);
-			ImGui::Text("Y: %.1f", pos[1]);
-			ImGui::Text("Z: %.1f", pos[2]);
+			if (m_PrimaryCamera != Craft::NULL_ENTITY &&
+				m_EntityWorld->HasEntityID(m_PrimaryCamera) &&
+				m_EntityWorld->Contains<Craft::TransformComponent>(m_PrimaryCamera))
+			{
+				glm::vec3 pos = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera).worldMatrix[3];
+				ImGui::Text("X: %.1f", pos[0]);
+				ImGui::Text("Y: %.1f", pos[1]);
+				ImGui::Text("Z: %.1f", pos[2]);
+			}
+			else
+			{
+				ImGui::Text("Camera: Detached");
+			}
+
+			ImGui::Text("Players:");
+			for (std::string& name : m_NetworkManager->m_PlayerNames)
+			{
+				ImGui::Text("%s", name.c_str());
+			}
 			
 			if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::SERVER)
 			{
 				if (ImGui::Button("Save & Exit"))
 				{
 					m_MenuState = MenuState::MAIN_MENU;
-					m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
+					m_NetworkManager->GetWorldManager().get()->SaveWorld(*m_EntityWorld);
 					m_WorldStreamer->UnloadAllChunks();
 					m_NetworkManager->End();
 					CleanupLocalPlayer();
@@ -566,8 +673,12 @@ void GameLayer::OnImGuiRender(float dt)
 			}
 			else if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::CLIENT)
 			{
-				if (ImGui::Button("Exit"))
+				if (ImGui::Button("Disconnect") || m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::DISCONNECTED)
 				{
+					enet_peer_disconnect(m_NetworkManager->GetClient()->GetENetPeer(), 0);
+					m_WorldStreamer->UnloadAllChunks();
+					m_EntityWorld->ClearAllEntities();
+					m_NetworkManager->End();
 					m_MenuState = MenuState::MAIN_MENU;
 				}
 			}
@@ -600,18 +711,24 @@ void GameLayer::SpawnLocalPlayer()
 
 	// add camera
 	uint32_t cameraEntity = m_EntityWorld->AddEntity();
-	m_EntityWorld->AddComponent<Craft::TransformComponent>(cameraEntity, { glm::vec3(0.0f, 1.6f, 0.0f) });
+	m_EntityWorld->AddComponent<Craft::TransformComponent>(cameraEntity, {
+		glm::vec3(0.0f, 1.6f, 0.0f),         
+		glm::quat(1.0f, 0.0f, 0.0f, 0.0f),   
+		glm::vec3(1.0f)                      
+	});
 	m_EntityWorld->AddComponent<Craft::CameraComponent>(cameraEntity, { true });
 	m_PrimaryCamera = cameraEntity;
 
 	// make camera a child of player
-	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(playerEntity,
+	auto& playerRelRef = m_EntityWorld->GetComponent<Craft::RelationshipComponent>(playerEntity);
+
+	playerRelRef =
 	{
 		Craft::NULL_ENTITY,
 		cameraEntity,
 		Craft::NULL_ENTITY,
 		Craft::NULL_ENTITY
-	});
+	};
 
 	m_EntityWorld->AddComponent<Craft::RelationshipComponent>(cameraEntity,
 	{
@@ -641,7 +758,10 @@ void GameLayer::SpawnLocalPlayer()
 
 void GameLayer::CleanupLocalPlayer()
 {
-	m_EntityWorld->RemoveEntity(m_Player);
+	if (m_Player != Craft::NULL_ENTITY && m_EntityWorld->HasEntityID(m_Player))
+	{
+		m_EntityWorld->RemoveEntity(m_Player);
+	}
 	m_Player = Craft::NULL_ENTITY;
 	m_PrimaryCamera = Craft::NULL_ENTITY;
 	m_EntityWorld->SetLocalPlayerID(Craft::NULL_ENTITY);
@@ -651,7 +771,7 @@ void GameLayer::CleanupLocalPlayer()
 
 void GameLayer::WorldShutdown()
 {
-	m_NetworkManager->GetWorldManager()->SaveWorld(*m_EntityWorld);
+	m_NetworkManager->GetWorldManager().get()->SaveWorld(*m_EntityWorld);
 	m_WorldStreamer->UnloadAllChunks();
 	m_NetworkManager->End();
 	CleanupLocalPlayer();

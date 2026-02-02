@@ -27,7 +27,7 @@ void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shader
 
 	if (worldStreamer)
 	{
-		worldStreamer->GetWorldRenderer()->DrawWorld();
+		//worldStreamer->GetWorldRenderer()->DrawWorld();
 	}
 
 	DrawEntities(world, shaderProgram);
@@ -36,25 +36,39 @@ void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shader
 void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& shaderProgram)
 {
 	SparseSet<PlayerComponent>* playerPool = world.GetComponentPool<PlayerComponent>();
+	SparseSet<TransformComponent>* transformPool = world.GetComponentPool<TransformComponent>();
+	SparseSet<ModelComponent>* modelPool = world.GetComponentPool<ModelComponent>();
 
-	auto entities = world.View<TransformComponent, ModelComponent>();
+	if (!transformPool || !modelPool) return;
+
+	const std::vector<uint32_t>& entities = modelPool->GetAllEntities();
+
+	//auto entities = world.View<TransformComponent, ModelComponent>();
 
 	glm::mat4 worldMatrix = glm::mat4(1.0f);
 
 	for (auto entity : entities)
 	{
-	
+		if (!transformPool->Contains(entity)) continue;
+
 		// gets component references
 		auto& modelRef = world.GetComponent<ModelComponent>(entity);
 		auto& transformRef = world.GetComponent<TransformComponent>(entity);
 		worldMatrix = transformRef.worldMatrix;
 
+
 		shaderProgram.SetUniform("u_Model", worldMatrix);
+
+		//shaderProgram.SetUniform("u_Model", glm::mat4(1.0f));
+		//std::cout << "Model World Position: " << worldMatrix[3][0] << " " << worldMatrix[3][1] << " " << worldMatrix[3][2] << std::endl;
 
 		if (playerPool->Contains(entity))
 		{
 			auto& playerRef = playerPool->Get(entity);
-			if (playerRef.isLocalPlayer) return; // dont draw local player model
+			if (playerRef.isLocalPlayer)
+			{
+				//continue;
+			}
 		}
 
 		if (modelRef.model)

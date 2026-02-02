@@ -1,6 +1,7 @@
 #include "WorldStreamer.h"
 #include <memory>
 #include <glm/glm.hpp>
+#include "WorldManager.h"
 
 
 using namespace Craft;
@@ -84,7 +85,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 			{
 				Chunk* chunk = worldManager->GetChunkFromBuffer(curChunkX, curChunkZ);
 
-				m_WorldRenderer->RenderChunk(std::move(chunk), glm::ivec2(curChunkX, curChunkZ));
+				//m_WorldRenderer->RenderChunk(std::move(chunk), glm::ivec2(curChunkX, curChunkZ));
 				renderChunk->isLoaded = true;
 				renderChunk->isPending = false;
 			}

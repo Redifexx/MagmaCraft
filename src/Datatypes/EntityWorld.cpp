@@ -2,6 +2,13 @@
 
 using namespace Craft;
 
+
+inline uint32_t Craft::GetNextComponentID()
+{
+	static uint32_t id = 0;
+	return id++;
+}
+
 EntityWorld::EntityWorld()
 {
 	// Create component pools for common components
@@ -26,59 +33,78 @@ EntityWorld::~EntityWorld()
 	}
 }
 
+// not sure if this is the best way to assign entity IDs
 uint32_t EntityWorld::AddEntity()
 {
-	Entity newEntity;
-	newEntity.id = static_cast<uint32_t>(m_Entities.size());
-	m_Entities.push_back(newEntity);
-	return newEntity.id;
+	if (!m_FreeEntityIDs.empty())
+	{
+		uint32_t id = m_FreeEntityIDs.back();
+		m_FreeEntityIDs.pop_back();
+
+		// ensure the id isn't occupied
+		for (ISparseSet* pool : m_ComponentPools)
+		{
+			if (pool) pool->Remove(id);
+		}
+
+		return id;
+	}
+	return m_NextEntityID++;
 }
 
 void EntityWorld::RemoveEntity(uint32_t entityID)
 {
-	// prevent double deletion 
+	// no invalid ids
+	if (entityID >= m_NextEntityID) return;
+
+	// check if already in list
+	for (uint32_t freeEID : m_FreeEntityIDs)
+	{
+		if (freeEID == entityID) return; // try to make O(1) replacmenet
+	}
+
 	auto* relPool = GetComponentPool<RelationshipComponent>();
-	if (!relPool || !relPool->Contains(entityID)) return;
-
-	// check for relationships
-	RelationshipComponent relRef = relPool->Get(entityID);
-
-	// recursively remove all of its children
-	uint32_t curChild = relRef.firstChild;
-	while (curChild != NULL_ENTITY)
+	if (relPool && relPool->Contains(entityID))
 	{
-		if (relPool->Contains(curChild))
+		RelationshipComponent relRef = relPool->Get(entityID);
+
+		// recursively remove all of its children
+		uint32_t curChild = relRef.firstChild;
+		while (curChild != NULL_ENTITY)
 		{
-			uint32_t nextChild = relPool->Get(curChild).nextSibling;
-			RemoveEntity(curChild);
-			curChild = nextChild;
+			if (relPool->Contains(curChild))
+			{
+				uint32_t nextChild = relPool->Get(curChild).nextSibling;
+				RemoveEntity(curChild);
+				curChild = nextChild;
+			}
+			else
+			{
+				curChild = NULL_ENTITY;
+			}
 		}
-		else
+
+		// If child entity, unlink from parent
+		if (relRef.parent != NULL_ENTITY && relPool->Contains(relRef.parent))
 		{
-			curChild = NULL_ENTITY;
+			auto& parentRel = relPool->Get(relRef.parent);
+
+			// update parent head if first child
+			if (parentRel.firstChild == entityID)
+			{
+				parentRel.firstChild = relRef.nextSibling;
+			}
 		}
-	}
 
-	// If child entity, unlink from parent
-	if (relRef.parent != NULL_ENTITY && relPool->Contains(relRef.parent))
-	{
-		auto& parentRel = relPool->Get(relRef.parent);
-
-		// update parent head if first child
-		if (parentRel.firstChild == entityID)
+		if (relRef.prevSibling != NULL_ENTITY && relPool->Contains(relRef.prevSibling))
 		{
-			parentRel.firstChild = relRef.nextSibling;
+			relPool->Get(relRef.prevSibling).nextSibling = relRef.nextSibling;
 		}
-	}
 
-	if (relRef.prevSibling != NULL_ENTITY && relPool->Contains(relRef.prevSibling))
-	{
-		relPool->Get(relRef.prevSibling).nextSibling = relRef.nextSibling;
-	}
-
-	if (relRef.nextSibling != NULL_ENTITY && relPool->Contains(relRef.nextSibling))
-	{
-		relPool->Get(relRef.nextSibling).prevSibling = relRef.prevSibling;
+		if (relRef.nextSibling != NULL_ENTITY && relPool->Contains(relRef.nextSibling))
+		{
+			relPool->Get(relRef.nextSibling).prevSibling = relRef.prevSibling;
+		}
 	}
 
 	// remove all components associated with this entity
@@ -89,6 +115,9 @@ void EntityWorld::RemoveEntity(uint32_t entityID)
 			pool->Remove(entityID);
 		}
 	}
+
+	// reuse id
+	m_FreeEntityIDs.push_back(entityID);
 }
 
 void EntityWorld::ClearAllEntities()
@@ -98,5 +127,18 @@ void EntityWorld::ClearAllEntities()
 		if (pool) pool->Clear();
 	}
 
-	m_Entities.clear();
+	m_FreeEntityIDs.clear();
+	m_NextEntityID = 0;
+}
+
+bool EntityWorld::HasEntityID(uint32_t entityID)
+{
+	if (entityID >= m_NextEntityID) return false;
+
+	for (uint32_t deadID : m_FreeEntityIDs)
+	{
+		if (deadID == entityID) return false;
+	}
+
+	return true;
 }

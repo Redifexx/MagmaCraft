@@ -131,6 +131,7 @@ namespace Magma
 			glm::mat4 m_ModelMatrix;
 			std::unique_ptr<Camera> m_Camera = nullptr;
 			std::unique_ptr<Texture> m_Texture = nullptr;
+			Model* pModel = nullptr;
 			SDL_Window* m_Window = nullptr; // make shared
 
 			// Entity World
