@@ -129,6 +129,9 @@ void NetworkManager::SendPlayerData(EntityWorld& eWorld, uint32_t entityID)
 	pData.sequenceID = m_PlayerPacketSequence++;
 	pData.networkID = playerRef.networkID;
 
+	//std::cout << "My NID " << (int)m_NetworkID << " & Sending nID: " << (int)playerRef.networkID;
+	if (playerRef.networkID != m_NetworkID) std::cout << "SENDING WRONG DATA" << std::endl;
+
 	pData.playerData = {};
 
 	pData.playerData.posX = transformRef.localPosition.x;
@@ -419,6 +422,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			// Send player login success to peer
 			LoginSuccessPacket(peer, networkID);
+			std::cout << "Server added new NetworkID: " << (int)networkID << std::endl;
 
 
 			// Introduce the player to everyone currently in server
@@ -532,6 +536,17 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			m_Client->SetConnectionState(Magma::ConnectionState::LOGGED_IN);
 			m_NetworkID = networkID;
+			std::cout << "My NetworkID: " << (int)networkID << std::endl;
+
+			if (m_Role == NetworkRole::CLIENT)
+			{
+				auto eWorld = m_EntityWorld.lock();
+				if (!eWorld) return;
+
+				// Create Myself
+				uint32_t entityID = m_WorldManager->CreatePlayerEntity(*eWorld, networkID);
+				eWorld->m_PlayerIDEntityMap[networkID] = entityID;
+			}
 
 			break;
 		}
@@ -600,15 +615,25 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			// memory aligned so should work
 			memcpy(&jData, data, sizeof(PlayerJoinPacket));
 
+			if (jData.networkID == m_NetworkID)
+			{
+				return;
+			}
+
 			auto eWorld = m_EntityWorld.lock();
 			if (!eWorld) return;
 
-			uint32_t entityID = m_WorldManager->CreatePlayerEntity(*eWorld, jData.networkID);
-
 			std::string username = std::string(jData.username);
 			(*m_NetworkIDToNameMap)[jData.networkID] = username;
-			eWorld->m_PlayerIDEntityMap[jData.networkID] = entityID;
 			m_PlayerNames.push_back((*m_NetworkIDToNameMap)[jData.networkID]);
+
+			// Check if we already added this player as server-client combo
+			if (eWorld->m_PlayerIDEntityMap.contains(jData.networkID)) return; 
+
+			uint32_t entityID = m_WorldManager->CreatePlayerEntity(*eWorld, jData.networkID);
+			std::cout << "New NetworkID Joined: " << (int)jData.networkID << std::endl;
+
+			eWorld->m_PlayerIDEntityMap[jData.networkID] = entityID;
 
 			auto& transformRef = eWorld->GetComponent<TransformComponent>(entityID);
 			auto& healthRef = eWorld->GetComponent<HealthComponent>(entityID);
@@ -622,6 +647,8 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			transformRef.localRotation.x = jData.playerData.rotX;
 			transformRef.localRotation.y = jData.playerData.rotY;
 			transformRef.localRotation.z = jData.playerData.rotZ;
+
+			transformRef.isDirty = true;
 
 			healthRef.health = jData.playerData.health;
 
@@ -648,6 +675,8 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			std::memcpy(&networkID, &data[offset], sizeof(uint8_t));
 			offset += sizeof(uint8_t);
 
+			//if (networkID == m_NetworkID) return; //ignore if my own data
+
 			// 76 Bytes
 			SerializedPlayerData pData;
 
@@ -666,19 +695,28 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			{
 				if (m_PeerToEntityMap.find(peer->incomingPeerID) == m_PeerToEntityMap.end())
 				{
+					std::cout << "unknown player's data" << std::endl;
 					// ignore unverified players
 					return;
 				}
 				entityID = m_PeerToEntityMap[peer->incomingPeerID]; // possible optimization here
+
 			}
 			else if (m_Role == NetworkRole::CLIENT)
 			{
 				if (eWorld->m_PlayerIDEntityMap.find(networkID) == eWorld->m_PlayerIDEntityMap.end())
 				{
 					// didn't know player
+					std::cout << "unknown player's data" << std::endl;
 					return;
 				}
 				entityID = eWorld->m_PlayerIDEntityMap[networkID];
+			}
+
+			auto& playerComp = eWorld->GetComponent<PlayerComponent>(entityID);
+			if (playerComp.isLocalPlayer)
+			{
+				return;
 			}
 
 			// move data to player components
@@ -687,6 +725,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			if (!isSequenceNewer(sequenceID, playerRef.lastSequenceID)) return;
 			playerRef.lastSequenceID = sequenceID;
+			m_LastPlayerPacketSequence = sequenceID;
 
 			auto& transformRef = eWorld->GetComponent<TransformComponent>(entityID);
 			auto& healthRef = eWorld->GetComponent<HealthComponent>(entityID);
@@ -700,6 +739,8 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			transformRef.localRotation.x = pData.rotX;
 			transformRef.localRotation.y = pData.rotY;
 			transformRef.localRotation.z = pData.rotZ;	
+
+			transformRef.isDirty = true;
 
 			healthRef.health = pData.health;
 

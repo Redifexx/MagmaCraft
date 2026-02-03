@@ -11,7 +11,7 @@ void main()
 {
     // Simple Directional Light Setup, diffuse only
     vec3 lightDirection = vec3(-0.5, -0.5, -0.5);
-    vec3 lightColor = vec3(0.8, 0.8, 0.8);
+    vec3 lightColor = vec3(1.3, 1.3, 1.3);
 
     vec3 diffuseTexture = texture(u_Texture, TexCoords).rgb;
 

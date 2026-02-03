@@ -621,8 +621,13 @@ void GameLayer::SpawnLocalPlayer()
 
 	// set local player flag
 	auto& playerRef = m_EntityWorld->GetComponent<Craft::PlayerComponent>(playerEntity);
-	playerRef.isLocalPlayer = true;
+	playerRef.isLocalPlayer = true; // here
 	m_Player = playerEntity;
+
+	auto& transformRef = m_EntityWorld->GetComponent<Craft::TransformComponent>(playerEntity);
+	std::cout << "Local Player Spawned in at: " << transformRef.localPosition.x;
+	std::cout << " " << transformRef.localPosition.y;
+	std::cout << " " << transformRef.localPosition.z << std::endl;
 
 	// add camera
 	uint32_t cameraEntity = m_EntityWorld->AddEntity();

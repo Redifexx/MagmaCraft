@@ -47,6 +47,7 @@ Texture::Texture(const char* filepath, bool mipmaps)
 		if (mipmaps)
 		{
 			glGenerateMipmap(GL_TEXTURE_2D);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 4);
 		}
 
 		// Default texture parameters

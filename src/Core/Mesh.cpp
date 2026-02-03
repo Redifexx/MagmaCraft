@@ -9,10 +9,6 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) :
 	glGenVertexArrays(1, &m_VAO);
 	glGenBuffers(1, &m_VBO);
 	glGenBuffers(1, &m_EBO);
-	std::cout << "Creating new mesh: ";
-	std::cout << "VAO: " << m_VAO;
-	std::cout << " VBO: " << m_VBO;
-	std::cout << " EBO: " << m_EBO << std::endl;
 
 	glBindVertexArray(m_VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
