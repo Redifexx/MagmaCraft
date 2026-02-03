@@ -138,6 +138,35 @@ void GameLayer::OnUpdate(float dt)
 		// Audio Listener Update
 		Magma::AudioEngine::UpdateListener(glm::vec3(camTransform.worldMatrix[3]), -glm::vec3(camTransform.worldMatrix[2]), glm::vec3(camTransform.worldMatrix[1]));
 
+		// --- PLAYER DATA INTERPOLATION ---
+		auto* playerPool = m_EntityWorld->GetComponentPool<Craft::PlayerComponent>();
+		auto* transformPool = m_EntityWorld->GetComponentPool<Craft::TransformComponent>();
+
+		if (playerPool && transformPool)
+		{
+			for (auto entity : playerPool->GetAllEntities())
+			{
+				// invalid entities
+				if (!transformPool->Contains(entity)) continue;
+
+				auto& playerRef = playerPool->Get(entity);
+
+				if (playerRef.isLocalPlayer) continue; // skip local player
+				if (playerRef.interpolationTime >= playerRef.interpolationDuration) continue; // skip if already at target
+
+				auto& transformRef = transformPool->Get(entity);
+				playerRef.interpolationTime += dt;
+
+				float t = playerRef.interpolationTime / playerRef.interpolationDuration;
+				if (t > 1.0f) t = 1.0f;
+
+				transformRef.localPosition = glm::mix(playerRef.startPos, playerRef.targetPos, t);
+				transformRef.localRotation = glm::slerp(playerRef.startRot, playerRef.targetRot, t);
+
+				transformRef.isDirty = true;
+			}
+		}
+
 		// --- TRANSFORMS UPDATE ----
 		m_TransformSystem->Update(*m_EntityWorld);
 		m_CameraSystem->Update(*m_EntityWorld);
@@ -632,7 +661,7 @@ void GameLayer::SpawnLocalPlayer()
 	// add camera
 	uint32_t cameraEntity = m_EntityWorld->AddEntity();
 	m_EntityWorld->AddComponent<Craft::TransformComponent>(cameraEntity, {
-		glm::vec3(0.0f, 1.6f, 0.0f),         
+		glm::vec3(0.0f, 1.62f, -0.05f),         
 		glm::quat(1.0f, 0.0f, 0.0f, 0.0f),   
 		glm::vec3(1.0f)                      
 	});

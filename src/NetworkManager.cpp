@@ -730,16 +730,20 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			auto& healthRef = eWorld->GetComponent<HealthComponent>(entityID);
 			auto& physicsRef = eWorld->GetComponent<PhysicsComponent>(entityID);
 
-			transformRef.localPosition.x = pData.posX;
-			transformRef.localPosition.y = pData.posY;
-			transformRef.localPosition.z = pData.posZ;
+			// begin interpolation
+			playerRef.startPos = transformRef.localPosition;
+			playerRef.startRot = transformRef.localRotation;
 
-			transformRef.localRotation.w = pData.rotW;
-			transformRef.localRotation.x = pData.rotX;
-			transformRef.localRotation.y = pData.rotY;
-			transformRef.localRotation.z = pData.rotZ;	
+			playerRef.targetPos = glm::vec3(pData.posX, pData.posY, pData.posZ);
+			playerRef.targetRot = glm::quat(pData.rotW, pData.rotX, pData.rotY, pData.rotZ);
 
-			transformRef.isDirty = true;
+			playerRef.interpolationTime = 0.0f;
+
+			if (glm::distance(playerRef.startPos, playerRef.targetPos) > 10.0f) // rubberbanding
+			{
+				transformRef.localPosition = playerRef.targetPos;
+				playerRef.startPos = playerRef.targetPos;
+			}
 
 			healthRef.health = pData.health;
 
