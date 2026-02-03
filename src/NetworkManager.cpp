@@ -725,7 +725,6 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			if (!isSequenceNewer(sequenceID, playerRef.lastSequenceID)) return;
 			playerRef.lastSequenceID = sequenceID;
-			m_LastPlayerPacketSequence = sequenceID;
 
 			auto& transformRef = eWorld->GetComponent<TransformComponent>(entityID);
 			auto& healthRef = eWorld->GetComponent<HealthComponent>(entityID);
