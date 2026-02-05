@@ -126,6 +126,9 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 	pData.velZ = physicsRef.velocity.z;
 
 	std::cout << "Saving data for " << username << std::endl;
+	std::cout << "Leaving at " << pData.posX;
+	std::cout << " " << pData.posY;
+	std::cout << " " << pData.posZ << std::endl;
 
 	// write to file
 	std::filesystem::create_directories(GetPlayerFolder());
@@ -172,10 +175,6 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 
 	SerializedPlayerData pData = {};
 	bool isSaved = LoadPlayerData(username, pData);
-	if (isSaved)
-	{
-		std::cout << username << "'s data loaded successfully!" << std::endl;
-	}
 
 	// later add randomized spawn based on world placement
 	glm::vec3 spawnPosition = glm::vec3(0.0f, 64.0f, 0.0f);
@@ -184,6 +183,10 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 
 	if (isSaved)
 	{
+		std::cout << username << "'s data loaded successfully!" << std::endl;
+		std::cout << "Joining at " << pData.posX;
+		std::cout << " " << pData.posY;
+		std::cout << " " << pData.posZ << std::endl;
 		spawnPosition = glm::vec3(pData.posX, pData.posY, pData.posZ);
 		spawnRotation = glm::quat(pData.rotW, pData.rotX, pData.rotY, pData.rotZ);
 		spawnHealth = pData.health;

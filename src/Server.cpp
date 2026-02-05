@@ -34,7 +34,7 @@ void Server::ShutdownServer()
 {
 	for (auto& [peerID, peer] : m_Clients)
 	{
-		//enet_peer_disconnect_now(peer, 0); may be double deleting
+		enet_peer_disconnect_now(peer, 0);
 	}
 	enet_host_flush(m_Server);
 	enet_host_destroy(m_Server);

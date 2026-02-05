@@ -223,17 +223,44 @@ void NetworkManager::LoginRequestPacket(const std::string& username)
 // Sends Incoming Player assigned network ID
 void NetworkManager::LoginSuccessPacket(ENetPeer* peer, uint8_t networkID)
 {
+	auto eWorld = m_EntityWorld.lock();
+	if (!eWorld) return;
+
+	uint32_t entityID = eWorld->m_PlayerIDEntityMap[networkID];
+
+	auto& playerRef = eWorld->GetComponent<PlayerComponent>(entityID);
+	auto& transformRef = eWorld->GetComponent<TransformComponent>(entityID);
+	auto& healthRef = eWorld->GetComponent<HealthComponent>(entityID);
+	auto& physicsRef = eWorld->GetComponent<PhysicsComponent>(entityID);
+
+	PlayerPacket pData = {};
+
+	pData.packetType = static_cast<uint8_t>(PacketType::LOGIN_SUCCESS);
+	pData.sequenceID = 0; // sending once
+	pData.networkID = playerRef.networkID;
+
+	if (playerRef.networkID != m_NetworkID) std::cout << "login SENDING WRONG DATA" << std::endl; // sending our own data
+
+	pData.playerData = {};
+
+	pData.playerData.posX = transformRef.localPosition.x;
+	pData.playerData.posY = transformRef.localPosition.y;
+	pData.playerData.posZ = transformRef.localPosition.z;
+
+	pData.playerData.rotW = transformRef.localRotation.w;
+	pData.playerData.rotX = transformRef.localRotation.x;
+	pData.playerData.rotY = transformRef.localRotation.y;
+	pData.playerData.rotZ = transformRef.localRotation.z;
+
+	pData.playerData.health = healthRef.health;
+
+	pData.playerData.velX = physicsRef.velocity.x;
+	pData.playerData.velY = physicsRef.velocity.y;
+	pData.playerData.velZ = physicsRef.velocity.z;
+
+	// write to packet
 	PacketWriter writer;
-	writer.WriteByte(static_cast<uint8_t>(PacketType::LOGIN_SUCCESS));
-
-	writer.WriteByte(networkID);
-
-	/*
-	char buffer[32] = { 0 };
-	size_t length = std::min(username.length(), sizeof(buffer));
-	std::memcpy(buffer, username.data(), length);
-	writer.WriteData(buffer, sizeof(buffer));
-	*/
+	writer.WriteData(&pData, sizeof(pData));
 
 	// create ENet packet
 	ENetPacket* packet = enet_packet_create(
@@ -559,10 +586,15 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			// CLIENT
 			uint8_t networkID = 0;
 
-			std::memcpy(&networkID, &data[1], sizeof(uint8_t));
+			// read packet
+			PlayerPacket pData;
 
-			m_Client->SetConnectionState(Magma::ConnectionState::LOGGED_IN);
+			// memory aligned so should work
+			memcpy(&pData, data, sizeof(PlayerPacket));
+
+			networkID = pData.networkID;
 			m_NetworkID = networkID;
+
 			std::cout << "My NetworkID: " << (int)networkID << std::endl;
 
 			if (m_Role == NetworkRole::CLIENT)
@@ -573,7 +605,31 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 				// Create Myself
 				uint32_t entityID = m_WorldManager->CreatePlayerEntity(*eWorld, networkID);
 				eWorld->m_PlayerIDEntityMap[networkID] = entityID;
+
+
+				// set spawn point from file
+				auto& transformRef = eWorld->GetComponent<TransformComponent>(entityID);
+				auto& healthRef = eWorld->GetComponent<HealthComponent>(entityID);
+				auto& physicsRef = eWorld->GetComponent<PhysicsComponent>(entityID);
+
+				transformRef.localPosition.x = pData.playerData.posX;
+				transformRef.localPosition.y = pData.playerData.posY;
+				transformRef.localPosition.z = pData.playerData.posZ;
+
+				transformRef.localRotation.w = pData.playerData.rotW;
+				transformRef.localRotation.x = pData.playerData.rotX;
+				transformRef.localRotation.y = pData.playerData.rotY;
+				transformRef.localRotation.z = pData.playerData.rotZ;
+
+				transformRef.isDirty = true;
+
+				healthRef.health = pData.playerData.health;
+
+				physicsRef.velocity.x = pData.playerData.velX;
+				physicsRef.velocity.y = pData.playerData.velY;
+				physicsRef.velocity.z = pData.playerData.velZ;
 			}
+			m_Client->SetConnectionState(Magma::ConnectionState::LOGGED_IN);
 
 			break;
 		}
