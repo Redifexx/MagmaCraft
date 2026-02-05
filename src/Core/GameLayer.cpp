@@ -22,6 +22,8 @@
 #include <Datatypes/Components/NativeScriptComponent.h>
 #include <Datatypes/Components/PlayerComponent.h>
 
+
+
 using namespace Magma;
 
 void GameLayer::OnAttach()
@@ -37,7 +39,6 @@ void GameLayer::OnAttach()
 	// ImGui File Brower Config
 	m_FileBrowser.SetTitle("World Browser");
 	m_FileBrowser.SetTypeFilters({ ".mcwd" });
-
 	
 	// setup systems & managers
 	m_EntityWorld = std::make_shared<Craft::EntityWorld>();
@@ -88,12 +89,25 @@ void GameLayer::OnAttach()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
 	m_ShaderProgram->SetUniform("u_Texture", 0);
+
+	// UITEST
+	gl2d::init();
+	m_UI = new glui::RendererUi();
+	m_UIRenderer = new gl2d::Renderer2D();
+	m_UIFont = new gl2d::Font();
+	m_UITexture = new gl2d::Texture();
+	m_UIRenderer->create();
+	m_UIFont->createFromFile("resources/font/ANDYB.TTF");
+	m_UITexture->loadFromFile("resources/textures/crosshair_shadow.png", true);
 }
 
 // ---- GAME UPDATE LOGIC ----
 void GameLayer::OnUpdate(float dt)
 {
 	if (dt > 0.1f) dt = 0.1f; // safaty
+
+	int w, h;
+	SDL_GetWindowSize(m_Window, &w, &h);
 
 	// Mouse look
 	ImGuiIO& io = ImGui::GetIO();
@@ -199,6 +213,7 @@ void GameLayer::OnUpdate(float dt)
 	}
 
 	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window);
+	RenderUI(w, h, dt);
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();
@@ -221,6 +236,11 @@ void GameLayer::OnDetach()
 	m_WorldStreamer.reset();
 
 	m_NetworkManager->End();
+
+	delete m_UI;
+	delete m_UIRenderer;
+	delete m_UIFont;
+	delete m_UITexture;
 
 
 	for (Model* model : m_Models)
@@ -608,18 +628,21 @@ void GameLayer::OnImGuiRender(float dt)
 			{
 				if (ImGui::Button("Save & Exit"))
 				{
-					m_MenuState = MenuState::MAIN_MENU;
 					m_NetworkManager->GetWorldManager().get()->SaveWorld(*m_EntityWorld);
-					m_WorldStreamer->UnloadAllChunks();
-					m_NetworkManager->End();
+					m_NetworkManager->ShutdownServer();
 					CleanupLocalPlayer();
+					m_WorldStreamer->UnloadAllChunks();
+					m_EntityWorld->ClearAllEntities();
+					m_NetworkManager->End();
+					m_MenuState = MenuState::MAIN_MENU;
 				}
 			}
 			else if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::CLIENT)
 			{
 				if (ImGui::Button("Disconnect") || m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::DISCONNECTED)
 				{
-					enet_peer_disconnect(m_NetworkManager->GetClient()->GetENetPeer(), 0);
+					m_NetworkManager->DisconnectFromServer();
+					CleanupLocalPlayer();
 					m_WorldStreamer->UnloadAllChunks();
 					m_EntityWorld->ClearAllEntities();
 					m_NetworkManager->End();
@@ -724,6 +747,26 @@ void GameLayer::WorldShutdown()
 	m_WorldStreamer->UnloadAllChunks();
 	m_NetworkManager->End();
 	CleanupLocalPlayer();
+}
+
+void GameLayer::RenderUI(const int& w, const int& h, float dt)
+{
+	m_UIRenderer->updateWindowMetrics(w, h);
+
+	if (m_IsLocalPlayerLoaded)
+	{
+		float size = 8.0f;
+		float x = (w / 2.0f) - (size / 2.0f);
+		float y = (h / 2.0f) - (size / 2.0f);
+		gl2d::Rect rect = { x, y, size, size };
+		m_UIRenderer->renderRectangle(rect, *m_UITexture, Colors_White);
+	}
+
+	m_UI->renderFrame(*m_UIRenderer, *m_UIFont, Magma::Input::GetMousePosition(),
+		Magma::Input::IsMouseButtonPressed(SDL_BUTTON_LEFT), Magma::Input::IsMouseButtonHeld(SDL_BUTTON_LEFT), Magma::Input::IsMouseButtonReleased(SDL_BUTTON_LEFT),
+		Magma::Input::IsKeyReleased(SDL_SCANCODE_ESCAPE), "", dt, 0);
+
+	m_UIRenderer->flush();
 }
 
 

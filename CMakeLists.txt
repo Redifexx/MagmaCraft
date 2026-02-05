@@ -13,6 +13,9 @@ find_package(freeimage CONFIG REQUIRED)
 find_package(tracy CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 
+add_library(glad ALIAS glad::glad)
+add_library(glm ALIAS glm::glm)
+
 find_path(MINIAUDIO_INCLUDE_DIR "miniaudio.h" REQUIRED)
 add_library(miniaudio INTERFACE)
 target_include_directories(miniaudio INTERFACE ${MINIAUDIO_INCLUDE_DIR})
@@ -50,6 +53,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(enet)
 
+add_subdirectory("external/glui")
+
 # Executable
 file(GLOB_RECURSE MAGMA_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE EXTERN_SOURCES CONFIGURE_DEPENDS "external/*.cpp")
@@ -58,8 +63,7 @@ add_executable(MagmaFramework
      ${MAGMA_SOURCES}
      ${EXTERN_SOURCES}
      ${SHADER_SOURCES}
-     "resources/app-icon.rc"
-)
+     "resources/app-icon.rc")
 
 add_compile_definitions(WIN32_LEAN_AND_MEAN)
 
@@ -86,6 +90,7 @@ target_link_libraries(MagmaFramework PUBLIC
     Tracy::TracyClient        # CPU Profiling
     enet                      # Networking
     FastNoiseLite             # Noise Generation
+    glui
 )
 
 target_compile_features(MagmaFramework PRIVATE cxx_std_20)

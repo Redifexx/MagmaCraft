@@ -65,7 +65,7 @@ namespace Craft
 			// Player Functions
 			std::string GetPlayerFolder();
 			void SavePlayerData(EntityWorld& eWorld, uint32_t entityID);
-			bool LoadPlayerData(std::string& username, SerializedPlayerData& outData);
+			bool LoadPlayerData(const std::string& username, SerializedPlayerData& outData);
 			uint32_t CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID);
 
 			// Generates initial world data around player spawn

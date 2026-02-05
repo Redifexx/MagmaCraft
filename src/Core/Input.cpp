@@ -59,6 +59,7 @@ namespace Magma
 		return !m_CurrentKeyState[key] && m_PreviousKeyState[key];
 	}
 
+	// sdl_button_left/right
 	// Mouse
 	bool Input::IsMouseButtonHeld(Uint8 button)
 	{

@@ -15,6 +15,8 @@ namespace Magma
 		public:
 			Server();
 			~Server();
+			
+			void ShutdownServer();
 
 			int GetClientCount() const { return static_cast<int>(m_Clients.size()); }
 			int GetMaxClients() const { return m_MaxClients; }

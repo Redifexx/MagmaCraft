@@ -51,6 +51,18 @@ bool Client::ConnectToServer()
 	return true;
 }
 
+void Client::DisconnectFromServer(bool selfDisconnect)
+{
+	if (selfDisconnect)
+	{
+		enet_peer_disconnect_now(m_Server, 0);
+	}
+	enet_host_flush(m_Client);
+	SetConnectionState(Magma::ConnectionState::DISCONNECTED);
+	m_Server == nullptr;
+	std::cout << "Disconnected from Server." << std::endl;
+}
+
 bool Client::IsConnected() const
 {
 	return m_Server != nullptr && m_Server->state == ENET_PEER_STATE_CONNECTED;

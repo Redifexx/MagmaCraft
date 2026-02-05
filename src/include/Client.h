@@ -25,6 +25,7 @@ namespace Magma
 
 			void SetServerHint(const char* hostName, enet_uint16 port);
 			bool ConnectToServer();
+			void DisconnectFromServer(bool selfDisconnect);
 			bool IsConnected() const;
 			ConnectionState GetConnectionState() const { return m_ConnectionState; }
 			void SetConnectionState(ConnectionState state) { m_ConnectionState = state; }

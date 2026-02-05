@@ -127,7 +127,9 @@ void EntityWorld::ClearAllEntities()
 		if (pool) pool->Clear();
 	}
 
+	m_PlayerIDEntityMap.clear();
 	m_FreeEntityIDs.clear();
+	m_LocalPlayerID = NULL_ENTITY;
 	m_NextEntityID = 0;
 }
 

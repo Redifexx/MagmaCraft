@@ -88,6 +88,8 @@ namespace Craft
 
 			void SendPlayerData(EntityWorld& eWorld, uint32_t entityID);
 			void SendPlayerDisconnect(uint8_t networkID);
+			void DisconnectFromServer(bool selfDisconnect = true); // helper for client
+			void ShutdownServer();
 
 			void LoginRequestPacket(const std::string& username);
 			void LoginSuccessPacket(ENetPeer* peer, uint8_t networkID);
@@ -102,6 +104,7 @@ namespace Craft
 
 			Magma::Server* GetServer() const { return m_Server.get(); }
 			Magma::Client* GetClient() const { return m_Client.get(); }
+
 			void SetEntityWorld(std::shared_ptr<EntityWorld> eWorld) { m_EntityWorld = eWorld; }
 			bool IsRunning() const { return m_IsRunning; }
 			std::shared_ptr<WorldManager> GetWorldManager() { return m_WorldManager; }
@@ -142,6 +145,6 @@ namespace Craft
 			std::unordered_map <std::string, uint8_t> m_NameToNetworkIDMap; // only used by server
 
 			// NetworkID -> Player Username
-			std::shared_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap; // only used by client
+			std::shared_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap; // only used by server & client
 	};
 }

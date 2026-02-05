@@ -26,6 +26,17 @@ Server::Server()
 
 Server::~Server()
 {
+	if (m_Server == nullptr) return;
+	ShutdownServer();
+}
+
+void Server::ShutdownServer()
+{
+	for (auto& [peerID, peer] : m_Clients)
+	{
+		//enet_peer_disconnect_now(peer, 0); may be double deleting
+	}
+	enet_host_flush(m_Server);
 	enet_host_destroy(m_Server);
 	m_Server = nullptr;
 }

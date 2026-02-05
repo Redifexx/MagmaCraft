@@ -27,6 +27,8 @@
 #include <Systems/RenderSystem.h>
 #include <Systems/ScriptSystem.h>
 #include <Datatypes/Components/CameraComponent.h>
+#include <glui/glui.h>
+#include "gl2d/gl2d.h"
 
 namespace Magma
 {
@@ -94,6 +96,7 @@ namespace Magma
 			void SpawnLocalPlayer();
 			void CleanupLocalPlayer();
 			void WorldShutdown();
+			void RenderUI(const int& w, const int& h, float dt);
 
 
 			std::vector<Model*> m_Models;
@@ -145,5 +148,10 @@ namespace Magma
 			uint32_t m_PrimaryCamera = Craft::NULL_ENTITY;
 			std::string m_Username = "Player";
 			bool m_IsLocalPlayerLoaded = false;
+
+			glui::RendererUi* m_UI;
+			gl2d::Renderer2D* m_UIRenderer;
+			gl2d::Font* m_UIFont;
+			gl2d::Texture* m_UITexture;
 	};
 }

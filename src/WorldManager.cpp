@@ -107,6 +107,7 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 
 	std::string username = (*idMap)[playerRef.networkID];
 
+
 	SerializedPlayerData pData = {};
 
 	pData.posX = transformRef.localPosition.x;
@@ -124,6 +125,8 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 	pData.velY = physicsRef.velocity.y;
 	pData.velZ = physicsRef.velocity.z;
 
+	std::cout << "Saving data for " << username << std::endl;
+
 	// write to file
 	std::filesystem::create_directories(GetPlayerFolder());
 	std::string filename = GetPlayerFolder() + std::string(username) + ".mcpl";
@@ -138,7 +141,7 @@ void WorldManager::SavePlayerData(EntityWorld& eWorld, uint32_t entityID)
 	outfile.close();
 }
 
-bool WorldManager::LoadPlayerData(std::string& username, SerializedPlayerData& outData)
+bool WorldManager::LoadPlayerData(const std::string& username, SerializedPlayerData& outData)
 {
 	std::string filename = GetPlayerFolder() + username + ".mcpl";
 
@@ -169,6 +172,10 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 
 	SerializedPlayerData pData = {};
 	bool isSaved = LoadPlayerData(username, pData);
+	if (isSaved)
+	{
+		std::cout << username << "'s data loaded successfully!" << std::endl;
+	}
 
 	// later add randomized spawn based on world placement
 	glm::vec3 spawnPosition = glm::vec3(0.0f, 64.0f, 0.0f);

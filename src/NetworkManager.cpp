@@ -48,17 +48,6 @@ bool NetworkManager::Begin()
 
 void NetworkManager::End()
 {
-	// annouce server shutdown
-	if (m_Role == NetworkRole::SERVER && m_Server)
-	{
-		for (auto& [peerID, peer] : m_Server->GetClients())
-		{
-			enet_peer_disconnect(peer, 0);
-		}
-
-		enet_host_flush(m_Server->GetENetHost());
-	}
-
 	if (m_Server) m_Server.reset();
 	if (m_Client) m_Client.reset();
 	if (m_WorldManager) m_WorldManager.reset();
@@ -187,6 +176,26 @@ void NetworkManager::SendPlayerDisconnect(uint8_t networkID)
 	enet_host_broadcast(m_Server->GetENetHost(), 0, packet);
 }
 
+void NetworkManager::DisconnectFromServer(bool selfDisconnect)
+{
+	if (!m_Client) return;
+	m_PlayerNames.clear();
+	m_NetworkIDToNameMap->clear();
+	m_NameToNetworkIDMap.clear();
+	m_Client->DisconnectFromServer(selfDisconnect);
+}
+
+void NetworkManager::ShutdownServer()
+{
+	if (!m_Server) return;
+	m_NameToNetworkIDMap.clear();
+	m_NetworkIDToNameMap->clear();
+	m_PeerToEntityMap.clear();
+	m_ActiveNetworkIDs.clear();
+	DisconnectFromServer(false);
+	m_Server->ShutdownServer();
+}
+
 // Writes a packet to the server with username
 void NetworkManager::LoginRequestPacket(const std::string& username)
 {
@@ -279,35 +288,56 @@ void NetworkManager::Update(float dt)
 					break;
 				case ENET_EVENT_TYPE_DISCONNECT:
 				{
-					std::cout << "Player " << event.peer->address.host << " disconnected." << std::endl;
-
+					std::cout << "Received server disconnect packet" << std::endl;
 					std::string username;
 					uint8_t networkID = 0;
+
 
 					// Remove from entity world and maps
 					auto itr = m_PeerToEntityMap.find(event.peer->incomingPeerID);
 					if (itr != m_PeerToEntityMap.end())
 					{
 						uint32_t entityID = m_PeerToEntityMap[event.peer->incomingPeerID];
+
 						if (auto eWorld = m_EntityWorld.lock())
 						{
-							m_WorldManager->SavePlayerData(*eWorld, entityID);
-
 							if (eWorld->Contains<PlayerComponent>(entityID))
 							{
 								auto& playerRef = eWorld->GetComponent<PlayerComponent>(entityID);
+
+								if (!m_NetworkIDToNameMap->contains(playerRef.networkID)) return;
+
 								username = (*m_NetworkIDToNameMap)[playerRef.networkID];
 								networkID = m_NameToNetworkIDMap[username]; // optimize
+
+								m_WorldManager->SavePlayerData(*eWorld, entityID);
+
+								// Remove from list
+								auto& playerNames = m_PlayerNames;
+								const std::string& nameToRemove = (*m_NetworkIDToNameMap)[networkID];
+								auto it = std::find(playerNames.begin(), playerNames.end(), nameToRemove);
+								if (it != playerNames.end()) {
+									playerNames.erase(it);
+								}
+
+
 								m_NameToNetworkIDMap.erase(username);
+								m_NetworkIDToNameMap->erase(networkID);
 								eWorld->m_PlayerIDEntityMap.erase(networkID);
 								eWorld->RemoveEntity(entityID);
 							}
 						}
 						m_PeerToEntityMap.erase(itr);
 					}
+					else
+					{
+						return;
+					}
 
 					// Clean active network ids
 					m_ActiveNetworkIDs.erase(networkID);
+					std::cout << username << " - " << (int)networkID << " disconnected." << std::endl;
+
 
 					// relay player exit
 					SendPlayerDisconnect(networkID);
@@ -339,11 +369,7 @@ void NetworkManager::Update(float dt)
 					enet_packet_destroy(event.packet);
 					break;
 				case ENET_EVENT_TYPE_DISCONNECT:
-					std::cout << "Disconnected from server.\n";
-					m_Client->SetConnectionState(Magma::ConnectionState::DISCONNECTED);
-					//m_WorldStreamer->UnloadAllChunks();
-					//m_EntityWorld->ClearAllEntities();
-					m_Server = nullptr;
+					m_Client->DisconnectFromServer(true);
 					break;
 			}
 		}
@@ -401,6 +427,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			uint8_t networkID = GetAvailableNetworkID();
 			m_NameToNetworkIDMap[username] = networkID;
+			(*m_NetworkIDToNameMap)[networkID] = username;
 			m_ActiveNetworkIDs[networkID] = peer->incomingPeerID;
 
 			// Create Entity on Server
@@ -624,6 +651,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			if (!eWorld) return;
 
 			std::string username = std::string(jData.username);
+			m_NameToNetworkIDMap[username] = jData.networkID;
 			(*m_NetworkIDToNameMap)[jData.networkID] = username;
 			m_PlayerNames.push_back((*m_NetworkIDToNameMap)[jData.networkID]);
 
@@ -782,6 +810,8 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			std::memcpy(&networkID, &data[1], sizeof(uint8_t));
 
+			if (!m_NetworkIDToNameMap->contains(networkID)) return; // we dont have that player
+
 			auto eWorld = m_EntityWorld.lock();
 			if (!eWorld) return;
 
@@ -799,7 +829,10 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
                 playerNames.erase(it);
             }
 
+			std::string username = (*m_NetworkIDToNameMap)[networkID];
+			m_NameToNetworkIDMap.erase(username);
 			(*m_NetworkIDToNameMap).erase(networkID);
+			break;
 		}
 
 		default:
