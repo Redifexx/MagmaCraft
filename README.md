@@ -1,14 +1,14 @@
 # MagmaCraft
 
 <p align="center">
-<img src="resources/magma_logo.png" width="400" alt="MagmaCraft Logo">
+<img src="resources/screenshots/8.webp" width="400" alt="MagmaCraft Logo">
 </p>
 
 ## A Custom Voxel Multiplayer Game
 
 **MagmaCraft** is a voxel-based sandbox game built entirely from scratch using C++ and OpenGL. Built upon my **Magma Framework**, it serves as a technical showcase of voxel rendering, client-server networking, and entity management.
 
-<img src="resources/ss.png" alt="MagmaCraft Screenshot">
+<img src="resources/screenshots/1.webp" alt="MagmaCraft Screenshot">
 
 ## Key Features
 
@@ -51,11 +51,11 @@ MagmaCraft uses **CMake** for cross-platform building.
 * **Mouse**: Look
 * **Esc**: Release Mouse
 
-## Resources I Used
+## Resources Used
 
-Faithful 32x Texture Pack - https://www.curseforge.com/minecraft/texture-packs/classic-faithful-32x
-ENet Tutorial - https://www.youtube.com/watch?v=NbhYi_I5T4A&t=417s
-Minecraft Terrain Generation - https://youtu.be/CSa5O6knuwI?si=UNLTEuHob74eRqvv
+* Faithful 32x Texture Pack - https://www.curseforge.com/minecraft/texture-packs/classic-faithful-32x
+* ENet Tutorial - https://www.youtube.com/watch?v=NbhYi_I5T4A&t=417s
+* Minecraft Terrain Generation - https://youtu.be/CSa5O6knuwI?si=UNLTEuHob74eRqvv
 
 ## License
 
