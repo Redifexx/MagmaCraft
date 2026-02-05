@@ -11,6 +11,9 @@
 #include "WorldRenderer.h"
 #include <Datatypes/EntityWorld.h>
 
+// The core of the entire application
+// Sends/Receives/Processes Packets
+
 namespace Craft
 {
 
@@ -61,7 +64,7 @@ namespace Craft
 		uint8_t packetType;
 		uint32_t sequenceID;
 		uint8_t networkID;
-		Craft::SerializedPlayerData playerData; // should reaplce with player ID at somepoint
+		Craft::SerializedPlayerData playerData;
 	};
 	#pragma pack(pop)
 
@@ -127,7 +130,7 @@ namespace Craft
 
 			uint32_t m_PlayerPacketSequence = 0;
 
-			std::string m_LocalPlayerUsername; // not sure where to put this yet
+			std::string m_LocalPlayerUsername; // i should maybe move this
 
 			uint8_t m_NetworkID = 255;
 
@@ -145,6 +148,6 @@ namespace Craft
 			std::unordered_map <std::string, uint8_t> m_NameToNetworkIDMap; // only used by server
 
 			// NetworkID -> Player Username
-			std::shared_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap; // only used by server & client
+			std::shared_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap; // used by server & client
 	};
 }

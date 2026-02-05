@@ -30,8 +30,6 @@ int main(int argc, char* argv[])
 	Magma::ImGuiLayer* imGuiLayer = new Magma::ImGuiLayer(window.GetSDLWindow(), window.GetGLContext());
 	layerStack.PushLayer(imGuiLayer);
 
-	// add text / image rendering layer
-
 	Magma::GameLayer* gameLayer = new Magma::GameLayer(window.GetSDLWindow());
 	layerStack.PushLayer(gameLayer);
 

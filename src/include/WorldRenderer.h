@@ -21,7 +21,6 @@ namespace Craft
 	class WorldRenderer
 	{
 		public:
-			WorldRenderer();
 			void RenderChunk(Chunk* chunk, glm::ivec2 chunkPos);
 			void GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec2 chunkPos);
 

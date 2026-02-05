@@ -5,10 +5,6 @@
 
 using namespace Craft;
 
-WorldRenderer::WorldRenderer()
-{
-}
-
 void WorldRenderer::RenderChunk(Chunk* chunk, glm::ivec2 chunkPos)
 {
 	std::vector<Magma::Vertex> vertices;
@@ -29,11 +25,9 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 	BlockID* blocks = chunk->blocks;
 	uint32_t indexOffset = 0;
 
-	//std::cout << "---------" << chunkPos.x << " " << chunkPos.y << std::endl;
-
 	for (int i = 0; i < CHUNK_VOLUME; i++)
 	{
-		// reference rgl
+		// referenced RGL
 		
 		if (blocks[i] != 0) // if this block isn't air, render
 		{
@@ -42,7 +36,6 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 			float x = (chunkPos.x * Craft::CHUNK_WIDTH) + chunk->GetBlockX(i);
 			float y = chunk->GetBlockY(i);
 			float z = (chunkPos.y * Craft::CHUNK_WIDTH) + chunk->GetBlockZ(i);
-			//std::cout << x << " " << z << std::endl;
 			glm::vec2 uv;
 
 			// index = x + (z * CHUNK_WIDTH) + (y * CHUNK_WIDTH * CHUNK_WIDTH);

@@ -6,6 +6,7 @@
 
 // key to an almost pure ecs approach
 // sparse set implementation
+// keeps two vectors: a sparse one for holding an index, and a packed one with component data
 
 namespace Craft
 {

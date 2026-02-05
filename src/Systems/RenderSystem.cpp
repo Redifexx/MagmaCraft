@@ -9,6 +9,7 @@
 
 using namespace Craft;
 
+// renders all
 void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer, SDL_Window* window)
 {
 	//clear screen
@@ -34,6 +35,7 @@ void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shader
 	DrawEntities(world, shaderProgram);
 }
 
+// iterates through entities with a model and renders them
 void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& shaderProgram)
 {
 	SparseSet<PlayerComponent>* playerPool = world.GetComponentPool<PlayerComponent>();
@@ -44,7 +46,7 @@ void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& 
 
 	const std::vector<uint32_t>& entities = modelPool->GetAllEntities();
 
-	//auto entities = world.View<TransformComponent, ModelComponent>();
+	//auto entities = world.View<TransformComponent, ModelComponent>(); broken for now
 
 	glm::mat4 worldMatrix = glm::mat4(1.0f);
 
@@ -59,9 +61,6 @@ void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& 
 
 
 		shaderProgram.SetUniform("u_Model", worldMatrix);
-
-		//shaderProgram.SetUniform("u_Model", glm::mat4(1.0f));
-		//std::cout << "Model World Position: " << worldMatrix[3][0] << " " << worldMatrix[3][1] << " " << worldMatrix[3][2] << std::endl;
 
 		if (playerPool->Contains(entity))
 		{
@@ -104,7 +103,7 @@ void RenderSystem::SetupShaderUniforms(EntityWorld& world, const Magma::ShaderPr
 
 			if (transformPool->Contains(entity))
 			{
-				// dont send cam pos until defered rendering is added
+				// dont send cam pos until deferred rendering / view depending shading is added
 				//shaderProgram.SetUniform("u_CameraPosition", glm::vec3(transformPool->Get(entity).worldMatrix[3]));
 			}
 			break;

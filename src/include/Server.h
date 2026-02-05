@@ -7,7 +7,7 @@
 #include <map>
 
 // thank you Sloan Kelly on youtube
-
+// wrapper for enet server
 namespace Magma
 {
 	class Server

@@ -2,6 +2,8 @@
 
 #include <Datatypes/EntityWorld.h>
 
+// updates all transforms that are marked dirty
+// without this nothing will move
 namespace Craft
 {
 	struct TransformSystem

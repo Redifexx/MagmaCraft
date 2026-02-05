@@ -1,26 +1,31 @@
 #include <enet/enet.h>
+
+#include <filesystem>
+#include <limits.h>
+#include <cstdio>
+
 #include "Core/GameLayer.h"
 
 #include "Core/Model.h"
 #include "Core/ShaderProgram.h"
 #include "Core/Shader.h"
 #include "Core/Texture.h"
-#include <filesystem>
-#include <Core/AudioEngine.h>
+#include "Core/AudioEngine.h"
+
 #include "WorldManager.h"
 #include "NetworkManager.h"
 #include "BlockLibrary.h"
-#include <limits.h>
-#include <cstdio>
-#include <Datatypes/EntityWorld.h>
-#include <Datatypes/Components/TransformComponent.h>
-#include <Datatypes/Components/RelationshipComponent.h>
-#include <Datatypes/Components/ModelComponent.h>
-#include <Datatypes/Components/CameraComponent.h>
-#include <Datatypes/Components/HealthComponent.h>
-#include <Scripts/PlayerController.h>
-#include <Datatypes/Components/NativeScriptComponent.h>
-#include <Datatypes/Components/PlayerComponent.h>
+
+#include "Datatypes/EntityWorld.h"
+#include "Datatypes/Components/TransformComponent.h"
+#include "Datatypes/Components/RelationshipComponent.h"
+#include "Datatypes/Components/ModelComponent.h"
+#include "Datatypes/Components/CameraComponent.h"
+#include "Datatypes/Components/HealthComponent.h"
+#include "Datatypes/Components/NativeScriptComponent.h"
+#include "Datatypes/Components/PlayerComponent.h"
+
+#include "Scripts/PlayerController.h"
 
 
 
@@ -81,9 +86,6 @@ void GameLayer::OnAttach()
 	m_Texture = std::make_unique<Texture>(texturePath.c_str(), true);
 	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	//pModel = new Model("resources/models/player.fbx");
-	//m_Models.push_back(pModel);
 
 	m_ShaderProgram->Use();
 	glActiveTexture(GL_TEXTURE0);
@@ -394,7 +396,7 @@ void GameLayer::OnImGuiRender(float dt)
 						std::string address = std::string(m_ServerAddressBuf);
 						enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
 						m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
-						m_NetworkManager->GetClient()->ConnectToServer(); // possible race condition
+						m_NetworkManager->GetClient()->ConnectToServer();
 
 						m_ConnectionFailTimer = m_ConnectionFailRate;
 					}
@@ -749,6 +751,7 @@ void GameLayer::WorldShutdown()
 	CleanupLocalPlayer();
 }
 
+// this just renders the crosshair for now
 void GameLayer::RenderUI(const int& w, const int& h, float dt)
 {
 	m_UIRenderer->updateWindowMetrics(w, h);

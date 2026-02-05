@@ -2,7 +2,7 @@
 #include <string>
 #include <cstdint>
 
-namespace Magma { class Texture; }
+namespace Magma { class Texture; } // forward declaration
 
 namespace Craft
 {
@@ -13,7 +13,7 @@ namespace Craft
 		uint32_t lastSequenceID = 0; // for packets
 		Magma::Texture* texture = nullptr;
 
-		// interpolation stats
+		// some variables needed for movement interpolation
 		glm::vec3 startPos = glm::vec3(0.0f);
 		glm::vec3 targetPos = glm::vec3(0.0f);
 
@@ -21,6 +21,6 @@ namespace Craft
 		glm::quat targetRot = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
 		float interpolationTime = 0.0f;
-		float interpolationDuration = 0.075f; // experiment with this
+		float interpolationDuration = 0.075f; // 0.075 feels right for now
 	};
 }

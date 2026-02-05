@@ -1,5 +1,7 @@
 #pragma once
 
+
+// keeps track of entity relationships using a linked list
 namespace Craft
 {
 	struct RelationshipComponent

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 
+// This is where I define all block information
 namespace Craft
 {
 	struct BlockData

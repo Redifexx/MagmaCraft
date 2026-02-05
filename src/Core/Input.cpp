@@ -41,11 +41,9 @@ namespace Magma
 	bool Input::IsKeyHeld(SDL_Scancode key)
 	{
 		// Pass nullptr to get the internal array of the keyboard state
-		//const Uint8* state = SDL_GetKeyboardState(nullptr);
+		// const Uint8* state = SDL_GetKeyboardState(nullptr);
 
-		// Check if the specific key is physically down right now
-		//return state[scancode] != 0;
-		//std::cout << "holding: " << key << " state: " << m_CurrentKeyState[key] << std::endl;
+		// check if this key is physically down right now
 		return m_CurrentKeyState[key];
 	}
 
@@ -59,7 +57,7 @@ namespace Magma
 		return !m_CurrentKeyState[key] && m_PreviousKeyState[key];
 	}
 
-	// sdl_button_left/right
+	
 	// Mouse
 	bool Input::IsMouseButtonHeld(Uint8 button)
 	{

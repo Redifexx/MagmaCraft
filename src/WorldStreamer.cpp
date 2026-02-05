@@ -54,7 +54,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 		// handle lag/teleport
 		if (glm::length(glm::vec2(chunkDelta)) > 2.0f)
 		{
-			// handle
+			// handle eventaully
 		}
 		else
 		{

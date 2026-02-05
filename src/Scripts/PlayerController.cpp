@@ -55,16 +55,8 @@ void PlayerController::HandleMovement(float dt)
 	// only using y rotation for movement
 	glm::vec3 moveDir = glm::vec3(0.0f);
 
-	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_W))
-	{
-		/*
-		std::cout << "W HELD" << std::endl;
-		std::cout << transform.localPosition.x << " "
-				  << transform.localPosition.y << " "
-				  << transform.localPosition.z << std::endl;
-				  */
-		moveDir += forward;
-	}
+	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_W)) moveDir += forward;
+
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_S)) moveDir -= forward;
 
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_A)) moveDir -= right;
@@ -83,7 +75,6 @@ void PlayerController::HandleMovement(float dt)
 
 void PlayerController::HandleMouseLook(float dt)
 {
-	//if (!SDL_GetWindowRelativeMouseMode(m_Window)) return;
 
 	float mouseX = Magma::Input::GetMouseDelta().x;
 	float mouseY = Magma::Input::GetMouseDelta().y;

@@ -4,6 +4,7 @@
 #include "Chunk.h"
 
 // Generates Chunks and Writes them to Files
+// Holds the "recipe" needed for Terrain Generation
 namespace Craft
 {
 	class WorldGenerator

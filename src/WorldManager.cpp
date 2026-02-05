@@ -38,11 +38,10 @@ void WorldManager::CreateWorld(std::string& worldName, int seed, EntityWorld& eW
 	WorldFileHeader header;
 	header.seed = seed;
 
-	// 1. Zero out the memory first so there is no garbage
+	// zero out the memory first so there is no garbage
 	std::memset(header.worldName, 0, sizeof(header.worldName));
 
-	// 2. Copy the actual string characters into the array
-	// We use std::min to ensure we don't overflow the 32 byte buffer
+	// copy the actual string characters into the array
 	size_t copyLen = std::min(m_WorldName.size(), sizeof(header.worldName) - 1);
 	std::memcpy(header.worldName, m_WorldName.c_str(), copyLen);
 
@@ -206,10 +205,6 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 		0,
 		std::move(skin) // ensure no mem leak on destruction
 	});
-
-	//eWorld.AddComponent<PlayerComponent>(playerEntity, {
-	//	networkID
-	//});
 
 	eWorld.AddComponent<HealthComponent>(playerEntity, { spawnHealth, 20.0f });
 	eWorld.AddComponent<PhysicsComponent>(playerEntity, { glm::vec3(0.0f), true });

@@ -5,6 +5,8 @@
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
 
+// Brings the world rendering and entity rendering together
+// need to improve the texture/shader implementation, might later make resource manager
 namespace Craft
 {
 	class RenderSystem

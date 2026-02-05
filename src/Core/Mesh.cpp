@@ -54,23 +54,24 @@ Mesh::Mesh(Mesh&& other) noexcept
 	other.m_EBO = 0;
 }
 
+// std::move operation
 Mesh& Mesh::operator=(Mesh&& other) noexcept
 {
 	if (this != &other)
 	{
-		// Delete our current data
+		// delete our current data
 		glDeleteVertexArrays(1, &m_VAO);
 		glDeleteBuffers(1, &m_VBO);
 		glDeleteBuffers(1, &m_EBO);
 
-		// Steal data
+		// steal data
 		m_Vertices = std::move(other.m_Vertices);
 		m_Indices = std::move(other.m_Indices);
 		m_VAO = other.m_VAO;
 		m_VBO = other.m_VBO;
 		m_EBO = other.m_EBO;
 
-		// Nullify other
+		// nullify other
 		other.m_VAO = 0;
 		other.m_VBO = 0;
 		other.m_EBO = 0;

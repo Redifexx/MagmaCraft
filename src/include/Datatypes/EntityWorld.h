@@ -22,7 +22,7 @@ ECS RULES
 -- Split Component Data into a dense array of components and sparse array of indexes
 -- Compoenets may have helper functions to only modify local data
 -- For components, stats are objects, resources are pointers, and entities are ids
-
+-- systems are STATELESS
 */
 namespace Craft
 {
@@ -87,6 +87,7 @@ namespace Craft
 			// provide a view of entities that have all specified components
 			// variadic templates - can take in any number of arguments/component types
 			// very nice, very useful
+			// but there is an issue with it at the moment, so not so useful yet
 			template<typename... ComponentTypes>
 			std::vector<EntityID> View()
 			{

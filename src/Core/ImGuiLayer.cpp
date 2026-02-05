@@ -2,6 +2,7 @@
 
 using namespace Magma;
 
+// Sets up ImGui
 void ImGuiLayer::OnAttach()
 {
 	IMGUI_CHECKVERSION();

@@ -5,6 +5,7 @@
 #include <string.h>	
 #include <vector>
 
+// Wrapper for enet client
 namespace Magma
 {
 	enum class ConnectionState

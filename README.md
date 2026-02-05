@@ -6,35 +6,35 @@
 
 ## A Custom Voxel Multiplayer Game
 
-**MagmaCraft** is a voxel-based sandbox game built entirely from scratch using C++ and OpenGL. Built upon the custom **Magma Framework**, it serves as a technical showcase of voxel rendering, client-server networking, and entity management without relying on existing game engines.
+**MagmaCraft** is a voxel-based sandbox game built entirely from scratch using C++ and OpenGL. Built upon my **Magma Framework**, it serves as a technical showcase of voxel rendering, client-server networking, and entity management.
 
 <img src="resources/ss.png" alt="MagmaCraft Screenshot">
 
 ## Key Features
 
-* **Custom Voxel Engine:** Efficient chunk rendering, texture atlasing, and world streaming.
-* **Multiplayer Networking:** robust client-server architecture powered by **ENet**.
-* Supports Hosting (Listen Server) and Joining (Client).
+* **Custom Voxel Engine:** Chunk rendering, texture atlasing, and world streaming.
+* **Multiplayer Networking:** Robust client-server architecture with the help of **ENet**.
+* Supports Hosting and Joining worlds.
 * Entity interpolation for smooth movement across the network.
 * Real-time player synchronization and connection handling.
 
 
 * **3D Rendering:** Custom rendering pipeline supporting FBX model loading, shaders, and dynamic textures.
 * **World Management:** Infinite terrain generation with chunk compression and saving/loading systems.
-* **User Interface:** Integrated UI for server browsing, login, and in-game HUDs using ImGui and a custom 2D renderer.
+* **User Interface:** ImGUI for server browsing, login, and in-game crosshair using Low Level Game Dev's GLUI library.
 
 ## Tech Stack
 
 * **Language:** C++ (C++20)
-* **Graphics:** OpenGL (Modern Core Profile)
+* **Graphics:** OpenGL 4.6
 * **Networking:** ENet
-* **Windowing/Input:** SDL2
+* **Windowing/Input:** SDL3
 * **Math:** GLM
 * **Build System:** CMake
 
 ## Getting Started
 
-MagmaCraft uses **CMake** for easy cross-platform building.
+MagmaCraft uses **CMake** for cross-platform building.
 
 1. **Clone the Repository** (Ensure you have Visual Studio or a C++ compiler installed).
 2. Open Visual Studio and select **File -> Open -> CMake Project**.
@@ -47,10 +47,15 @@ MagmaCraft uses **CMake** for easy cross-platform building.
 ## Controls
 
 * **W, A, S, D**: Move
-* **Space**: Jump
+* **E, Q**: Fly up and down
 * **Mouse**: Look
-* **T**: Play Audio Test
-* **Esc**: Open Menu / Release Mouse
+* **Esc**: Release Mouse
+
+## Resources I Used
+
+Faithful 32x Texture Pack - https://www.curseforge.com/minecraft/texture-packs/classic-faithful-32x
+ENet Tutorial - https://www.youtube.com/watch?v=NbhYi_I5T4A&t=417s
+Minecraft Terrain Generation - https://youtu.be/CSa5O6knuwI?si=UNLTEuHob74eRqvv
 
 ## License
 

@@ -7,6 +7,7 @@
 #include <Datatypes/Components/CameraComponent.h>
 #include <Datatypes/Components/HealthComponent.h>
 
+// Scripts inherit this for consistent start, update, end functions
 namespace Craft
 {
 	class ScriptableEntity

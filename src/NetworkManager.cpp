@@ -309,7 +309,6 @@ void NetworkManager::Update(float dt)
 					std::cout << "Client Count : [" << m_Server->GetClientCount() << "/" << m_Server->GetMaxClients() << "]" << std::endl;
 					break;
 				case ENET_EVENT_TYPE_RECEIVE:
-					//std::cout << (char*)event.packet->data << std::endl;
 					HandlePacket(event.packet, event.peer);
 					enet_packet_destroy(event.packet);
 					break;
@@ -391,7 +390,6 @@ void NetworkManager::Update(float dt)
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE:
-					//std::cout << (char*)event.packet->data << std::endl;
 					HandlePacket(event.packet, event.peer);
 					enet_packet_destroy(event.packet);
 					break;
@@ -644,9 +642,6 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			std::memcpy(&chunkX, &data[1], sizeof(int));
 			std::memcpy(&chunkZ, &data[5], sizeof(int));
-			// may have to consider endianness here
-
-			//std::cout << "Received CHUNK_REQUEST for chunk (" << chunkX << ", " << chunkZ << ")." << std::endl;
 
 			SendChunkData(peer, chunkX, chunkZ);
 			break;
@@ -684,6 +679,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 		case static_cast<uint8_t>(PacketType::BLOCK_UPDATE):
 			std::cout << "Received BLOCK_UPDATE packet." << std::endl;
 			// Handle block update logic
+			// not implemented yet :(
 			break;
 
 		case static_cast<uint8_t>(PacketType::PLAYER_JOIN):
@@ -759,8 +755,6 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			std::memcpy(&networkID, &data[offset], sizeof(uint8_t));
 			offset += sizeof(uint8_t);
 
-			//if (networkID == m_NetworkID) return; //ignore if my own data
-
 			// 76 Bytes
 			SerializedPlayerData pData;
 
@@ -823,7 +817,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			playerRef.interpolationTime = 0.0f;
 
-			if (glm::distance(playerRef.startPos, playerRef.targetPos) > 10.0f) // rubberbanding
+			if (glm::distance(playerRef.startPos, playerRef.targetPos) > 10.0f) // rubberbanding solution
 			{
 				transformRef.localPosition = playerRef.targetPos;
 				playerRef.startPos = playerRef.targetPos;
@@ -852,8 +846,6 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 					}
 				}
 			}
-
-			// Handle block update logic
 			break;
 		}
 

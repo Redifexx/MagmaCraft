@@ -32,6 +32,7 @@ namespace Craft
 			BlockID GetBlockData(int x, int y, int z) const;
 			void SetBlock(int x, int y, int z, BlockID block);
 
+			// Turns the index of a block into local coordinates
 			const int GetBlockX(uint32_t id) { return id % CHUNK_WIDTH; }
 			const int GetBlockY(uint32_t id) { return id / (CHUNK_WIDTH * CHUNK_WIDTH); }
 			const int GetBlockZ(uint32_t id) { return (id / CHUNK_WIDTH) % CHUNK_WIDTH; }
