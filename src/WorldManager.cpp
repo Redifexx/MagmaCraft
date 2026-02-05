@@ -194,7 +194,7 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 
 	// Add Components (Local + Remote)
 
-	Magma::Texture* skin = new Magma::Texture("resources/textures/steve.png");
+	Magma::Texture* skin = new Magma::Texture("resources/textures/player_skin.png");
 	skin->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	skin->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
