@@ -5,6 +5,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
 
+// allows any number of shaders to be attached to a single program
 namespace Magma
 {
 	class ShaderProgram

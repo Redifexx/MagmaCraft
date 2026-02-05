@@ -3,6 +3,7 @@
 #include <Datatypes/ScriptableEntity.h>
 #include <functional>
 
+// Component that enables scripts to be attached to entities
 namespace Craft
 {
 	struct NativeScriptComponent

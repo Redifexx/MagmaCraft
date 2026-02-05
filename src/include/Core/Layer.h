@@ -2,9 +2,7 @@
 
 #include <string>
 
-
 // Layers are used to control render order
-// and allow for modular systems
 // very cool stuff :)
 namespace Magma
 {

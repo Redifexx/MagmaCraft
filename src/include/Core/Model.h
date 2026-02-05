@@ -8,6 +8,7 @@
 #include <assimp/postprocess.h>
 #include <stdexcept>
 
+// turns external models into multiple meshes
 namespace Magma
 {
 	class Model

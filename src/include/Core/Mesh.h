@@ -20,6 +20,7 @@ namespace Magma
 		public:
 			Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
+			// prevents std::move from breaking here
 			Mesh(const Mesh&) = delete;
 			Mesh& operator=(const Mesh&) = delete;
 

@@ -5,6 +5,7 @@
 // Holds the data representation of a Camera
 // Just a big ball of data to be used outside of this class
 // refactored and slimed down for Craft's ECS
+// Not really needed for magma craft
 namespace Magma
 {
 	class Camera

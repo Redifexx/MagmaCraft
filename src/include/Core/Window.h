@@ -8,6 +8,7 @@
 #include <iostream>
 #include <functional>
 
+// Manages the SDL window and context
 namespace Magma
 {
 	class Window

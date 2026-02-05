@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 
+// almost a replacement for the original camera class
 namespace Craft
 {
 	enum class CameraType

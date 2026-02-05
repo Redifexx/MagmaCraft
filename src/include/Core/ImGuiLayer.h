@@ -17,8 +17,8 @@ namespace Magma
 
 			void OnAttach() override;
 			void OnDetach() override;
-			void Begin(); // on frame start
-			void End(); // on frame end
+			void Begin();
+			void End();
 		private:
 			SDL_Window* m_Window = nullptr;
 			SDL_GLContext m_GLContext = nullptr;

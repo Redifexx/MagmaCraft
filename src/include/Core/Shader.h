@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 
+// just a shader :)
 namespace Magma
 {
 	class Shader

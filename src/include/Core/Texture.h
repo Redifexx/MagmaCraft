@@ -4,6 +4,8 @@
 #include <glad/glad.h>
 #include <iostream>
 
+// allows the creation of openGL textures
+// until more texture types are required, options are limited
 namespace Magma
 {
 	class Texture
