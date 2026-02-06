@@ -15,6 +15,7 @@
 #include "WorldManager.h"
 #include "NetworkManager.h"
 #include "BlockLibrary.h"
+#include "Primitives.h"
 
 #include "Datatypes/EntityWorld.h"
 #include "Datatypes/Components/TransformComponent.h"
@@ -58,8 +59,42 @@ void GameLayer::OnAttach()
 
 	Craft::BlockLibrary::Initialize();
 
+	int w, h;
+	SDL_GetWindowSize(m_Window, &w, &h);
+
+	// SHOULD BE MOVED INTO ANOTHER CLASS AT SOME POINT
+	// Setup Framebuffers & Renderbuffers
+	// resuing code from lava engine
+
+	CreateScreenQuad(m_ScreenVAO, m_ScreenVBO);
+
+	glGenFramebuffers(1, &m_ScreenFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
+
+	// screen texture
+	glGenTextures(1, &m_ScreenTextureColorBuffer);
+	glBindTexture(GL_TEXTURE_2D, m_ScreenTextureColorBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // hdr
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ScreenTextureColorBuffer, 0);
+
+	// create renderbuffer
+	glGenRenderbuffers(1, &m_ScreenRBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_ScreenRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_ScreenRBO);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) std::cout << "framebuffer error" << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	// move into resource manager later
 	// Shader setup (Shader.h & ShaderProgram.h)
+	// Mesh shader
 	std::string vertpath = "resources/shaders/basic.vert";
 	std::string fragpath = "resources/shaders/basic.frag";
 	std::string texturePath = "resources/textures/terrain.png";
@@ -81,6 +116,28 @@ void GameLayer::OnAttach()
 		std::cerr << "Failed to link shader program!" << std::endl;
 		return;
 	}
+
+	// screen quad shader
+	vertpath = "resources/shaders/screenQuad.vert";
+	fragpath = "resources/shaders/screenQuad.frag";
+	#ifdef MAGMA_ROOT_DIR
+		vertpath = std::string(MAGMA_ROOT_DIR) + vertpath;
+		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
+	#endif
+
+	Shader screenVertexShader(vertpath, GL_VERTEX_SHADER);
+	Shader screenFragmentShader(fragpath, GL_FRAGMENT_SHADER);
+
+	m_ScreenShaderProgram = std::make_unique<ShaderProgram>();
+
+	m_ScreenShaderProgram->AttachShader(screenVertexShader);
+	m_ScreenShaderProgram->AttachShader(screenFragmentShader);
+	if (!m_ScreenShaderProgram->Link())
+	{
+		std::cerr << "Failed to link shader program!" << std::endl;
+		return;
+	}
+
 
 	// Single Texture setup
 	m_Texture = std::make_unique<Texture>(texturePath.c_str(), true);
@@ -110,6 +167,13 @@ void GameLayer::OnUpdate(float dt)
 
 	int w, h;
 	SDL_GetWindowSize(m_Window, &w, &h);
+
+	//clear screen
+	glViewport(0, 0, w, h);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
+	glClearColor(0.643f, 0.827f, 0.984f, 1.0f);
+	glEnable(GL_DEPTH_TEST);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Mouse look
 	ImGuiIO& io = ImGui::GetIO();
@@ -215,6 +279,18 @@ void GameLayer::OnUpdate(float dt)
 	}
 
 	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	m_ScreenShaderProgram->Use();
+
+	glBindVertexArray(m_ScreenVAO);
+	glDisable(GL_DEPTH_TEST);
+	glBindTexture(GL_TEXTURE_2D, m_ScreenTextureColorBuffer);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
 	RenderUI(w, h, dt);
 
 	Magma::Input::Update();
@@ -243,7 +319,9 @@ void GameLayer::OnDetach()
 	delete m_UIRenderer;
 	delete m_UIFont;
 	delete m_UITexture;
-
+	glDeleteFramebuffers(1, &m_ScreenFBO);
+	glDeleteRenderbuffers(1, &m_ScreenRBO);
+	glDeleteTextures(1, &m_ScreenTextureColorBuffer);
 
 	for (Model* model : m_Models)
 	{
@@ -606,11 +684,11 @@ void GameLayer::OnImGuiRender(float dt)
 			// In-game menu options would go here
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			ImGui::Text("Autosave in %.1f seconds", m_AutoSaveTimer);
-			if (m_PrimaryCamera != Craft::NULL_ENTITY &&
-				m_EntityWorld->HasEntityID(m_PrimaryCamera) &&
-				m_EntityWorld->Contains<Craft::TransformComponent>(m_PrimaryCamera))
+			if (m_Player != Craft::NULL_ENTITY &&
+				m_EntityWorld->HasEntityID(m_Player) &&
+				m_EntityWorld->Contains<Craft::TransformComponent>(m_Player))
 			{
-				glm::vec3 pos = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera).worldMatrix[3];
+				glm::vec3 pos = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_Player).worldMatrix[3];
 				ImGui::Text("X: %.1f", pos[0]);
 				ImGui::Text("Y: %.1f", pos[1]);
 				ImGui::Text("Z: %.1f", pos[2]);
@@ -666,6 +744,15 @@ void GameLayer::OnResize(int width, int height)
 		auto& camRef = m_EntityWorld->GetComponent<Craft::CameraComponent>(m_PrimaryCamera);
 		camRef.aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 	}
+
+	// resize screen quad texture
+	glBindTexture(GL_TEXTURE_2D, m_ScreenTextureColorBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, m_ScreenRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
 void GameLayer::SpawnLocalPlayer()
@@ -772,4 +859,19 @@ void GameLayer::RenderUI(const int& w, const int& h, float dt)
 	m_UIRenderer->flush();
 }
 
+void GameLayer::CreateScreenQuad(unsigned int& vao, unsigned int& vbo)
+{
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
 
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Magma::quadVertices), Magma::quadVertices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+}

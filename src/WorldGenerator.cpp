@@ -17,6 +17,7 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)
 {
 	int startX = chunkX * CHUNK_WIDTH;
 	int startZ = chunkZ * CHUNK_WIDTH;
+	
 
 	for (int x = 0; x < CHUNK_WIDTH; x++)
 	{
@@ -28,7 +29,7 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)
 			
 			// Get height from noise
 			float noiseValue = m_Noise.GetNoise(globalX, globalZ);
-			int height = 64 + (int)(noiseValue * 20); // Base height 64 with 20 block variation
+			int height = 64 + (int)(noiseValue * 30); // Base height 64 with 30 block variation
 
 			for (int y = 0; y < CHUNK_HEIGHT; y++)
 			{
@@ -51,5 +52,4 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)
 			}
 		}
 	}
-
 }

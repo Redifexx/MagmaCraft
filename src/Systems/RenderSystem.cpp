@@ -12,15 +12,6 @@ using namespace Craft;
 // renders all
 void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer, SDL_Window* window)
 {
-	//clear screen
-	int w_, h_;
-	SDL_GetWindowSize(window, &w_, &h_);
-	glViewport(0, 0, w_, h_);
-	glClearColor(0.643f, 0.827f, 0.984f, 1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
 	shaderProgram.Use();
 
 	SetupShaderUniforms(world, shaderProgram);	

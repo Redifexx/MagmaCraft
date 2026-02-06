@@ -148,7 +148,19 @@ namespace Magma
 			uint32_t m_PrimaryCamera = Craft::NULL_ENTITY;
 			std::string m_Username = "Player";
 			bool m_IsLocalPlayerLoaded = false;
+		
+			// here for now because i dont have a resource manager YET
+			unsigned int m_ScreenFBO;
+			unsigned int m_ScreenRBO;
+			unsigned int m_ScreenTextureColorBuffer;
+			unsigned int m_ScreenVAO, m_ScreenVBO;
+			// my mesh class doesnt support a lack of normals :(
+			void CreateScreenQuad(unsigned int& vao, unsigned int& vbo);
+			std::unique_ptr<Magma::Mesh> m_ScreenQuad = nullptr;
+			std::unique_ptr<ShaderProgram> m_ScreenShaderProgram = nullptr;
 
+
+			// Should later be moved to manager
 			glui::RendererUi* m_UI;
 			gl2d::Renderer2D* m_UIRenderer;
 			gl2d::Font* m_UIFont;
