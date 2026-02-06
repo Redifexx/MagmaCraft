@@ -296,6 +296,8 @@ void NetworkManager::Update(float dt)
 	// Handle Server Events
 	if (m_Role == NetworkRole::SERVER)
 	{
+		int packetsProcessed = 0;
+
 		while (enet_host_service(m_Server->GetENetHost(), &event, 0) > 0)
 		{
 			switch (event.type)
@@ -373,12 +375,20 @@ void NetworkManager::Update(float dt)
 					break;
 				}
 			}
+
+			packetsProcessed = 0;
+			if (packetsProcessed > m_MaxPacketsProcessedPerFrame)
+			{
+				break;
+			}
 		}
 	}
 
 	// Handle Client Events
 	if (m_Role == NetworkRole::CLIENT || m_Role == NetworkRole::SERVER)
 	{
+		int packetsProcessed = 0;
+
 		while (enet_host_service(m_Client->GetENetHost(), &event, 0) > 0)
 		{
 			switch (event.type)
@@ -396,6 +406,12 @@ void NetworkManager::Update(float dt)
 				case ENET_EVENT_TYPE_DISCONNECT:
 					m_Client->DisconnectFromServer(true);
 					break;
+			}
+
+			packetsProcessed = 0;
+			if (packetsProcessed > m_MaxPacketsProcessedPerFrame)
+			{
+				break;
 			}
 		}
 

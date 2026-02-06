@@ -5,20 +5,6 @@
 
 using namespace Craft;
 
-void WorldRenderer::RenderChunk(Chunk* chunk, glm::ivec2 chunkPos)
-{
-	std::vector<Magma::Vertex> vertices;
-	std::vector<uint32_t> indices;
-
-	GenerateMesh(vertices, indices, chunk, chunkPos);
-
-	if (vertices.empty()) return;
-
-	std::unique_ptr<Magma::Mesh> mesh = std::make_unique<Magma::Mesh>(std::move(vertices), std::move(indices));
-
-	m_DrawPool[chunkPos] = std::move(mesh);
-
-}
 
 void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec2 chunkPos)
 {
@@ -350,6 +336,15 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 			
 		}
 	}
+}
+
+bool WorldRenderer::AddMeshToDrawPool(std::unique_ptr<Magma::Mesh> mesh, glm::ivec2 chunkPos)
+{
+	// if already in draw pool
+	if (m_DrawPool.contains(chunkPos)) return false;
+
+	m_DrawPool[chunkPos] = std::move(mesh);
+	return true;
 }
 
 void WorldRenderer::RemoveFromDrawPool(glm::ivec2 chunkPos)

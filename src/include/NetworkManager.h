@@ -127,6 +127,7 @@ namespace Craft
 			std::unique_ptr<Magma::Client> m_Client = nullptr;
 			NetworkRole m_Role = NetworkRole::NONE;
 			bool m_IsRunning = false;
+			uint32_t m_MaxPacketsProcessedPerFrame = 50;
 
 			uint32_t m_PlayerPacketSequence = 0;
 

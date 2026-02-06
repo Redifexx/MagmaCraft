@@ -239,7 +239,10 @@ void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
 		for (int z = -2; z <= 2; z++)
 		{
 			std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
-			CreateChunk(*chunk, spawnChunkX + x, spawnChunkZ + z);
+
+			m_WorldGenerator->GenerateChunk(*chunk, spawnChunkX + x, spawnChunkZ + z);
+			SaveChunkToFile(*chunk, spawnChunkX + x, spawnChunkZ + z);
+			m_ChunkBuffer[{spawnChunkX + x, spawnChunkZ + z}] = std::move(chunk);
 		}
 	}
 }
@@ -352,6 +355,12 @@ bool WorldManager::LoadChunkFromFile(std::vector<uint8_t>& compressedData, int c
 	uint32_t dataSize;
 	infile.read((char*)&dataSize, sizeof(uint32_t));
 
+	if (dataSize > 200000)
+	{
+		infile.close();
+		return false; // Corrupt file
+	}
+
 	// Read Compressed Data
 	compressedData.resize(dataSize);
 	infile.read((char*)compressedData.data(), dataSize);
@@ -369,46 +378,51 @@ bool WorldManager::LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int c
 	return true;
 }
 
-void WorldManager::AddChunkToBuffer(int chunkX, int chunkZ)
+bool WorldManager::HasChunkInBuffer(int chunkX, int chunkZ)
 {
-	// First check if it's in buffer
-	if (HasChunkInBuffer(chunkX, chunkZ)) return;
+	// makes this read only
+	std::shared_lock<std::shared_mutex> lock(m_MapMutex);
+	return m_ChunkBuffer.count({ chunkX, chunkZ });
+}
 
-	// Then try to load from file
-	std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
-	if (!LoadChunkFromFileDecompressed(*chunk, chunkX, chunkZ))
+std::shared_ptr<Chunk> WorldManager::GetChunkFromBuffer(int chunkX, int chunkZ)
+{
+	// shared lock, read only for everyone else
+	std::shared_lock<std::shared_mutex> lock(m_MapMutex);
+
+	auto itr = m_ChunkBuffer.find({ chunkX, chunkZ });
+	if (itr != m_ChunkBuffer.end())
 	{
-		// if it fails, generate a new chunk
-		// first saves to file, then saves to buffer
-		CreateChunk(*chunk, chunkX, chunkZ);
+		return itr->second;
 	}
 
-	m_ChunkBuffer[{chunkX, chunkZ}] = std::move(chunk);
+	return nullptr;
 }
 
 void WorldManager::RemoveChunkFromBuffer(int chunkX, int chunkZ)
 {
-	// First check if it's in buffer
-	if (!HasChunkInBuffer(chunkX, chunkZ)) return;
+	// lock and give exclusive write access
+	std::unique_lock<std::shared_mutex> lock(m_MapMutex);
 
-	Chunk* chunk = GetChunkFromBuffer(chunkX, chunkZ);
+	// First check if it's in buffer
+	auto itr = m_ChunkBuffer.find({ chunkX, chunkZ });
+	if (itr == m_ChunkBuffer.end()) return;
+
+	// gets pointer
+	std::shared_ptr<Chunk> chunk = itr->second;
 
 	if (chunk->m_IsModified)
 	{
 		SaveChunkToFile(*chunk, chunkX, chunkZ);
 	}
 
-	m_ChunkBuffer.erase({ chunkX, chunkZ });
+	m_ChunkBuffer.erase(itr);
 }
 
 void WorldManager::AddChunkDataToBuffer(std::unique_ptr<Chunk> chunk, int chunkX, int chunkZ)
 {
-	// overwrite
-	if (HasChunkInBuffer(chunkX, chunkZ))
-	{
-		m_ChunkBuffer.erase({ chunkX, chunkZ });
-	}
-
+	// lock and give exclusive write access
+    std::unique_lock<std::shared_mutex> lock(m_MapMutex);
     m_ChunkBuffer[{ chunkX, chunkZ }] = std::move(chunk);
 }
 
@@ -422,9 +436,9 @@ const uint32_t WorldManager::GetBlockNeighborData(uint32_t id, Chunk* chunk, glm
 	// not handling up and down
 	glm::ivec3 localBlockCoords = chunk->GetBlockXYZ(id);
 	glm::ivec2 adjacentChunkPos = chunkPos;
-
 	int newLocalX = localBlockCoords.x;
 	int newLocalZ = localBlockCoords.z;
+
 	switch (direction)
 	{
 		case (Direction::EAST):
@@ -446,11 +460,13 @@ const uint32_t WorldManager::GetBlockNeighborData(uint32_t id, Chunk* chunk, glm
 		default:
 			return 0;
 	}
+	
+	std::shared_ptr<Chunk> adjacentChunk = GetChunkFromBuffer(adjacentChunkPos.x, adjacentChunkPos.y);
 
-	// may cause a problem as client
-	if (!HasChunkInBuffer(adjacentChunkPos.x, adjacentChunkPos.y)) return 0;
+	if (adjacentChunk)
+	{
+		return adjacentChunk->GetBlockData(newLocalX, localBlockCoords.y, newLocalZ);
+	}
 
-	// expensive, possible optimization by caching these chunks
-	Chunk* adjacentChunk = GetChunkFromBuffer(adjacentChunkPos.x, adjacentChunkPos.y);
-	return adjacentChunk->GetBlockData(newLocalX, localBlockCoords.y, newLocalZ);
+	return 0; // return air
 }

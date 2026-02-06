@@ -14,6 +14,7 @@
 #include <map>
 #include <unordered_map>
 #include <memory>
+#include <shared_mutex>
 
 // Manages world data, including loading, saving, and updating chunks
 namespace Craft
@@ -35,6 +36,7 @@ namespace Craft
 		const uint32_t magic = 0X4D435744; // Magma Craft World 'MCWD' Magic Number
 		uint32_t seed;
 		char worldName[32];
+
 	};
 	#pragma pack(pop)
 
@@ -86,9 +88,8 @@ namespace Craft
 			bool LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int chunkZ);
 
 			// --- CHUNK BUFFER ---
-			bool HasChunkInBuffer(int chunkX, int chunkZ) { return m_ChunkBuffer.count({ chunkX, chunkZ }); }
-			Chunk* GetChunkFromBuffer(int chunkX, int chunkZ) { return m_ChunkBuffer[{chunkX, chunkZ}].get(); }
-			void AddChunkToBuffer(int chunkX, int chunkZ);
+			bool HasChunkInBuffer(int chunkX, int chunkZ);
+			std::shared_ptr<Chunk> GetChunkFromBuffer(int chunkX, int chunkZ);
 			void RemoveChunkFromBuffer(int chunkX, int chunkZ);
 
 			// data packets
@@ -103,8 +104,11 @@ namespace Craft
 			std::unique_ptr<WorldGenerator> m_WorldGenerator;
 			std::string m_WorldName = "New World";
 			uint8_t m_ChunkRenderDistance = 8; // allocated for each client in the server
-			std::unordered_map<glm::ivec2, std::unique_ptr<Chunk>> m_ChunkBuffer;
+			std::unordered_map<glm::ivec2, std::shared_ptr<Chunk>> m_ChunkBuffer;
 
 			std::weak_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap;
+
+			// lock for m_ChunkBuffer
+			mutable std::shared_mutex m_MapMutex;
 	};
 }

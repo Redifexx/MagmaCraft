@@ -5,9 +5,12 @@ using namespace Craft;
 
 WorldGenerator::WorldGenerator(int seed)
 {
+	// once i add more options beyond seed, i must save the settings to world file header
 	m_Noise.SetSeed(seed);
 	m_Noise.SetNoiseType(FastNoiseLite::NoiseType::NoiseType_OpenSimplex2);
 	m_Noise.SetFrequency(0.01f);
+	m_Noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+	m_Noise.SetFractalOctaves(4);
 }
 
 void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)

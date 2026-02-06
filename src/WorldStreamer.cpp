@@ -9,7 +9,33 @@ using namespace Craft;
 WorldStreamer::WorldStreamer(std::shared_ptr<NetworkManager> networkManager)
 	: m_NetworkManager(networkManager)
 	, m_WorldRenderer(std::make_unique<WorldRenderer>())
-{}
+{
+	// start with 1 chef
+	unsigned int threadCount = std::thread::hardware_concurrency() / 2;
+	if (threadCount < 1) threadCount = 1;
+
+	// add a new chef to the list
+	for (size_t i = 0; i < threadCount; i++)
+	{
+		m_Workers.emplace_back(&WorldStreamer::WorkerThread, this);
+	}
+}
+
+WorldStreamer::~WorldStreamer()
+{
+	Shutdown();
+}
+
+void WorldStreamer::Shutdown()
+{
+	m_IsRunning = false;
+	m_ConditionVar.notify_all(); // tell chefs shift is over
+
+	for (auto& worker : m_Workers) // boss holding door open for chefs to leave
+	{
+		if (worker.joinable()) worker.join();
+	}
+}
 
 void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 {
@@ -63,6 +89,40 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 		m_LastChunkPos = curChunkPos;
 	}
 
+	// serve cooked chunks
+	{
+		std::vector<CookedChunk> cookedChunks;
+		{
+			std::lock_guard<std::mutex> lock(m_ResultMutex);
+			if (!m_CookedChunks.empty())
+			{
+				cookedChunks = std::move(m_CookedChunks);
+				m_CookedChunks.clear();
+			}
+		}
+
+		// send to the gpu
+		for (auto& batch : cookedChunks)
+		{
+			// check if order is still wanted (player went away)
+			glm::ivec2 key = { batch.x, batch.z };
+			if (m_ChunkBuffer.find(key) == m_ChunkBuffer.end()) continue;
+
+
+			// generate the mesh
+			if (!batch.vertices.empty())
+			{
+				auto mesh = std::make_unique<Magma::Mesh>(std::move(batch.vertices), std::move(batch.indices));
+				m_WorldRenderer->AddMeshToDrawPool(std::move(mesh), key);
+			}
+
+			// FIX
+			m_ChunkBuffer[key]->isLoaded = true;
+			m_ChunkBuffer[key]->isPending = false;
+		}
+	}
+
+
 	// Add chunks isnide of render distance to local and remote chunk buffer
 	for (int x = (-m_ChunkRenderDistance); x <= m_ChunkRenderDistance; x++)
 	{
@@ -81,13 +141,19 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 			// if it's already loaded skip
 			if (renderChunk->isLoaded) continue;
 
+			// already cooking
+			if (renderChunk->isCooking) continue;
+
 			if (worldManager->HasChunkInBuffer(curChunkX, curChunkZ))
 			{
-				Chunk* chunk = worldManager->GetChunkFromBuffer(curChunkX, curChunkZ);
+				// send to worker thread
+				{
+					std::lock_guard<std::mutex> lock(m_QueueMutex);
+					m_JobQueue.push({ curChunkX, curChunkZ });
+				}
+				m_ConditionVar.notify_one();
 
-				m_WorldRenderer->RenderChunk(std::move(chunk), glm::ivec2(curChunkX, curChunkZ));
-				renderChunk->isLoaded = true;
-				renderChunk->isPending = false;
+				renderChunk->isCooking = true;
 			}
 			else if (!renderChunk->isPending && chunkRequestsSentThisFrame < MAX_CHUNK_REQUESTS_PER_FRAME)
 			{
@@ -170,4 +236,51 @@ void WorldStreamer::GetPlayerChunkCoords(const glm::vec3& playerPosition, int& c
 {
 	chunkX = WorldToChunkPos(static_cast<int>(playerPosition.x));
 	chunkZ = WorldToChunkPos(static_cast<int>(playerPosition.z));
+}
+
+void WorldStreamer::WorkerThread()
+{
+	while (m_IsRunning)
+	{
+		glm::ivec2 chunkCoord;
+
+		// wait for an order
+		{
+			std::unique_lock<std::mutex> lock(m_QueueMutex);
+			m_ConditionVar.wait(lock, [this]
+			{
+				return !m_JobQueue.empty() || !m_IsRunning;
+			});
+
+			if (!m_IsRunning) return;
+
+			chunkCoord = m_JobQueue.front();
+			m_JobQueue.pop();
+		}
+
+		// the cooking
+		auto worldManager = GetWorldManager();
+		if (!worldManager || !worldManager->HasChunkInBuffer(chunkCoord.x, chunkCoord.y))
+		{
+			// if an order was forgotten while taking too long skip it (bad customer service)
+			continue;
+		}
+
+		std::shared_ptr<Chunk> chunkPtr = worldManager->GetChunkFromBuffer(chunkCoord.x, chunkCoord.y);
+
+		if (!chunkPtr) continue;
+
+		CookedChunk cookedChunk;
+		cookedChunk.x = chunkCoord.x;
+		cookedChunk.z = chunkCoord.y;
+
+		// keep an eye our for raw chunk
+		m_WorldRenderer->GenerateMesh(cookedChunk.vertices, cookedChunk.indices, chunkPtr.get(), chunkCoord);
+
+		// serve the order
+		{
+			std::lock_guard<std::mutex> lock(m_ResultMutex);
+			m_CookedChunks.push_back(std::move(cookedChunk));
+		}
+	}
 }
