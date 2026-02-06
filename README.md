@@ -1,18 +1,18 @@
 # MagmaCraft
 
 <p align="center">
-<img src="resources/screenshots/8.webp" width="400" alt="MagmaCraft Logo">
+<img src="resources/screenshots/3.webp" width="400" alt="MagmaCraft Logo">
 </p>
 
 ## A Custom Voxel Multiplayer Game
 
 **MagmaCraft** is a voxel-based sandbox game built entirely from scratch using C++ and OpenGL. Built upon my **Magma Framework**, it serves as a technical showcase of voxel rendering, client-server networking, and entity management.
 
-<img src="resources/screenshots/1.webp" alt="MagmaCraft Screenshot">
+<img src="resources/screenshots/2.webp" alt="MagmaCraft Screenshot">
 
 ## Key Features
 
-* **Custom Voxel Engine:** Chunk rendering, texture atlasing, and world streaming.
+* **Custom Voxel Engine:** Multithreaded chunk rendering, texture atlasing, and world streaming.
 * **Multiplayer Networking:** Robust client-server architecture with the help of **ENet**.
 * Supports Hosting and Joining worlds.
 * Entity interpolation for smooth movement across the network.
