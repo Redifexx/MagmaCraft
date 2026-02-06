@@ -676,6 +676,10 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 		case static_cast<uint8_t>(PacketType::CHUNK_REQUEST):
 		{
+			// deny requests from players we dont know
+			auto itr = m_PeerToEntityMap.find(peer->incomingPeerID);
+			if (itr == m_PeerToEntityMap.end()) return;
+
 			// SERVER
 			if (length < 9) break; // not enough data (type, int, int)
 
@@ -684,6 +688,21 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			std::memcpy(&chunkX, &data[1], sizeof(int));
 			std::memcpy(&chunkZ, &data[5], sizeof(int));
+
+			auto eWorld = m_EntityWorld.lock();
+			if (!eWorld) return;
+
+			// check who it is and deny them a chunk if it's outside their render distance
+			auto& transformRef = eWorld->GetComponent<TransformComponent>(itr->second);
+
+			int playerChunkX = WorldToChunkPos(static_cast<int>(transformRef.localPosition.x));
+			int playerChunkZ = WorldToChunkPos(static_cast<int>(transformRef.localPosition.z));
+
+			// using chessboard / chebyshev distance algo here
+			int dist = std::max(std::abs(chunkX - playerChunkX), std::abs(chunkZ - playerChunkZ));
+
+			// added a small buffer
+			if (dist > (m_WorldManager->GetServerRenderDistance() + 2)) return;
 
 			SendChunkData(peer, chunkX, chunkZ);
 			break;

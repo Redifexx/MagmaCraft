@@ -19,6 +19,8 @@ WorldStreamer::WorldStreamer(std::shared_ptr<NetworkManager> networkManager)
 	{
 		m_Workers.emplace_back(&WorldStreamer::WorkerThread, this);
 	}
+
+	RebuildChunkOffsets();
 }
 
 WorldStreamer::~WorldStreamer()
@@ -52,7 +54,6 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 			}
         }
     }
-
 
 	// Current Chunks
 	int chunkX, chunkZ;
@@ -116,57 +117,69 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 				m_WorldRenderer->AddMeshToDrawPool(std::move(mesh), key);
 			}
 
-			// FIX
 			m_ChunkBuffer[key]->isLoaded = true;
 			m_ChunkBuffer[key]->isPending = false;
+			m_ChunkBuffer[key]->isCooking = false;
 		}
 	}
 
-
-	// Add chunks isnide of render distance to local and remote chunk buffer
-	for (int x = (-m_ChunkRenderDistance); x <= m_ChunkRenderDistance; x++)
+	// handle requests that are stuck on pending
+	for (auto& [key, renderChunk] : m_ChunkBuffer)
 	{
-		for (int z = (-m_ChunkRenderDistance); z <= m_ChunkRenderDistance; z++)
+		if (renderChunk->isPending)
 		{
-			int curChunkX = chunkX + x;
-			int curChunkZ = chunkZ + z;
-			glm::ivec2 chunkKey = glm::ivec2(curChunkX, curChunkZ);
-
-			if (m_ChunkBuffer.find(chunkKey) == m_ChunkBuffer.end())
+			renderChunk->pendingTimer += dt;
+			if (renderChunk->pendingTimer > 3.0f) // test with 3 sec timout
 			{
-				m_ChunkBuffer[chunkKey] = std::make_unique<RenderChunk>();
+				renderChunk->isPending = false;
+				renderChunk->pendingTimer = 0.0f;
 			}
-			RenderChunk* renderChunk = m_ChunkBuffer[chunkKey].get();
+		}
+	}
 
-			// if it's already loaded skip
-			if (renderChunk->isLoaded) continue;
+	// process queue
+	for (const auto& chunkOffset : m_SortedChunkOffsets)
+	{
+		if (chunkRequestsSentThisFrame >= MAX_CHUNK_REQUESTS_PER_FRAME) break;
 
-			// already cooking
-			if (renderChunk->isCooking) continue;
+		int curChunkX = chunkX + chunkOffset.x;
+		int curChunkZ = chunkZ + chunkOffset.y;
+		glm::ivec2 chunkKey = { curChunkX, curChunkZ };
 
-			if (worldManager->HasChunkInBuffer(curChunkX, curChunkZ))
+		if (m_ChunkBuffer.find(chunkKey) == m_ChunkBuffer.end())
+		{
+			m_ChunkBuffer[chunkKey] = std::make_unique<RenderChunk>();
+		}
+
+		RenderChunk* renderChunk = m_ChunkBuffer[chunkKey].get();
+
+		// if it's already loaded skip
+		if (renderChunk->isLoaded || renderChunk->isCooking) continue;
+
+		if (worldManager->HasChunkInBuffer(curChunkX, curChunkZ))
+		{
+			renderChunk->isPending = false;
+
+			// send to worker thread
 			{
-				// send to worker thread
-				{
-					std::lock_guard<std::mutex> lock(m_QueueMutex);
-					m_JobQueue.push({ curChunkX, curChunkZ });
-				}
-				m_ConditionVar.notify_one();
-
-				renderChunk->isCooking = true;
+				std::lock_guard<std::mutex> lock(m_QueueMutex);
+				m_JobQueue.push({ curChunkX, curChunkZ });
 			}
-			else if (!renderChunk->isPending && chunkRequestsSentThisFrame < MAX_CHUNK_REQUESTS_PER_FRAME)
-			{
-				networkManager.get()->RequestChunkData(
-					networkManager.get()->GetClient()->GetENetPeer(),
-					curChunkX,
-					curChunkZ);
+			m_ConditionVar.notify_one();
 
-				// mark as pending
-				renderChunk->isPending = true;
+			renderChunk->isCooking = true;
+		}
+		else if (!renderChunk->isPending)
+		{
+			networkManager.get()->RequestChunkData(
+				networkManager.get()->GetClient()->GetENetPeer(),
+				curChunkX,
+				curChunkZ);
 
-				chunkRequestsSentThisFrame++;
-			}
+			// mark as pending
+			renderChunk->isPending = true;
+			renderChunk->pendingTimer = 0.0f;
+			chunkRequestsSentThisFrame++;
 		}
 	}
 }
@@ -237,6 +250,26 @@ void WorldStreamer::GetPlayerChunkCoords(const glm::vec3& playerPosition, int& c
 	chunkX = WorldToChunkPos(static_cast<int>(playerPosition.x));
 	chunkZ = WorldToChunkPos(static_cast<int>(playerPosition.z));
 }
+
+void WorldStreamer::RebuildChunkOffsets()
+{
+	m_SortedChunkOffsets.clear();
+
+	for (int x = -m_ChunkRenderDistance; x <= m_ChunkRenderDistance; x++)
+	{
+		for (int z = -m_ChunkRenderDistance; z <= m_ChunkRenderDistance; z++)
+		{
+			m_SortedChunkOffsets.push_back({ x, z });
+		}
+	}
+
+	// sort once here
+	std::sort(m_SortedChunkOffsets.begin(), m_SortedChunkOffsets.end(),
+	[](const glm::ivec2& a, const glm::ivec2& b) {
+		return (a.x * a.x + a.y * a.y) < (b.x * b.x + b.y * b.y);
+	});
+}
+
 
 void WorldStreamer::WorkerThread()
 {

@@ -33,6 +33,7 @@ namespace Craft
 		bool isLoaded = false; // waits to be loaded
 		bool isPending = false; // waits to be sent
 		bool isCooking = false; // waits to be cooked
+		float pendingTimer = 0.0f; // time out
 	};
 
 	// gonna use restaurant vocab here
@@ -68,13 +69,17 @@ namespace Craft
 			std::shared_ptr<WorldManager> GetWorldManager() { return m_WorldManager.lock(); }
 			std::shared_ptr<NetworkManager> GetNetworkManager() { return m_NetworkManager.lock(); }
 
-			uint8_t m_ChunkRenderDistance = 8;
+			uint8_t m_ChunkRenderDistance = 16;
 			glm::ivec2 m_LastChunkPos;
 			bool m_FirstFrame = true;
 			const int MAX_CHUNK_REQUESTS_PER_FRAME = 3;
 
 			// Any chunk in this buffer gets rendered
 			std::unordered_map<glm::ivec2, std::unique_ptr<RenderChunk>> m_ChunkBuffer;
+
+			// gonna sort chunks into a list of offsets before runtime
+			std::vector<glm::ivec2> m_SortedChunkOffsets;
+			void RebuildChunkOffsets();
 
 			// Multithreading section
 			void WorkerThread(); // chef's kitchen
