@@ -87,6 +87,9 @@ namespace Craft
 			bool LoadChunkFromFile(std::vector<uint8_t>& compressedData, int chunkX, int chunkZ);
 			bool LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int chunkZ);
 
+			// Server function to delete the chunks that no one is around
+			void UnloadStaleChunks(const std::vector<glm::vec3>& playerPositions, uint32_t serverRenderDistance);
+
 			// --- CHUNK BUFFER ---
 			bool HasChunkInBuffer(int chunkX, int chunkZ);
 			std::shared_ptr<Chunk> GetChunkFromBuffer(int chunkX, int chunkZ);
@@ -99,11 +102,13 @@ namespace Craft
 			const uint32_t GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec2 chunkPos, Direction direction);
 			
 			void SetNetworkIDToNameMap(std::shared_ptr<std::unordered_map <uint8_t, std::string>> map) { m_NetworkIDToNameMap = map; }
+
+			const uint8_t GetServerRenderDistance() { return m_ServerRenderDistance; }
 			
 		private:
 			std::unique_ptr<WorldGenerator> m_WorldGenerator;
 			std::string m_WorldName = "New World";
-			uint8_t m_ChunkRenderDistance = 8; // allocated for each client in the server
+			uint8_t m_ServerRenderDistance = 8; // allocated for each client in the server
 			std::unordered_map<glm::ivec2, std::shared_ptr<Chunk>> m_ChunkBuffer;
 
 			std::weak_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap;

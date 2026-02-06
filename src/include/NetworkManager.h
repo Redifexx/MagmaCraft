@@ -127,13 +127,16 @@ namespace Craft
 			std::unique_ptr<Magma::Client> m_Client = nullptr;
 			NetworkRole m_Role = NetworkRole::NONE;
 			bool m_IsRunning = false;
-			uint32_t m_MaxPacketsProcessedPerFrame = 50;
 
+			uint32_t m_MaxPacketsProcessedPerFrame = 50;
 			uint32_t m_PlayerPacketSequence = 0;
 
 			std::string m_LocalPlayerUsername; // i should maybe move this
-
 			uint8_t m_NetworkID = 255;
+
+			// Stale Chunk Garbage Collector
+			float m_StaleChunkTimer = 0.0f;
+			float m_StaleChunkRate = 5.0f;
 
 			// World Classes
 			std::shared_ptr<WorldManager> m_WorldManager = nullptr;

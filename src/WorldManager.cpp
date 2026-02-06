@@ -10,6 +10,7 @@
 #include "Core/Texture.h"
 
 #undef min
+#undef max
 
 using namespace Craft;
  
@@ -376,6 +377,58 @@ bool WorldManager::LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int c
 
 	DecompressChunkData(compressedData, chunk);
 	return true;
+}
+
+void WorldManager::UnloadStaleChunks(const std::vector<glm::vec3>& playerPositions, uint32_t serverRenderDistance)
+{
+
+	std::unique_lock<std::shared_mutex> lock(m_MapMutex);
+
+	int chunksRemoved = 0;
+	int unloadDistance = serverRenderDistance + 2; // buffer
+
+	for (auto itr = m_ChunkBuffer.begin(); itr != m_ChunkBuffer.end();)
+	{
+		glm::ivec2 chunkPos = itr->first;
+		bool isStale = true;
+
+		for (const auto& curPos : playerPositions)
+		{
+			int pChunkX = WorldToChunkPos(static_cast<int>(curPos.x));
+			int pChunkZ = WorldToChunkPos(static_cast<int>(curPos.z));
+
+			// using chessboard / chebyshev distance algo here
+			int dist = std::max(std::abs(chunkPos.x - pChunkX), std::abs(chunkPos.y - pChunkZ));
+
+			if (dist <= unloadDistance)
+			{
+				isStale = false;
+				break;
+			}
+		}
+
+		if (isStale)
+		{
+			// save chunk & remove
+			Chunk* chunk = itr->second.get();
+			if (chunk->m_IsModified)
+			{
+				SaveChunkToFile(*chunk, chunkPos.x, chunkPos.y);
+			}
+
+			itr = m_ChunkBuffer.erase(itr);
+			chunksRemoved++;
+		}
+		else
+		{
+			++itr;
+		}
+
+		if (chunksRemoved > 0)
+		{
+			std::cout << "Garbage Chunks Removed!" << std::endl;
+		}
+	}
 }
 
 bool WorldManager::HasChunkInBuffer(int chunkX, int chunkZ)

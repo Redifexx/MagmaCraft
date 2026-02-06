@@ -297,6 +297,32 @@ void NetworkManager::Update(float dt)
 	if (m_Role == NetworkRole::SERVER)
 	{
 		int packetsProcessed = 0;
+		m_StaleChunkTimer -= dt;
+		
+		if (m_StaleChunkTimer <= 0.0f)
+		{
+			m_StaleChunkTimer = m_StaleChunkRate;
+
+			std::vector<glm::vec3> playerPositions;
+			
+			auto eWorld = m_EntityWorld.lock();
+			if (eWorld)
+			{
+				auto transformPool = eWorld->GetComponentPool<TransformComponent>();
+				auto playerPool = eWorld->GetComponentPool<PlayerComponent>();
+				auto& entities = playerPool->GetAllEntities();
+
+				for (auto entity : entities)
+				{
+					if (!transformPool->Contains(entity)) return;
+					auto& transformRef = eWorld->GetComponent<TransformComponent>(entity);
+					playerPositions.push_back(transformRef.localPosition);
+				}
+			}
+
+			// remove stale chunks, make the distance large to avoid lag spikes
+			m_WorldManager->UnloadStaleChunks(playerPositions, m_WorldManager->GetServerRenderDistance() * 2);
+		}
 
 		while (enet_host_service(m_Server->GetENetHost(), &event, 0) > 0)
 		{
