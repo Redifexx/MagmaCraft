@@ -159,6 +159,12 @@ namespace Magma
 			std::unique_ptr<Magma::Mesh> m_ScreenQuad = nullptr;
 			std::unique_ptr<ShaderProgram> m_ScreenShaderProgram = nullptr;
 
+			// Deferred rendering stuff (learn open gl)
+			unsigned int m_GBuffer;
+			std::unique_ptr<Magma::Texture> m_GPosition = nullptr;
+			std::unique_ptr<Magma::Texture> m_GNormal = nullptr;
+			std::unique_ptr<Magma::Texture> m_GColorSpec = nullptr;
+
 
 			// Should later be moved to manager
 			glui::RendererUi* m_UI;

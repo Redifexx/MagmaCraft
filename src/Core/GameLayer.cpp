@@ -88,6 +88,17 @@ void GameLayer::OnAttach()
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) std::cout << "framebuffer error" << std::endl;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	// Setup GBuffer
+	glGenFramebuffers(1, &m_GBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_GBuffer);
+
+	// pos
+	m_GPosition = std::make_unique<Magma::Texture>(
+		w, h, GL_TEXTURE_2D, GL_RGBA16F, GL_RGBA, GL_FLOAT, nullptr
+	);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_GPosition->GetID(), 0);
+
+
 	// move into resource manager later
 	// Shader setup (Shader.h & ShaderProgram.h)
 	// Mesh shader
@@ -168,6 +179,7 @@ void GameLayer::OnUpdate(float dt)
 	glViewport(0, 0, w, h);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
 	glClearColor(0.643f, 0.827f, 0.984f, 1.0f);
+	//glClearColor(0.4f, 0.6f, 3.0f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
