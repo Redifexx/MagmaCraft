@@ -152,7 +152,7 @@ namespace Magma
 			// here for now because i dont have a resource manager YET
 			unsigned int m_ScreenFBO;
 			unsigned int m_ScreenRBO;
-			unsigned int m_ScreenTextureColorBuffer;
+			std::unique_ptr<Magma::Texture> m_ScreenTextureColorBuffer = nullptr;
 			unsigned int m_ScreenVAO, m_ScreenVBO;
 			// my mesh class doesnt support a lack of normals :(
 			void CreateScreenQuad(unsigned int& vao, unsigned int& vbo);

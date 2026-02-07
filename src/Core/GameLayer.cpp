@@ -72,14 +72,10 @@ void GameLayer::OnAttach()
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
 
 	// screen texture
-	glGenTextures(1, &m_ScreenTextureColorBuffer);
-	glBindTexture(GL_TEXTURE_2D, m_ScreenTextureColorBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // hdr
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ScreenTextureColorBuffer, 0);
+	m_ScreenTextureColorBuffer = std::make_unique<Magma::Texture>(
+		w, h, GL_TEXTURE_2D, GL_RGBA16F, GL_RGBA, GL_FLOAT, nullptr
+	);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ScreenTextureColorBuffer->GetID(), 0);
 
 	// create renderbuffer
 	glGenRenderbuffers(1, &m_ScreenRBO);
@@ -288,7 +284,7 @@ void GameLayer::OnUpdate(float dt)
 
 	glBindVertexArray(m_ScreenVAO);
 	glDisable(GL_DEPTH_TEST);
-	glBindTexture(GL_TEXTURE_2D, m_ScreenTextureColorBuffer);
+	glBindTexture(GL_TEXTURE_2D, m_ScreenTextureColorBuffer->GetID());
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 	RenderUI(w, h, dt);
@@ -321,7 +317,6 @@ void GameLayer::OnDetach()
 	delete m_UITexture;
 	glDeleteFramebuffers(1, &m_ScreenFBO);
 	glDeleteRenderbuffers(1, &m_ScreenRBO);
-	glDeleteTextures(1, &m_ScreenTextureColorBuffer);
 
 	for (Model* model : m_Models)
 	{
@@ -746,7 +741,7 @@ void GameLayer::OnResize(int width, int height)
 	}
 
 	// resize screen quad texture
-	glBindTexture(GL_TEXTURE_2D, m_ScreenTextureColorBuffer);
+	glBindTexture(GL_TEXTURE_2D, m_ScreenTextureColorBuffer->GetID());
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
