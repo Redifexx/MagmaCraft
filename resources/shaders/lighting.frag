@@ -10,6 +10,14 @@ uniform sampler2D u_GNormal;
 uniform sampler2D u_GDiffuseSpec;
 uniform vec3 u_CameraPosition;
 
+/*
+CURRENT TEXTURE MAPS
+- Albedo RGB, Transparency A (RGBA)
+- Normal +Y (RGB)
+- AO (R), Smoothness (G), Metallic (A)
+- Emissive (RGB)
+*/
+
 void main()
 {
     // Deferred Rendering now
@@ -20,7 +28,7 @@ void main()
 
     if (length(Normal) < 0.1) 
     {
-        FragColor = vec4(0.2, 0.5, 0.9, 1.0);
+        FragColor = vec4(0.3, 0.5, 1.0, 1.0);
         return;
     }
 
@@ -39,7 +47,7 @@ void main()
     vec3 halfwayDir = normalize(-lightDirection + viewDir);
 
     float spec = pow(max(dot(N, halfwayDir), 0.0), 8.0);
-    vec3 specularLight = lightColor * spec * Specular * 0.5;
+    vec3 specularLight = lightColor * spec * Specular * 0.9;
 
     vec3 finalLight = ((lightIntensity * (diffuse + specularLight)) + (vec3(0.3, 0.3, 0.3) * Albedo));
 

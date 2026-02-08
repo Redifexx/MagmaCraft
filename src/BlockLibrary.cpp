@@ -41,6 +41,7 @@ void BlockLibrary::Initialize()
 	blockTypes[8] = { "WoodenPlanks", false, false, 26, 26, 26, 26, 26, 26 };
 
 	// ID 9: Leaves
+	// 
 	// ID 10: Brick
 	// ID 11: Bedrock
 	// ID 12: Diamond Ore
