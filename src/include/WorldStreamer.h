@@ -60,13 +60,14 @@ namespace Craft
 
 			void SetChunkRenderDistance(uint8_t distance) { m_ChunkRenderDistance = distance; }
 
+			std::shared_ptr<WorldManager> GetWorldManager() { return m_WorldManager.lock(); }
+
 			void Shutdown();
 
 		private:
 			std::unique_ptr<WorldRenderer> m_WorldRenderer;
 			std::weak_ptr<NetworkManager> m_NetworkManager;
 			std::weak_ptr<WorldManager> m_WorldManager;
-			std::shared_ptr<WorldManager> GetWorldManager() { return m_WorldManager.lock(); }
 			std::shared_ptr<NetworkManager> GetNetworkManager() { return m_NetworkManager.lock(); }
 
 			uint8_t m_ChunkRenderDistance = 16;

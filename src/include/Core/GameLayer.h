@@ -133,7 +133,6 @@ namespace Magma
 			// These should ideally be part of another class or system
 			glm::mat4 m_ModelMatrix;
 			std::unique_ptr<Camera> m_Camera = nullptr;
-			std::unique_ptr<Texture> m_Texture = nullptr;
 			Model* pModel = nullptr;
 			SDL_Window* m_Window = nullptr; // make shared
 
@@ -161,15 +160,19 @@ namespace Magma
 
 			// Deferred rendering stuff (learn open gl)
 			unsigned int m_GBuffer;
+			unsigned int m_GLightingPassFBO;
 			std::unique_ptr<Magma::Texture> m_GPosition = nullptr;
 			std::unique_ptr<Magma::Texture> m_GNormal = nullptr;
 			std::unique_ptr<Magma::Texture> m_GColorSpec = nullptr;
+			std::unique_ptr<Magma::Texture> m_GLightingPass = nullptr;
+			std::unique_ptr<Magma::Texture> m_GDepth = nullptr;
+			std::unique_ptr<ShaderProgram> m_LightingShaderProgram = nullptr;
 
 
 			// Should later be moved to manager
-			glui::RendererUi* m_UI;
-			gl2d::Renderer2D* m_UIRenderer;
-			gl2d::Font* m_UIFont;
-			gl2d::Texture* m_UITexture;
+			glui::RendererUi* m_UI = nullptr;
+			gl2d::Renderer2D* m_UIRenderer = nullptr;
+			gl2d::Font* m_UIFont = nullptr;
+			gl2d::Texture* m_UITexture = nullptr;
 	};
 }

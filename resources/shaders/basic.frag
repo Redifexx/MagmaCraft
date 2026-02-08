@@ -1,24 +1,27 @@
 #version 460 core
 
-in vec3 Normal;
+layout (location = 0) out vec3 gPosition;
+layout (location = 1) out vec3 gNormal;
+layout (location = 2) out vec4 gDiffuseSpec;
+
+in vec3 FragPos;
 in vec2 TexCoords;
 in mat3 TBN;
 
-uniform sampler2D u_Texture;
-layout (location = 0) out vec4 FragColor;
+uniform sampler2D u_DiffuseSpecTexture;
+uniform sampler2D u_NormalTexture;
 
 void main()
 {
-    // Simple Directional Light Setup, diffuse only
-    vec3 lightDirection = vec3(-0.5, -0.5, -0.5);
-    vec3 lightColor = vec3(2.0, 2.0, 2.0);
+    // Deferred Rendering now
+    
+    gPosition = FragPos;
 
-    vec3 diffuseTexture = texture(u_Texture, TexCoords).rgb;
+    vec3 normal = texture(u_NormalTexture, TexCoords).rgb;
+    normal = normal * 2.0 - 1.0;
+    normal = normalize(TBN * normal);
+    gNormal = normal;
 
-    float diff = max(dot(Normal, -lightDirection), 0.0);
-    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0) * lightColor * diffuseTexture;
-
-    vec3 finalLight = diffuse + vec3(0.3, 0.3, 0.3) * diffuseTexture;
-
-    FragColor = vec4(finalLight, 1.0);
+    gDiffuseSpec = texture(u_DiffuseSpecTexture, TexCoords);
+    
 }

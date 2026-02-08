@@ -14,7 +14,7 @@ namespace Craft
 		public:
 			void Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer, SDL_Window* window);
 		private:
-			void DrawEntities(EntityWorld& world, const Magma::ShaderProgram& shaderProgram);
+			void DrawEntities(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer);
 			void SetupShaderUniforms(EntityWorld& world, const Magma::ShaderProgram& shaderProgram);
 	};
 }

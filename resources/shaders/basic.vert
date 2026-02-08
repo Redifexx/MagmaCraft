@@ -9,26 +9,41 @@ layout (location = 4) in vec3 aBitangent;
 
 layout (location = 0) uniform mat4 u_ViewProjection;
 layout (location = 1) uniform mat4 u_Model;       
+layout (location = 2) uniform mat3 u_NormalMatrix;       
 
-out vec3 Normal;
+out vec3 FragPos;
 out vec2 TexCoords;
 out mat3 TBN;
 
 void main()
 {
-    gl_Position = u_ViewProjection * u_Model * vec4(aPos, 1.0);
+    vec4 worldPos = u_Model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    gl_Position = u_ViewProjection * worldPos;
+
     
-    // Normals
-    mat3 normalMatrix = mat3(transpose(inverse(u_Model)));
-    vec3 n = normalize(normalMatrix * aNormal);
-    vec3 t = normalize(normalMatrix * aTangent);
-    vec3 b = normalize(normalMatrix * aBitangent);
-    t = normalize(t - dot(t, n) * n);
-    b = cross(n, t);
+    vec3 n = normalize(u_NormalMatrix * aNormal);
+    vec3 t = vec3(0.0);
+    vec3 b = vec3(0.0);
+
+    // check mesh for tangents (prob not)
+    if (length(aTangent) > 0.01)
+    {
+        t = normalize(u_NormalMatrix * aTangent);
+        b = normalize(u_NormalMatrix * aBitangent);
+        t = normalize(t - dot(t, n) * n);
+    }
+    else // no tangents
+    {
+        // create fake tangents
+        vec3 helper = abs(n.y) < 0.999 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, -1.0);
+        
+        t = normalize(cross(helper, n));
+        b = cross(n, t);
+    }
 
     TBN = mat3(t, b, n);
-    Normal = n;
 
-    // Texture Coordinates
     TexCoords = aTexCoords;
 }

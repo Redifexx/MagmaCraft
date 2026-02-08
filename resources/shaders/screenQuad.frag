@@ -4,14 +4,14 @@ out vec4 FragColor;
   
 in vec2 TexCoords;
 
-uniform sampler2D screenTexture;
+uniform sampler2D u_ScreenTexture;
 
 
 void main()
 { 
     // post processing goes here :)))
     const float gamma = 2.2;
-    vec3 hdrColor = texture(screenTexture, TexCoords).rgb;
+    vec3 hdrColor = texture(u_ScreenTexture, TexCoords).rgb;
   
     // reinhard tone mapping
     vec3 mapped = hdrColor / (hdrColor + vec3(1.0));

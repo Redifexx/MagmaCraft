@@ -13,6 +13,26 @@
 #undef max
 
 using namespace Craft;
+
+WorldManager::WorldManager()
+{
+	// World Texture setup
+	std::string diffSpecPath = "resources/textures/atlas_diffspec.png";
+	std::string normalPath = "resources/textures/atlas_normal.png";
+
+	m_BlockAtlasTextureDiffSpec = std::make_unique<Magma::Texture>(diffSpecPath.c_str(), true);
+	m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	m_BlockAtlasTextureNormal = std::make_unique<Magma::Texture>(diffSpecPath.c_str(), true);
+	m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
+WorldManager::~WorldManager()
+{
+
+}
  
 void WorldManager::CreateWorld(std::string& worldName, int seed, EntityWorld& eWorld)
 {
@@ -194,9 +214,12 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 
 	// Add Components (Local + Remote)
 
-	Magma::Texture* skin = new Magma::Texture("resources/textures/player_skin.png");
-	skin->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	skin->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	Magma::Texture* skin_diffspec = new Magma::Texture("resources/textures/player_skin_diffspec.png");
+	Magma::Texture* skin_normal = new Magma::Texture("resources/textures/player_skin_normal.png");
+	skin_diffspec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	skin_diffspec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	skin_normal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	skin_normal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	eWorld.AddComponent<TransformComponent>(playerEntity, { spawnPosition, spawnRotation, glm::vec3(1.0f) }); // scale down for model testing
 	
@@ -204,7 +227,8 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 		networkID,
 		false,
 		0,
-		std::move(skin) // ensure no mem leak on destruction
+		std::move(skin_diffspec),
+		std::move(skin_normal)
 	});
 
 	eWorld.AddComponent<HealthComponent>(playerEntity, { spawnHealth, 20.0f });

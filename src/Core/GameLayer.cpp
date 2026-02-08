@@ -85,6 +85,7 @@ void GameLayer::OnAttach()
 
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_ScreenRBO);
 
+
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) std::cout << "framebuffer error" << std::endl;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -92,11 +93,51 @@ void GameLayer::OnAttach()
 	glGenFramebuffers(1, &m_GBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_GBuffer);
 
-	// pos
+	// pos buffer
 	m_GPosition = std::make_unique<Magma::Texture>(
 		w, h, GL_TEXTURE_2D, GL_RGBA16F, GL_RGBA, GL_FLOAT, nullptr
 	);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_GPosition->GetID(), 0);
+
+	// normal buffer
+	m_GNormal = std::make_unique<Magma::Texture>(
+		w, h, GL_TEXTURE_2D, GL_RGBA16F, GL_RGBA, GL_FLOAT, nullptr
+	);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_GNormal->GetID(), 0);
+
+	// color & spec buffer
+	m_GColorSpec = std::make_unique<Magma::Texture>(
+		w, h, GL_TEXTURE_2D, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, nullptr
+	);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_GColorSpec->GetID(), 0);
+
+	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+	glDrawBuffers(3, attachments);
+
+	// setup depth texture
+
+	m_GDepth = std::make_unique<Magma::Texture>(
+		w, h, GL_TEXTURE_2D, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr
+	);
+	m_GDepth->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_GDepth->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_GDepth->GetID(), 0);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) std::cout << "framebuffer error" << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// lighting pass fbo
+	glGenFramebuffers(1, &m_GLightingPassFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
+	m_GLightingPass = std::make_unique<Magma::Texture>(
+		w, h, GL_TEXTURE_2D, GL_RGBA16F, GL_RGBA, GL_FLOAT, nullptr
+	);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_GLightingPass->GetID(), 0);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) std::cout << "framebuffer error" << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 
 
 	// move into resource manager later
@@ -104,11 +145,9 @@ void GameLayer::OnAttach()
 	// Mesh shader
 	std::string vertpath = "resources/shaders/basic.vert";
 	std::string fragpath = "resources/shaders/basic.frag";
-	std::string texturePath = "resources/textures/terrain.png";
 	#ifdef MAGMA_ROOT_DIR
 		vertpath = std::string(MAGMA_ROOT_DIR) + vertpath;
 		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
-		texturePath = std::string(MAGMA_ROOT_DIR) + texturePath;
 	#endif
 
 	Shader vertexShader(vertpath, GL_VERTEX_SHADER);
@@ -120,7 +159,28 @@ void GameLayer::OnAttach()
 	m_ShaderProgram->AttachShader(fragmentShader);
 	if (!m_ShaderProgram->Link())
 	{
-		std::cerr << "Failed to link shader program!" << std::endl;
+		std::cerr << "Failed to link geometry shader program!" << std::endl;
+		return;
+	}
+
+	// lighting pass shader
+	vertpath = "resources/shaders/screenQuad.vert";
+	fragpath = "resources/shaders/lighting.frag";
+	#ifdef MAGMA_ROOT_DIR
+		vertpath = std::string(MAGMA_ROOT_DIR) + vertpath;
+		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
+	#endif
+
+	Shader lightingVertexShader(vertpath, GL_VERTEX_SHADER);
+	Shader lightingFragmentShader(fragpath, GL_FRAGMENT_SHADER);
+
+	m_LightingShaderProgram = std::make_unique<ShaderProgram>();
+
+	m_LightingShaderProgram->AttachShader(lightingVertexShader);
+	m_LightingShaderProgram->AttachShader(lightingFragmentShader);
+	if (!m_LightingShaderProgram->Link())
+	{
+		std::cerr << "Failed to link lighting shader program!" << std::endl;
 		return;
 	}
 
@@ -141,21 +201,11 @@ void GameLayer::OnAttach()
 	m_ScreenShaderProgram->AttachShader(screenFragmentShader);
 	if (!m_ScreenShaderProgram->Link())
 	{
-		std::cerr << "Failed to link shader program!" << std::endl;
+		std::cerr << "Failed to link post-processing shader program!" << std::endl;
 		return;
 	}
 
-
-	// Single Texture setup
-	m_Texture = std::make_unique<Texture>(texturePath.c_str(), true);
-	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-	m_Texture->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	m_ShaderProgram->Use();
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
-	m_ShaderProgram->SetUniform("u_Texture", 0);
-
+	/*
 	// UITEST
 	gl2d::init();
 	m_UI = new glui::RendererUi();
@@ -165,6 +215,7 @@ void GameLayer::OnAttach()
 	m_UIRenderer->create();
 	m_UIFont->createFromFile("resources/font/ANDYB.TTF");
 	m_UITexture->loadFromFile("resources/textures/crosshair_shadow.png", true);
+	*/
 }
 
 // ---- GAME UPDATE LOGIC ----
@@ -175,13 +226,6 @@ void GameLayer::OnUpdate(float dt)
 	int w, h;
 	SDL_GetWindowSize(m_Window, &w, &h);
 
-	//clear screen
-	glViewport(0, 0, w, h);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
-	glClearColor(0.643f, 0.827f, 0.984f, 1.0f);
-	//glClearColor(0.4f, 0.6f, 3.0f, 1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Mouse look
 	ImGuiIO& io = ImGui::GetIO();
@@ -261,10 +305,6 @@ void GameLayer::OnUpdate(float dt)
 
 		// ---- RENDERING ----
 		// Shader uniforms update and model drawing
-		m_ShaderProgram->Use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_Texture->GetID());
-		m_ShaderProgram->SetUniform("u_Texture", 0);
 	}
 
 	// network tick
@@ -286,20 +326,58 @@ void GameLayer::OnUpdate(float dt)
 		}
 	}
 
+	// 1 - geometry pass
+	// clear screen completely
+	glViewport(0, 0, w, h);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_GBuffer);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+
+
 	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	// 2 - lighting pass
+	glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
 
-	m_ScreenShaderProgram->Use();
+	m_LightingShaderProgram->Use();
+
+	// bind g textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_GPosition->GetID());
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, m_GNormal->GetID());
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, m_GColorSpec->GetID());
+
+	m_LightingShaderProgram->SetUniform("u_GPosition", 0);
+	m_LightingShaderProgram->SetUniform("u_GNormal", 1);
+	m_LightingShaderProgram->SetUniform("u_GDiffuseSpec", 2);
 
 	glBindVertexArray(m_ScreenVAO);
 	glDisable(GL_DEPTH_TEST);
-	glBindTexture(GL_TEXTURE_2D, m_ScreenTextureColorBuffer->GetID());
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
-	RenderUI(w, h, dt);
+	// 3 - post processing pass
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	m_ScreenShaderProgram->Use();
+
+	// bind gbuffer textures for reading
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_GLightingPass->GetID());
+	m_ScreenShaderProgram->SetUniform("u_ScreenTexture", 0);
+
+	glBindVertexArray(m_ScreenVAO);
+	glDisable(GL_DEPTH_TEST);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	
+
+	//RenderUI(w, h, dt);
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();
@@ -327,6 +405,8 @@ void GameLayer::OnDetach()
 	delete m_UIRenderer;
 	delete m_UIFont;
 	delete m_UITexture;
+
+	glDeleteFramebuffers(1, &m_GBuffer);
 	glDeleteFramebuffers(1, &m_ScreenFBO);
 	glDeleteRenderbuffers(1, &m_ScreenRBO);
 
@@ -759,6 +839,26 @@ void GameLayer::OnResize(int width, int height)
 
 	glBindRenderbuffer(GL_RENDERBUFFER, m_ScreenRBO);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	glBindTexture(GL_TEXTURE_2D, m_GLightingPass->GetID());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	// resize gbuffer textures
+	glBindTexture(GL_TEXTURE_2D, m_GPosition->GetID());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	glBindTexture(GL_TEXTURE_2D, m_GNormal->GetID());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	glBindTexture(GL_TEXTURE_2D, m_GColorSpec->GetID());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+	glBindTexture(GL_TEXTURE_2D, m_GDepth->GetID());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 

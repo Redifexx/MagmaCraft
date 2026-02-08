@@ -11,7 +11,8 @@ namespace Craft
 		uint8_t networkID; // we lookup username through network manager
 		bool isLocalPlayer = false;
 		uint32_t lastSequenceID = 0; // for packets
-		Magma::Texture* texture = nullptr;
+		Magma::Texture* skin_diffspec = nullptr;
+		Magma::Texture* skin_normal = nullptr;
 
 		// some variables needed for movement interpolation
 		glm::vec3 startPos = glm::vec3(0.0f);

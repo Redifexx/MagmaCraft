@@ -57,6 +57,9 @@ namespace Craft
 	class WorldManager
 	{
 		public:
+			WorldManager();
+			~WorldManager();
+
 			// --- WORLD CREATION/INITIALIZATION ---
 			// Sets up a new world generator & world folder
 			// Only ever called if server
@@ -104,6 +107,10 @@ namespace Craft
 			void SetNetworkIDToNameMap(std::shared_ptr<std::unordered_map <uint8_t, std::string>> map) { m_NetworkIDToNameMap = map; }
 
 			const uint8_t GetServerRenderDistance() { return m_ServerRenderDistance; }
+
+			// make getters and setters for these later
+			std::unique_ptr<Magma::Texture> m_BlockAtlasTextureDiffSpec;
+			std::unique_ptr<Magma::Texture> m_BlockAtlasTextureNormal;
 			
 		private:
 			std::unique_ptr<WorldGenerator> m_WorldGenerator;
