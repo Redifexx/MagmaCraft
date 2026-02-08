@@ -18,6 +18,7 @@ void main()
     gPosition = FragPos;
 
     vec3 normal = texture(u_NormalTexture, TexCoords).rgb;
+    //normal.g = 1.0 - normal.g;
     normal = normal * 2.0 - 1.0;
     normal = normalize(TBN * normal);
     gNormal = normal;

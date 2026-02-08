@@ -75,6 +75,8 @@ void GameLayer::OnAttach()
 	m_ScreenTextureColorBuffer = std::make_unique<Magma::Texture>(
 		w, h, GL_TEXTURE_2D, GL_RGBA16F, GL_RGBA, GL_FLOAT, nullptr
 	);
+	m_ScreenTextureColorBuffer->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_ScreenTextureColorBuffer->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ScreenTextureColorBuffer->GetID(), 0);
 
 	// create renderbuffer
@@ -95,20 +97,26 @@ void GameLayer::OnAttach()
 
 	// pos buffer
 	m_GPosition = std::make_unique<Magma::Texture>(
-		w, h, GL_TEXTURE_2D, GL_RGBA16F, GL_RGBA, GL_FLOAT, nullptr
+		w, h, GL_TEXTURE_2D, GL_RGBA32F, GL_RGBA, GL_FLOAT, nullptr
 	);
+	m_GPosition->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_GPosition->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_GPosition->GetID(), 0);
 
 	// normal buffer
 	m_GNormal = std::make_unique<Magma::Texture>(
-		w, h, GL_TEXTURE_2D, GL_RGBA16F, GL_RGBA, GL_FLOAT, nullptr
+		w, h, GL_TEXTURE_2D, GL_RGBA32F, GL_RGBA, GL_FLOAT, nullptr
 	);
+	m_GNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_GNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_GNormal->GetID(), 0);
 
 	// color & spec buffer
 	m_GColorSpec = std::make_unique<Magma::Texture>(
 		w, h, GL_TEXTURE_2D, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, nullptr
 	);
+	m_GColorSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_GColorSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_GColorSpec->GetID(), 0);
 
 	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
@@ -133,6 +141,8 @@ void GameLayer::OnAttach()
 	m_GLightingPass = std::make_unique<Magma::Texture>(
 		w, h, GL_TEXTURE_2D, GL_RGBA16F, GL_RGBA, GL_FLOAT, nullptr
 	);
+	m_GLightingPass->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_GLightingPass->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_GLightingPass->GetID(), 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) std::cout << "framebuffer error" << std::endl;
@@ -351,6 +361,16 @@ void GameLayer::OnUpdate(float dt)
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_GColorSpec->GetID());
+
+	if (m_IsLocalPlayerLoaded)
+	{
+		auto& transformRef = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
+		m_LightingShaderProgram->SetUniform("u_CameraPosition", glm::vec3(transformRef.worldMatrix[3]));
+	}
+	else
+	{
+		m_LightingShaderProgram->SetUniform("u_CameraPosition", glm::vec3(0.0f));
+	}
 
 	m_LightingShaderProgram->SetUniform("u_GPosition", 0);
 	m_LightingShaderProgram->SetUniform("u_GNormal", 1);
@@ -847,7 +867,7 @@ void GameLayer::OnResize(int width, int height)
 
 	// resize gbuffer textures
 	glBindTexture(GL_TEXTURE_2D, m_GPosition->GetID());
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
 
 	glBindTexture(GL_TEXTURE_2D, m_GNormal->GetID());
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);

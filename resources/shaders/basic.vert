@@ -21,27 +21,12 @@ void main()
     FragPos = worldPos.xyz;
 
     gl_Position = u_ViewProjection * worldPos;
-
     
     vec3 n = normalize(u_NormalMatrix * aNormal);
-    vec3 t = vec3(0.0);
-    vec3 b = vec3(0.0);
-
-    // check mesh for tangents (prob not)
-    if (length(aTangent) > 0.01)
-    {
-        t = normalize(u_NormalMatrix * aTangent);
-        b = normalize(u_NormalMatrix * aBitangent);
-        t = normalize(t - dot(t, n) * n);
-    }
-    else // no tangents
-    {
-        // create fake tangents
-        vec3 helper = abs(n.y) < 0.999 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, -1.0);
-        
-        t = normalize(cross(helper, n));
-        b = cross(n, t);
-    }
+    vec3 t = normalize(u_NormalMatrix * aTangent);
+    vec3 b = normalize(u_NormalMatrix * aBitangent);
+    t = normalize(t - dot(t, n) * n);
+    b = cross(n, t);
 
     TBN = mat3(t, b, n);
 

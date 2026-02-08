@@ -17,8 +17,8 @@ void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shader
 	SetupShaderUniforms(world, shaderProgram);	
 
 	shaderProgram.SetUniform("u_Model", glm::mat4(1.0f));
-	glm::mat3 normalMat = glm::mat3(glm::transpose(glm::inverse(glm::mat4(1.0f))));
-	shaderProgram.SetUniform("u_NormalMatrix", normalMat);
+	glm::mat3 normalMat = glm::transpose(glm::inverse(glm::mat4(1.0f)));
+	shaderProgram.SetUniform("u_NormalMatrix", (glm::mat3)normalMat);
 
 	auto worldManager = worldStreamer->GetWorldManager().get();
 	if (!worldManager) return;
@@ -65,8 +65,8 @@ void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& 
 
 
 		shaderProgram.SetUniform("u_Model", worldMatrix);
-		glm::mat3 normalMat = glm::mat3(glm::transpose(glm::inverse(worldMatrix)));
-		shaderProgram.SetUniform("u_NormalMatrix", normalMat);
+		glm::mat3 normalMat = glm::transpose(glm::inverse(worldMatrix));
+		shaderProgram.SetUniform("u_NormalMatrix", (glm::mat3)normalMat);
 
 		if (playerPool->Contains(entity))
 		{

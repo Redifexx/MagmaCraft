@@ -20,12 +20,27 @@ WorldManager::WorldManager()
 	std::string diffSpecPath = "resources/textures/atlas_diffspec.png";
 	std::string normalPath = "resources/textures/atlas_normal.png";
 
-	m_BlockAtlasTextureDiffSpec = std::make_unique<Magma::Texture>(diffSpecPath.c_str(), true);
-	m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureDiffSpec = std::make_unique<Magma::Texture>(
+		diffSpecPath.c_str(),
+		false,
+		GL_SRGB_ALPHA,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+
+	//m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	m_BlockAtlasTextureNormal = std::make_unique<Magma::Texture>(diffSpecPath.c_str(), true);
-	m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureNormal = std::make_unique<Magma::Texture>(
+		normalPath.c_str(),
+		false,
+		GL_RGB,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+	//m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 

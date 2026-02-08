@@ -41,11 +41,11 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)
 				}
 				else if (y < height)
 				{
-					currentBlock = 5; // Sand
+					currentBlock = 6; // Sand
 				}
 				else if (y == height)
 				{
-					currentBlock = 4; // Dirt
+					currentBlock = 2; // Dirt
 				}
 
 				chunk.SetBlock(x, y, z, currentBlock);

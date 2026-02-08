@@ -39,29 +39,29 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 				v1.Position = glm::vec3(x + 0.5f, y + 0.5f, z + 0.5f);
 				v1.Normal = glm::vec3(1.0f, 0.0f, 0.0f);
 				v1.TexCoords = uv;
-				v1.Tangent = glm::vec3(0.0f);
-				v1.Bitangent = glm::vec3(0.0f);
+				v1.Tangent = glm::vec3(0.0f, 0.0f, 1.0f);
+				v1.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// top right
 				v2.Position = glm::vec3(x + 0.5f, y + 0.5f, z - 0.5f);
 				v2.Normal = glm::vec3(1.0f, 0.0f, 0.0f);
 				v2.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y);
-				v2.Tangent = glm::vec3(0.0f);
-				v2.Bitangent = glm::vec3(0.0f);
+				v2.Tangent = glm::vec3(0.0f, 0.0f, 1.0f);
+				v2.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// bottom right
 				v3.Position = glm::vec3(x + 0.5f, y - 0.5f, z - 0.5f);
 				v3.Normal = glm::vec3(1.0f, 0.0f, 0.0f);
 				v3.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y + BlockLibrary::m_UVTileScale);
-				v3.Tangent = glm::vec3(0.0f);
-				v3.Bitangent = glm::vec3(0.0f);
+				v3.Tangent = glm::vec3(0.0f, 0.0f, 1.0f);
+				v3.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// bottom left
 				v4.Position = glm::vec3(x + 0.5f, y - 0.5f, z + 0.5f);
 				v4.Normal = glm::vec3(1.0f, 0.0f, 0.0f);
 				v4.TexCoords = glm::vec2(uv.x, uv.y + BlockLibrary::m_UVTileScale);
-				v4.Tangent = glm::vec3(0.0f);
-				v4.Bitangent = glm::vec3(0.0f);
+				v4.Tangent = glm::vec3(0.0f, 0.0f, 1.0f);
+				v4.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				vertices.push_back(v1);
 				vertices.push_back(v2);
@@ -90,29 +90,29 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 				v1.Position = glm::vec3(x - 0.5f, y + 0.5f, z - 0.5f);
 				v1.Normal = glm::vec3(-1.0f, 0.0f, 0.0f);
 				v1.TexCoords = uv;
-				v1.Tangent = glm::vec3(0.0f);
-				v1.Bitangent = glm::vec3(0.0f);
+				v1.Tangent = glm::vec3(0.0f, 0.0f, -1.0f);
+				v1.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// top right
 				v2.Position = glm::vec3(x - 0.5f, y + 0.5f, z + 0.5f);
 				v2.Normal = glm::vec3(-1.0f, 0.0f, 0.0f);
 				v2.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y);
-				v2.Tangent = glm::vec3(0.0f);
-				v2.Bitangent = glm::vec3(0.0f);
+				v2.Tangent = glm::vec3(0.0f, 0.0f, -1.0f);
+				v2.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// bottom right
 				v3.Position = glm::vec3(x - 0.5f, y - 0.5f, z + 0.5f);
 				v3.Normal = glm::vec3(-1.0f, 0.0f, 0.0f);
 				v3.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y + BlockLibrary::m_UVTileScale);
-				v3.Tangent = glm::vec3(0.0f);
-				v3.Bitangent = glm::vec3(0.0f);
+				v3.Tangent = glm::vec3(0.0f, 0.0f, -1.0f);
+				v3.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// bottom left
 				v4.Position = glm::vec3(x - 0.5f, y - 0.5f, z - 0.5f);
 				v4.Normal = glm::vec3(-1.0f, 0.0f, 0.0f);
 				v4.TexCoords = glm::vec2(uv.x, uv.y + BlockLibrary::m_UVTileScale);
-				v4.Tangent = glm::vec3(0.0f);
-				v4.Bitangent = glm::vec3(0.0f);
+				v4.Tangent = glm::vec3(0.0f, 0.0f, -1.0f);
+				v4.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				vertices.push_back(v1);
 				vertices.push_back(v2);
@@ -142,29 +142,29 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 				v1.Position = glm::vec3(x - 0.5f, y + 0.5f, z - 0.5f);
 				v1.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
 				v1.TexCoords = uv;
-				v1.Tangent = glm::vec3(0.0f);
-				v1.Bitangent = glm::vec3(0.0f);
+				v1.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v1.Bitangent = glm::vec3(0.0f, 0.0f, 1.0f);
 
 				// top right
 				v2.Position = glm::vec3(x + 0.5f, y + 0.5f, z - 0.5f);
 				v2.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
 				v2.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y); 
-				v2.Tangent = glm::vec3(0.0f);
-				v2.Bitangent = glm::vec3(0.0f);
+				v2.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v2.Bitangent = glm::vec3(0.0f, 0.0f, 1.0f);
 
 				// bottom right
 				v3.Position = glm::vec3(x + 0.5f, y + 0.5f, z + 0.5f);
 				v3.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
 				v3.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y + BlockLibrary::m_UVTileScale);
-				v3.Tangent = glm::vec3(0.0f);
-				v3.Bitangent = glm::vec3(0.0f);
+				v3.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v3.Bitangent = glm::vec3(0.0f, 0.0f, 1.0f);
 
 				// bottom left
 				v4.Position = glm::vec3(x - 0.5f, y + 0.5f, z + 0.5f);
 				v4.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
 				v4.TexCoords = glm::vec2(uv.x, uv.y + BlockLibrary::m_UVTileScale);
-				v4.Tangent = glm::vec3(0.0f);
-				v4.Bitangent = glm::vec3(0.0f);
+				v4.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v4.Bitangent = glm::vec3(0.0f, 0.0f, 1.0f);
 
 				vertices.push_back(v1);
 				vertices.push_back(v2);
@@ -193,29 +193,29 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 				v1.Position = glm::vec3(x - 0.5f, y - 0.5f, z + 0.5f);
 				v1.Normal = glm::vec3(0.0f, -1.0f, 0.0f);
 				v1.TexCoords = uv;
-				v1.Tangent = glm::vec3(0.0f);
-				v1.Bitangent = glm::vec3(0.0f);
+				v1.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v1.Bitangent = glm::vec3(0.0f, 0.0f, -1.0f);
 
 				// top right
 				v2.Position = glm::vec3(x + 0.5f, y - 0.5f, z + 0.5f);
 				v2.Normal = glm::vec3(0.0f, -1.0f, 0.0f);
 				v2.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y);
-				v2.Tangent = glm::vec3(0.0f);
-				v2.Bitangent = glm::vec3(0.0f);
+				v2.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v2.Bitangent = glm::vec3(0.0f, 0.0f, -1.0f);
 
 				// bottom right
 				v3.Position = glm::vec3(x + 0.5f, y - 0.5f, z - 0.5f);
 				v3.Normal = glm::vec3(0.0f, -1.0f, 0.0f);
 				v3.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y + BlockLibrary::m_UVTileScale);
-				v3.Tangent = glm::vec3(0.0f);
-				v3.Bitangent = glm::vec3(0.0f);
+				v3.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v3.Bitangent = glm::vec3(0.0f, 0.0f, -1.0f);
 
 				// bottom left
 				v4.Position = glm::vec3(x - 0.5f, y - 0.5f, z - 0.5f);
 				v4.Normal = glm::vec3(0.0f, -1.0f, 0.0f);
 				v4.TexCoords = glm::vec2(uv.x, uv.y + BlockLibrary::m_UVTileScale);
-				v4.Tangent = glm::vec3(0.0f);
-				v4.Bitangent = glm::vec3(0.0f);
+				v4.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v4.Bitangent = glm::vec3(0.0f, 0.0f, -1.0f);
 
 				vertices.push_back(v1);
 				vertices.push_back(v2);
@@ -244,29 +244,29 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 				v1.Position = glm::vec3(x - 0.5f, y + 0.5f, z + 0.5f);
 				v1.Normal = glm::vec3(0.0f, 0.0f, 1.0f);
 				v1.TexCoords = uv;
-				v1.Tangent = glm::vec3(0.0f);
-				v1.Bitangent = glm::vec3(0.0f);
+				v1.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v1.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// top right
 				v2.Position = glm::vec3(x + 0.5f, y + 0.5f, z + 0.5f);
 				v2.Normal = glm::vec3(0.0f, 0.0f, 1.0f);
 				v2.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y);
-				v2.Tangent = glm::vec3(0.0f);
-				v2.Bitangent = glm::vec3(0.0f);
+				v2.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v2.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// bottom right
 				v3.Position = glm::vec3(x + 0.5f, y - 0.5f, z + 0.5f);
 				v3.Normal = glm::vec3(0.0f, 0.0f, 1.0f);
 				v3.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y + BlockLibrary::m_UVTileScale);
-				v3.Tangent = glm::vec3(0.0f);
-				v3.Bitangent = glm::vec3(0.0f);
+				v3.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v3.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// bottom left
 				v4.Position = glm::vec3(x - 0.5f, y - 0.5f, z + 0.5f);
 				v4.Normal = glm::vec3(0.0f, 0.0f, 1.0f);
 				v4.TexCoords = glm::vec2(uv.x, uv.y + BlockLibrary::m_UVTileScale);
-				v4.Tangent = glm::vec3(0.0f);
-				v4.Bitangent = glm::vec3(0.0f);
+				v4.Tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+				v4.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				vertices.push_back(v1);
 				vertices.push_back(v2);
@@ -295,29 +295,29 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 				v1.Position = glm::vec3(x + 0.5f, y + 0.5f, z - 0.5f);
 				v1.Normal = glm::vec3(0.0f, 0.0f, -1.0f);
 				v1.TexCoords = uv;
-				v1.Tangent = glm::vec3(0.0f);
-				v1.Bitangent = glm::vec3(0.0f);
+				v1.Tangent = glm::vec3(-1.0f, 0.0f, 0.0f);
+				v1.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// top right
 				v2.Position = glm::vec3(x - 0.5f, y + 0.5f, z - 0.5f);
 				v2.Normal = glm::vec3(0.0f, 0.0f, -1.0f);
 				v2.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y);
-				v2.Tangent = glm::vec3(0.0f);
-				v2.Bitangent = glm::vec3(0.0f);
+				v2.Tangent = glm::vec3(-1.0f, 0.0f, 0.0f);
+				v2.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// bottom right
 				v3.Position = glm::vec3(x - 0.5f, y - 0.5f, z - 0.5f);
 				v3.Normal = glm::vec3(0.0f, 0.0f, -1.0f);
 				v3.TexCoords = glm::vec2(uv.x + BlockLibrary::m_UVTileScale, uv.y + BlockLibrary::m_UVTileScale);
-				v3.Tangent = glm::vec3(0.0f);
-				v3.Bitangent = glm::vec3(0.0f);
+				v3.Tangent = glm::vec3(-1.0f, 0.0f, 0.0f);
+				v3.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				// bottom left
 				v4.Position = glm::vec3(x + 0.5f, y - 0.5f, z - 0.5f);
 				v4.Normal = glm::vec3(0.0f, 0.0f, -1.0f);
 				v4.TexCoords = glm::vec2(uv.x, uv.y + BlockLibrary::m_UVTileScale);
-				v4.Tangent = glm::vec3(0.0f);
-				v4.Bitangent = glm::vec3(0.0f);
+				v4.Tangent = glm::vec3(-1.0f, 0.0f, 0.0f);
+				v4.Bitangent = glm::vec3(0.0f, 1.0f, 0.0f);
 
 				vertices.push_back(v1);
 				vertices.push_back(v2);

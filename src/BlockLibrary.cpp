@@ -17,7 +17,7 @@ void BlockLibrary::Initialize()
 	blockTypes[0] = { "Air", true, false, -1, -1, -1, -1, -1, -1 };
 
 	// ID 1: Stone
-	blockTypes[1] = { "Stone", false, false, 31, 31, 31, 31, 31, 31 };
+	blockTypes[1] = { "Stone", false, false, 32, 32, 32, 32, 32, 32 };
 
 	// ID 2: Cobblestone
 	blockTypes[2] = { "Cobblestone", false, false, 2, 2, 2, 2, 2, 2 };
@@ -29,16 +29,16 @@ void BlockLibrary::Initialize()
 	blockTypes[4] = { "Grass", false, false, 19, 20, 20, 20, 20, 16 };
 
 	// ID 5: Sand
-	blockTypes[5] = { "Sand", false, true, 30, 30, 30, 30, 30, 30 };
+	blockTypes[5] = { "Sand", false, true, 31, 31, 31, 31, 31, 31 };
 
 	// ID 6: Gravel
 	blockTypes[6] = { "Gravel", false, true, 21, 21, 21, 21, 21, 21 };
 
 	// ID 7: Wood
-	blockTypes[7] = { "Wood", false, false, 24, 23, 23, 23, 23, 24 };
+	blockTypes[7] = { "Wood", false, false, 25, 24, 24, 24, 24, 25 };
 
 	// ID 8: Wooden Planks
-	blockTypes[8] = { "WoodenPlanks", false, false, 25, 25, 25, 25, 25, 25 };
+	blockTypes[8] = { "WoodenPlanks", false, false, 26, 26, 26, 26, 26, 26 };
 
 	// ID 9: Leaves
 	// ID 10: Brick
