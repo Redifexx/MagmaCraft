@@ -170,6 +170,19 @@ namespace Magma
 			std::unique_ptr<Magma::Texture> m_GDepth = nullptr;
 			std::unique_ptr<ShaderProgram> m_LightingShaderProgram = nullptr;
 
+			// DEBUG MENU ITEMS
+			float m_FogNear = 0.1f;
+			float m_FogFar = 1000.0f;
+			float m_FogDensity = 0.007f;
+			float m_FogCurve = 2.0f;
+
+			glm::vec3 m_SkyColor = glm::vec3(0.3, 0.5, 1.0);
+			float m_SunIntensity = 2.0f;
+			glm::vec3 m_SunColor = glm::vec3(1.0f);
+			glm::vec3 m_SunDirection = glm::vec3(-0.5f);
+
+
+
 
 			// Should later be moved to manager
 			glui::RendererUi* m_UI = nullptr;

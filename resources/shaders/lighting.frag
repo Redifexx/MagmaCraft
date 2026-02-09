@@ -10,6 +10,10 @@ uniform sampler2D u_GNormal;
 uniform sampler2D u_GAlbedo;
 uniform sampler2D u_GASME;
 uniform vec3 u_CameraPosition;
+uniform vec3 u_SkyColor;
+uniform vec3 u_SunColor;
+uniform vec3 u_SunDirection;
+uniform float u_SunIntensity;
 
 /*
 CURRENT TEXTURE MAPS
@@ -34,16 +38,16 @@ void main()
 
     if (length(Normal) < 0.1) 
     {
-        FragColor = vec4(0.3, 0.5, 1.0, 1.0);
+        FragColor = vec4(u_SkyColor, 1.0);
         return;
     }
 
     vec3 N = normalize(Normal);
 
     // directional light
-    vec3 lightDirection = vec3(-0.5, -0.5, -0.5);
-    vec3 lightColor = vec3(1.0, 1.0, 1.0);
-    float lightIntensity = 2.0f;
+    vec3 lightDirection = u_SunDirection;
+    vec3 lightColor = u_SunColor;
+    float lightIntensity = u_SunIntensity;
 
     float diff = max(dot(N, -lightDirection), 0.0);
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0) * lightColor * Albedo;

@@ -25,8 +25,16 @@ void PlayerController::OnAttach()
 
 void PlayerController::OnUpdate(float dt)
 {
-	HandleMovement(dt);
-	HandleMouseLook(dt);
+	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_ESCAPE))
+	{
+		m_IsMouseLocked = !m_IsMouseLocked;
+		SDL_SetWindowRelativeMouseMode(m_Window, m_IsMouseLocked);
+	}
+	if (m_IsMouseLocked)
+	{
+		HandleMovement(dt);
+		HandleMouseLook(dt);
+	}
 }
 
 void PlayerController::HandleMovement(float dt)
@@ -65,6 +73,7 @@ void PlayerController::HandleMovement(float dt)
 	// add flight mode check at some point
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_E)) moveDir += up;
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_Q)) moveDir -= up;
+
 
 	if (glm::length(moveDir) > 0.0f)
 	{

@@ -247,7 +247,7 @@ void GameLayer::OnUpdate(float dt)
 
 	// Mouse look
 	ImGuiIO& io = ImGui::GetIO();
-	if (!io.WantCaptureMouse && Magma::Input::IsMouseButtonPressed(SDL_BUTTON_LEFT))
+	if (!m_IsLocalPlayerLoaded && !io.WantCaptureMouse && Magma::Input::IsMouseButtonPressed(SDL_BUTTON_LEFT))
 	{
 		SDL_SetWindowRelativeMouseMode(m_Window, true);
 	}
@@ -387,6 +387,11 @@ void GameLayer::OnUpdate(float dt)
 	m_LightingShaderProgram->SetUniform("u_GNormal", 1);
 	m_LightingShaderProgram->SetUniform("u_GAlbedo", 2);
 	m_LightingShaderProgram->SetUniform("u_GASME", 3);
+	m_LightingShaderProgram->SetUniform("u_SkyColor", m_SkyColor);
+	m_LightingShaderProgram->SetUniform("u_SunColor", m_SunColor);
+	m_LightingShaderProgram->SetUniform("u_SunIntensity", (float)m_SunIntensity);
+	m_LightingShaderProgram->SetUniform("u_SunDirection", m_SunDirection);
+
 
 	glBindVertexArray(m_ScreenVAO);
 	glDisable(GL_DEPTH_TEST);
@@ -402,6 +407,17 @@ void GameLayer::OnUpdate(float dt)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_GLightingPass->GetID());
 	m_ScreenShaderProgram->SetUniform("u_ScreenTexture", 0);
+
+	// depth uniforms
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, m_GDepth->GetID());
+	m_ScreenShaderProgram->SetUniform("u_DepthTexture", 1);
+	m_ScreenShaderProgram->SetUniform("u_FogNear", m_FogNear); // update to make dependent on render distance
+	m_ScreenShaderProgram->SetUniform("u_FogFar", m_FogFar);
+	m_ScreenShaderProgram->SetUniform("u_FogDensity", m_FogDensity);
+	m_ScreenShaderProgram->SetUniform("u_FogCurve", m_FogCurve);
+	m_ScreenShaderProgram->SetUniform("u_SkyColor", m_SkyColor);
+	
 
 	glBindVertexArray(m_ScreenVAO);
 	glDisable(GL_DEPTH_TEST);
@@ -801,6 +817,7 @@ void GameLayer::OnImGuiRender(float dt)
 		case (MenuState::IN_GAME):
 
 			// In-game menu options would go here
+			ImGui::Text("Press ESCAPE to toggle menu control.");
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			ImGui::Text("Autosave in %.1f seconds", m_AutoSaveTimer);
 			if (m_Player != Craft::NULL_ENTITY &&
@@ -821,6 +838,43 @@ void GameLayer::OnImGuiRender(float dt)
 			for (std::string& name : m_NetworkManager->m_PlayerNames)
 			{
 				ImGui::Text("%s", name.c_str());
+			}
+
+			if (ImGui::BeginMenu("Shader Debug"))
+			{
+				ImGui::ColorEdit3("Sky Color", glm::value_ptr(m_SkyColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
+				ImGui::DragFloat("Fog Near", &m_FogNear, 0.1f, 0.0f, 1000.0f);
+				ImGui::DragFloat("Fog Far", &m_FogFar ,0.1f, 0.0f, 10000.0f);
+				ImGui::DragFloat("Fog Density", &m_FogDensity, 0.001f, 0.0f, 1.0f);
+				ImGui::DragFloat("Fog Curve", &m_FogCurve, 0.1f, 0.1f, 256.0f);
+
+				ImGui::DragFloat("Sun Intensity", &m_SunIntensity, 0.1f, 0.0f, 100.0f);
+				ImGui::ColorEdit3("Sun Color", glm::value_ptr(m_SunColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
+				// Euler to sundirection
+
+				float pitch = glm::degrees(asin(m_SunDirection.y));
+				float yaw = glm::degrees(atan2(-m_SunDirection.x, -m_SunDirection.z));
+
+				bool changed = false;
+				ImGui::Text("Sun Direction");
+				changed |= ImGui::DragFloat("Sun Pitch", &pitch, 1.0f, -89.0f, 89.0f);
+				changed |= ImGui::DragFloat("Sun Yaw", &yaw, 1.0f, -180.0f, 180.0f);
+				if (changed)
+				{
+					float radPitch = glm::radians(pitch);
+					float radYaw = glm::radians(yaw);
+
+					glm::vec3 newDir;
+					newDir.y = sin(radPitch);
+					newDir.x = -sin(radYaw) * cos(radPitch);
+					newDir.z = -cos(radYaw) * cos(radPitch);
+
+					m_SunDirection = glm::normalize(newDir);
+				}
+
+				ImGui::EndMenu();
 			}
 			
 			if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::SERVER)
@@ -848,6 +902,7 @@ void GameLayer::OnImGuiRender(float dt)
 					m_MenuState = MenuState::MAIN_MENU;
 				}
 			}
+			
 			break;
 	}
 	ImGui::End();
