@@ -17,12 +17,13 @@ using namespace Craft;
 WorldManager::WorldManager()
 {
 	// World Texture setup
-	std::string diffSpecPath = "resources/textures/atlas_diffspec.png";
+	std::string albedoPath = "resources/textures/atlas_albedo.png";
 	std::string normalPath = "resources/textures/atlas_normal.png";
+	std::string asmePath = "resources/textures/atlas_asme.png";
 
 	// Albedo, Alpha
 	m_BlockAtlasTextureAlbedo = std::make_unique<Magma::Texture>(
-		diffSpecPath.c_str(),
+		albedoPath.c_str(),
 		false,
 		GL_SRGB_ALPHA,
 		GL_RGBA,
@@ -47,7 +48,7 @@ WorldManager::WorldManager()
 
 	// AO, Smoothness, Metallic, Emissive
 	m_BlockAtlasTextureASME = std::make_unique<Magma::Texture>(
-		normalPath.c_str(),
+		asmePath.c_str(),
 		false,
 		GL_RGBA,
 		GL_RGBA,
@@ -243,13 +244,32 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 
 	// Add Components (Local + Remote)
 
-	Magma::Texture* skin_albedo = new Magma::Texture("resources/textures/player_skin_albedo.png");
-	Magma::Texture* skin_normal = new Magma::Texture("resources/textures/player_skin_normal.png");
-	Magma::Texture* skin_asme = new Magma::Texture("resources/textures/player_skin_asme.png");
+	Magma::Texture* skin_albedo = new Magma::Texture(
+		"resources/textures/player_skin_albedo.png",
+		false,
+		GL_SRGB_ALPHA,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
 	skin_albedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	skin_albedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	Magma::Texture* skin_normal = new Magma::Texture(
+		"resources/textures/player_skin_normal.png",
+		false,
+		GL_RGB,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+
 	skin_normal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	skin_normal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	Magma::Texture* skin_asme = new Magma::Texture("resources/textures/player_skin_asme.png", false,
+		GL_RGBA,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
 	skin_asme->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	skin_asme->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 

@@ -52,12 +52,14 @@ void main()
 
     vec3 halfwayDir = normalize(-lightDirection + viewDir);
 
-    float shininess = mix(2.0, 64.0, Smoothness);
+    float shininess = mix(2.0, 128.0, Smoothness);
     float spec = pow(max(dot(N, halfwayDir), 0.0), shininess);
-    vec3 specularLight = lightColor * spec * Smoothness * 0.05;
+    vec3 specularLight = lightColor * spec * Smoothness;
+
+    vec3 emissiveLight = Albedo * Emissive * 3.0;
 
 
-    vec3 finalLight = ((lightIntensity * (diffuse + specularLight)) + (vec3(0.3, 0.3, 0.3) * Albedo));
+    vec3 finalLight = ((lightIntensity * (diffuse + specularLight)) + (vec3(0.3) * Albedo) + emissiveLight);
 
     FragColor = vec4(finalLight, 1.0);
 

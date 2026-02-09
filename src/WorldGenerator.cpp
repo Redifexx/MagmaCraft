@@ -41,7 +41,7 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)
 				}
 				else if (y < height)
 				{
-					currentBlock = 5; // Sand
+					currentBlock = 16; // Glowstone
 				}
 				else if (y == height)
 				{
