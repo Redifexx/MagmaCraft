@@ -109,8 +109,9 @@ namespace Craft
 			const uint8_t GetServerRenderDistance() { return m_ServerRenderDistance; }
 
 			// make getters and setters for these later
-			std::unique_ptr<Magma::Texture> m_BlockAtlasTextureDiffSpec;
+			std::unique_ptr<Magma::Texture> m_BlockAtlasTextureAlbedo;
 			std::unique_ptr<Magma::Texture> m_BlockAtlasTextureNormal;
+			std::unique_ptr<Magma::Texture> m_BlockAtlasTextureASME; // AO, Smoothness, Metallic, Emissive
 			
 		private:
 			std::unique_ptr<WorldGenerator> m_WorldGenerator;

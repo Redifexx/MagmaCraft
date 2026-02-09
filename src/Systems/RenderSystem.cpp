@@ -24,12 +24,16 @@ void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shader
 	if (!worldManager) return;
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, worldManager->m_BlockAtlasTextureDiffSpec->GetID());
-	shaderProgram.SetUniform("u_DiffuseSpecTexture", 0);
+	glBindTexture(GL_TEXTURE_2D, worldManager->m_BlockAtlasTextureAlbedo ->GetID());
+	shaderProgram.SetUniform("u_AlbedoTexture", 0);
 
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, worldManager->m_BlockAtlasTextureNormal->GetID());
 	shaderProgram.SetUniform("u_NormalTexture", 1);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, worldManager->m_BlockAtlasTextureASME->GetID());
+	shaderProgram.SetUniform("u_ASMETexture", 2);
 
 	if (worldStreamer)
 	{
@@ -76,14 +80,19 @@ void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& 
 			{
 				continue;
 			}
-
+			
+			// UPDATE PLAYER TEXTURES
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, playerRef.skin_diffspec->GetID());
-			shaderProgram.SetUniform("u_DiffuseSpecTexture", 0);
+			glBindTexture(GL_TEXTURE_2D, playerRef.skin_albedo->GetID());
+			shaderProgram.SetUniform("u_AlbedoTexture", 0);
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, playerRef.skin_normal->GetID());
 			shaderProgram.SetUniform("u_NormalTexture", 1);
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, playerRef.skin_asme->GetID());
+			shaderProgram.SetUniform("u_ASMETexture", 2);
 		}
 		else
 		{
@@ -91,12 +100,16 @@ void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& 
 			if (!worldManager) return;
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, worldManager->m_BlockAtlasTextureDiffSpec->GetID());
-			shaderProgram.SetUniform("u_DiffuseSpecTexture", 0);
+			glBindTexture(GL_TEXTURE_2D, worldManager->m_BlockAtlasTextureAlbedo->GetID());
+			shaderProgram.SetUniform("u_AlbedoTexture", 0);
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, worldManager->m_BlockAtlasTextureNormal->GetID());
 			shaderProgram.SetUniform("u_NormalTexture", 1);
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, worldManager->m_BlockAtlasTextureASME->GetID());
+			shaderProgram.SetUniform("u_ASMETexture", 2);
 		}
 
 		if (modelRef.model)

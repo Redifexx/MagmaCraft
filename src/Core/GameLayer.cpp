@@ -111,16 +111,24 @@ void GameLayer::OnAttach()
 	m_GNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_GNormal->GetID(), 0);
 
-	// color & spec buffer
-	m_GColorSpec = std::make_unique<Magma::Texture>(
+	// color buffer
+	m_GAlbedo = std::make_unique<Magma::Texture>(
 		w, h, GL_TEXTURE_2D, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, nullptr
 	);
-	m_GColorSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	m_GColorSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_GColorSpec->GetID(), 0);
+	m_GAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_GAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_GAlbedo->GetID(), 0);
 
-	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-	glDrawBuffers(3, attachments);
+	// ASME material map buffer
+	m_GMatData = std::make_unique<Magma::Texture>(
+		w, h, GL_TEXTURE_2D, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, nullptr
+	);
+	m_GMatData->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_GMatData->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, m_GMatData->GetID(), 0);
+
+	unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+	glDrawBuffers(4, attachments);
 
 	// setup depth texture
 
@@ -360,7 +368,10 @@ void GameLayer::OnUpdate(float dt)
 	glBindTexture(GL_TEXTURE_2D, m_GNormal->GetID());
 
 	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, m_GColorSpec->GetID());
+	glBindTexture(GL_TEXTURE_2D, m_GAlbedo->GetID());
+
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, m_GMatData->GetID());
 
 	if (m_IsLocalPlayerLoaded)
 	{
@@ -374,7 +385,8 @@ void GameLayer::OnUpdate(float dt)
 
 	m_LightingShaderProgram->SetUniform("u_GPosition", 0);
 	m_LightingShaderProgram->SetUniform("u_GNormal", 1);
-	m_LightingShaderProgram->SetUniform("u_GDiffuseSpec", 2);
+	m_LightingShaderProgram->SetUniform("u_GAlbedo", 2);
+	m_LightingShaderProgram->SetUniform("u_GASME", 3);
 
 	glBindVertexArray(m_ScreenVAO);
 	glDisable(GL_DEPTH_TEST);
@@ -872,7 +884,10 @@ void GameLayer::OnResize(int width, int height)
 	glBindTexture(GL_TEXTURE_2D, m_GNormal->GetID());
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
 
-	glBindTexture(GL_TEXTURE_2D, m_GColorSpec->GetID());
+	glBindTexture(GL_TEXTURE_2D, m_GAlbedo->GetID());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+	glBindTexture(GL_TEXTURE_2D, m_GMatData->GetID());
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 	glBindTexture(GL_TEXTURE_2D, m_GDepth->GetID());

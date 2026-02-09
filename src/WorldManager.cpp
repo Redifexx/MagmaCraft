@@ -20,7 +20,8 @@ WorldManager::WorldManager()
 	std::string diffSpecPath = "resources/textures/atlas_diffspec.png";
 	std::string normalPath = "resources/textures/atlas_normal.png";
 
-	m_BlockAtlasTextureDiffSpec = std::make_unique<Magma::Texture>(
+	// Albedo, Alpha
+	m_BlockAtlasTextureAlbedo = std::make_unique<Magma::Texture>(
 		diffSpecPath.c_str(),
 		false,
 		GL_SRGB_ALPHA,
@@ -29,9 +30,10 @@ WorldManager::WorldManager()
 	);
 
 	//m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-	m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+	// Normal +Y
 	m_BlockAtlasTextureNormal = std::make_unique<Magma::Texture>(
 		normalPath.c_str(),
 		false,
@@ -42,6 +44,18 @@ WorldManager::WorldManager()
 	//m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 	m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	// AO, Smoothness, Metallic, Emissive
+	m_BlockAtlasTextureASME = std::make_unique<Magma::Texture>(
+		normalPath.c_str(),
+		false,
+		GL_RGBA,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+	//m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureASME->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_BlockAtlasTextureASME->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 WorldManager::~WorldManager()
@@ -229,12 +243,15 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 
 	// Add Components (Local + Remote)
 
-	Magma::Texture* skin_diffspec = new Magma::Texture("resources/textures/player_skin_diffspec.png");
+	Magma::Texture* skin_albedo = new Magma::Texture("resources/textures/player_skin_albedo.png");
 	Magma::Texture* skin_normal = new Magma::Texture("resources/textures/player_skin_normal.png");
-	skin_diffspec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	skin_diffspec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	Magma::Texture* skin_asme = new Magma::Texture("resources/textures/player_skin_asme.png");
+	skin_albedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	skin_albedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	skin_normal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	skin_normal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	skin_asme->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	skin_asme->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	eWorld.AddComponent<TransformComponent>(playerEntity, { spawnPosition, spawnRotation, glm::vec3(1.0f) }); // scale down for model testing
 	
@@ -242,8 +259,9 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 		networkID,
 		false,
 		0,
-		std::move(skin_diffspec),
-		std::move(skin_normal)
+		std::move(skin_albedo),
+		std::move(skin_normal),
+		std::move(skin_asme)
 	});
 
 	eWorld.AddComponent<HealthComponent>(playerEntity, { spawnHealth, 20.0f });

@@ -160,10 +160,12 @@ namespace Magma
 
 			// Deferred rendering stuff (learn open gl)
 			unsigned int m_GBuffer;
-			unsigned int m_GLightingPassFBO;
 			std::unique_ptr<Magma::Texture> m_GPosition = nullptr;
 			std::unique_ptr<Magma::Texture> m_GNormal = nullptr;
-			std::unique_ptr<Magma::Texture> m_GColorSpec = nullptr;
+			std::unique_ptr<Magma::Texture> m_GAlbedo = nullptr;
+			std::unique_ptr<Magma::Texture> m_GMatData = nullptr;
+
+			unsigned int m_GLightingPassFBO;
 			std::unique_ptr<Magma::Texture> m_GLightingPass = nullptr;
 			std::unique_ptr<Magma::Texture> m_GDepth = nullptr;
 			std::unique_ptr<ShaderProgram> m_LightingShaderProgram = nullptr;
