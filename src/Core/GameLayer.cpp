@@ -223,7 +223,13 @@ void GameLayer::OnAttach()
 		return;
 	}
 
+	SetupShadowMap();
+
 	/*
+	// COMMENTED OUT BECAUSE IT HAS ISSUES WITH DEFERRED RENDERING
+	// WILL FIX EVENTUALLY
+	// MAYBE
+	// OR ILL JUST RENDER A QUAD IN THE CENTER OF THE SCREEN AND CALL IT A CROSSHAIR
 	// UITEST
 	gl2d::init();
 	m_UI = new glui::RendererUi();
@@ -344,16 +350,57 @@ void GameLayer::OnUpdate(float dt)
 		}
 	}
 
+	// 0 - shadow pass
+	if (m_LightProjDirty)
+	{
+		m_LightProjMatrix = glm::ortho(
+			-m_SunShadowOrthoSize,
+			m_SunShadowOrthoSize,
+			-m_SunShadowOrthoSize,
+			m_SunShadowOrthoSize,
+			m_SunShadowNearPlane,
+			m_SunShadowFarPlane
+		);
+		m_LightProjDirty = false;
+	}
+
+	glm::vec3 playerPos = glm::vec3(0.0f);
+	if (m_IsLocalPlayerLoaded)
+	{
+		auto& transformRef = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
+		playerPos = transformRef.worldMatrix[3];
+	}
+
+	m_LightViewMatrix = glm::lookAt(
+		(m_SunDirection * -m_SunDistanceMultiplier) + playerPos, // place sun pos somehwere along it's view direction and follow player
+		playerPos, // look at player
+		glm::vec3(0.0f, 1.0f, 0.0f) // up
+	);
+
+	glm::mat4 lightSpaceMatrix = m_LightProjMatrix * m_LightViewMatrix;
+
+	m_ShadowMapShaderProgram->Use(); // use the shadow shader outside render function for the uniforms
+
+	m_ShadowMapShaderProgram->SetUniform("u_LightSpaceMatrix", lightSpaceMatrix);
+
+	glViewport(0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowMapFBO);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+
+	glCullFace(GL_FRONT);
+	m_RenderSystem->Render(*m_EntityWorld, *m_ShadowMapShaderProgram, m_WorldStreamer.get(), m_Window, true);
+	glCullFace(GL_BACK);
+
 	// 1 - geometry pass
 	// clear screen completely
 	glViewport(0, 0, w, h);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_GBuffer);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
 
 
-	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window);
+	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window, false);
 
 	// 2 - lighting pass
 	glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
@@ -373,6 +420,9 @@ void GameLayer::OnUpdate(float dt)
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, m_GMatData->GetID());
 
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, m_ShadowMap->GetID());
+
 	if (m_IsLocalPlayerLoaded)
 	{
 		auto& transformRef = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
@@ -387,10 +437,15 @@ void GameLayer::OnUpdate(float dt)
 	m_LightingShaderProgram->SetUniform("u_GNormal", 1);
 	m_LightingShaderProgram->SetUniform("u_GAlbedo", 2);
 	m_LightingShaderProgram->SetUniform("u_GASME", 3);
+	m_LightingShaderProgram->SetUniform("u_ShadowMap", 4);
+	m_LightingShaderProgram->SetUniform("u_LightSpaceMatrix", lightSpaceMatrix);
 	m_LightingShaderProgram->SetUniform("u_SkyColor", m_SkyColor);
 	m_LightingShaderProgram->SetUniform("u_SunColor", m_SunColor);
 	m_LightingShaderProgram->SetUniform("u_SunIntensity", (float)m_SunIntensity);
 	m_LightingShaderProgram->SetUniform("u_SunDirection", m_SunDirection);
+	m_LightingShaderProgram->SetUniform("u_ShadowBiasMin", (float)m_ShadowBiasMin);
+	m_LightingShaderProgram->SetUniform("u_ShadowBiasMax", (float)m_ShadowBiasMax);
+	m_LightingShaderProgram->SetUniform("u_ShadowFadeDistance", (float)m_ShadowFadeDistance);
 
 
 	glBindVertexArray(m_ScreenVAO);
@@ -876,6 +931,26 @@ void GameLayer::OnImGuiRender(float dt)
 
 				ImGui::EndMenu();
 			}
+
+			if (ImGui::BeginMenu("Shadow Debug"))
+			{
+				bool changed = false;
+
+				changed |= ImGui::DragFloat("Shadow Near", &m_SunShadowNearPlane, 0.1f, 0.0f, 10000.0f);
+				changed |= ImGui::DragFloat("Shadow Far", &m_SunShadowFarPlane, 0.1f, 0.0f, 10000.0f);
+				changed |= ImGui::DragFloat("Shadow OrthoSize", &m_SunShadowOrthoSize, 0.1f, 0.0f, 10000.0f);
+				ImGui::DragFloat("Shadow Distance", &m_SunDistanceMultiplier, 0.1f, 0.0f, 10000.0f);
+				ImGui::DragFloat("Shadow Bias Min", &m_ShadowBiasMin, 0.01f, 0.0f, 1.0);
+				ImGui::DragFloat("Shadow Bias Max", &m_ShadowBiasMax, 0.01f, 0.0f, 1.0);
+				ImGui::DragFloat("Shadow Fade Distance", &m_ShadowFadeDistance, 0.1f, 0.0f, 10000.0);
+
+				if (changed)
+				{
+					m_LightProjDirty = true;
+				}
+
+				ImGui::EndMenu();
+			}
 			
 			if (m_NetworkManager->GetNetworkRole() == Craft::NetworkRole::SERVER)
 			{
@@ -930,7 +1005,6 @@ void GameLayer::OnResize(int width, int height)
 
 	glBindTexture(GL_TEXTURE_2D, m_GLightingPass->GetID());
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
-	glBindTexture(GL_TEXTURE_2D, 0);
 
 	// resize gbuffer textures
 	glBindTexture(GL_TEXTURE_2D, m_GPosition->GetID());
@@ -947,6 +1021,11 @@ void GameLayer::OnResize(int width, int height)
 
 	glBindTexture(GL_TEXTURE_2D, m_GDepth->GetID());
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+
+
+	// Shadow map
+	glBindTexture(GL_TEXTURE_2D, m_ShadowMap->GetID());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -1054,6 +1133,54 @@ void GameLayer::RenderUI(const int& w, const int& h, float dt)
 		Magma::Input::IsKeyReleased(SDL_SCANCODE_ESCAPE), "", dt, 0);
 
 	m_UIRenderer->flush();
+}
+
+void GameLayer::SetupShadowMap()
+{
+	glGenFramebuffers(1, &m_ShadowMapFBO);
+
+	m_ShadowMap = std::make_unique<Magma::Texture>(
+		SHADOW_MAP_RESOLUTION,
+		SHADOW_MAP_RESOLUTION,
+		GL_TEXTURE_2D,
+		GL_DEPTH_COMPONENT,
+		GL_DEPTH_COMPONENT,
+		GL_FLOAT,
+		nullptr
+	);
+	m_ShadowMap->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_ShadowMap->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	m_ShadowMap->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	m_ShadowMap->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	m_ShadowMap->TexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_ShadowMap->GetID(), 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	std::string vertpath = "resources/shaders/shadowMap.vert";
+	std::string fragpath = "resources/shaders/dummy.frag";
+	#ifdef MAGMA_ROOT_DIR
+		vertpath = std::string(MAGMA_ROOT_DIR) + vertpath;
+		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
+	#endif
+
+	Shader vertexShader(vertpath, GL_VERTEX_SHADER);
+	Shader fragmentShader(fragpath, GL_FRAGMENT_SHADER);
+
+	m_ShadowMapShaderProgram = std::make_unique<ShaderProgram>();
+
+	m_ShadowMapShaderProgram->AttachShader(vertexShader);
+	m_ShadowMapShaderProgram->AttachShader(fragmentShader);
+	if (!m_ShadowMapShaderProgram->Link())
+	{
+		std::cerr << "Failed to link post-processing shader program!" << std::endl;
+		return;
+	}
 }
 
 void GameLayer::CreateScreenQuad(unsigned int& vao, unsigned int& vbo)

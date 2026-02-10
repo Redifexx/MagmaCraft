@@ -24,6 +24,7 @@ namespace Magma
 			~Texture();
 			GLuint GetID() const { return m_TextureID; }
 			void TexParameteri(GLenum target, GLenum pname, GLint param);
+			void TexParameterfv(GLenum target, GLenum pname, const GLfloat* param);
         private:
             GLuint m_TextureID = -1; // let wrap around
 	};

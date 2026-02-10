@@ -97,6 +97,7 @@ namespace Magma
 			void CleanupLocalPlayer();
 			void WorldShutdown();
 			void RenderUI(const int& w, const int& h, float dt);
+			void SetupShadowMap();
 
 
 			std::vector<Model*> m_Models;
@@ -181,7 +182,21 @@ namespace Magma
 			glm::vec3 m_SunColor = glm::vec3(1.0f);
 			glm::vec3 m_SunDirection = glm::vec3(-0.5f);
 
-
+			// Shadow Map stuff
+			unsigned int m_ShadowMapFBO = 0;
+			std::unique_ptr<Magma::Texture> m_ShadowMap = nullptr;
+			const int SHADOW_MAP_RESOLUTION = 2048;
+			std::unique_ptr<ShaderProgram> m_ShadowMapShaderProgram = nullptr;
+			float m_SunShadowNearPlane = 3.0f;
+			float m_SunShadowFarPlane = 400.0f;
+			float m_SunShadowOrthoSize = 50.0f;
+			float m_SunDistanceMultiplier = 350.0f;
+			float m_ShadowBiasMin = 0.0001f;
+			float m_ShadowBiasMax = 0.0001f;
+			float m_ShadowFadeDistance = 50.0f;
+			glm::mat4 m_LightProjMatrix = glm::mat4(1.0f);
+			glm::mat4 m_LightViewMatrix = glm::mat4(1.0f);
+			bool m_LightProjDirty = true;
 
 
 			// Should later be moved to manager

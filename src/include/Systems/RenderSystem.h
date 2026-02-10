@@ -12,9 +12,9 @@ namespace Craft
 	class RenderSystem
 	{
 		public:
-			void Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer, SDL_Window* window);
+			void Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer, SDL_Window* window, bool shadowPass);
 		private:
-			void DrawEntities(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer);
+			void DrawEntities(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer, bool shadowPass);
 			void SetupShaderUniforms(EntityWorld& world, const Magma::ShaderProgram& shaderProgram);
 	};
 }

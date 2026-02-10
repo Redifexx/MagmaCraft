@@ -107,3 +107,8 @@ void Texture::TexParameteri(GLenum target, GLenum pname, GLint param)
 {
 	glTexParameteri(target, pname, param);
 }
+
+void Texture::TexParameterfv(GLenum target, GLenum pname, const GLfloat* param)
+{
+	glTexParameterfv(target, pname, param);
+}
