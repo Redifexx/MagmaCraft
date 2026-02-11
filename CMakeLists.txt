@@ -26,6 +26,11 @@ target_include_directories(FastNoiseLite INTERFACE
     "${CMAKE_SOURCE_DIR}/external/FastNoiseLite"
 )
 
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE 
+    "${CMAKE_SOURCE_DIR}/external/stb"
+)
+
 add_library(imgui STATIC
     "${CMAKE_SOURCE_DIR}/external/imgui/imgui.cpp"
     "${CMAKE_SOURCE_DIR}/external/imgui/imgui_draw.cpp"
@@ -91,6 +96,7 @@ target_link_libraries(MagmaFramework PUBLIC
     enet                      # Networking
     FastNoiseLite             # Noise Generation
     glui
+    stb
 )
 
 target_compile_features(MagmaFramework PRIVATE cxx_std_20)

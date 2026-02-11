@@ -37,7 +37,7 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)
 
 				if (y < height - 4)
 				{
-					currentBlock = 1; // Stone
+					currentBlock = 14; // Stone
 				}
 				else if (y < height)
 				{
@@ -45,7 +45,7 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkZ)
 				}
 				else if (y == height)
 				{
-					currentBlock = 4; // Dirt
+					currentBlock = 4; // Glass
 				}
 
 				chunk.SetBlock(x, y, z, currentBlock);

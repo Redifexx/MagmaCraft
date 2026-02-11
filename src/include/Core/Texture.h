@@ -21,6 +21,7 @@ namespace Magma
 
 			// for data
 			Texture(int width, int height, GLenum target, GLint internalFormat, GLenum format, GLenum type, const void* data);
+
 			~Texture();
 			GLuint GetID() const { return m_TextureID; }
 			void TexParameteri(GLenum target, GLenum pname, GLint param);

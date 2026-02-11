@@ -4,6 +4,9 @@
 #include <limits.h>
 #include <cstdio>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
+
 #include "Core/GameLayer.h"
 
 #include "Core/Model.h"
@@ -247,6 +250,20 @@ void GameLayer::OnUpdate(float dt)
 {
 	if (dt > 0.1f) dt = 0.1f; // safaty
 
+	auto startTime = std::chrono::high_resolution_clock::now();
+
+	double fps = 1.0f / dt;
+	m_TotalFPS += fps;
+	m_FrameCount++;
+	if (m_FrameCount >= 30)
+	{
+		m_AvgFPS = m_TotalFPS / m_FrameCount;
+		m_AvgFrameTime = m_TotalFrameTime / m_FrameCount;
+		m_TotalFPS = 0.0f;
+		m_FrameCount = 0;
+		m_TotalFrameTime = 0.0f;
+	}
+
 	int w, h;
 	SDL_GetWindowSize(m_Window, &w, &h);
 
@@ -398,10 +415,13 @@ void GameLayer::OnUpdate(float dt)
 	glBindFramebuffer(GL_FRAMEBUFFER, m_GBuffer);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//glEnable(GL_BLEND);
+	////glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
 	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window, false);
 
+	//glDisable(GL_BLEND);
 	// 2 - lighting pass
 	glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
 
@@ -479,8 +499,11 @@ void GameLayer::OnUpdate(float dt)
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	
-
 	//RenderUI(w, h, dt);
+
+	// screenshot 
+	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_F2)) { Screenshot(w, h); }
+
 
 	Magma::Input::Update();
 	Magma::AudioEngine::UpdateActiveSounds();
@@ -490,6 +513,10 @@ void GameLayer::OnUpdate(float dt)
 	{
 		m_NetworkManager->Update(dt);
 	}
+
+	auto endTime = std::chrono::high_resolution_clock::now();
+	double frameTime = std::chrono::duration<double, std::micro>(endTime - startTime).count();
+	m_TotalFrameTime += frameTime;
 }
 
 void GameLayer::OnDetach()
@@ -873,7 +900,9 @@ void GameLayer::OnImGuiRender(float dt)
 
 			// In-game menu options would go here
 			ImGui::Text("Press ESCAPE to toggle menu control.");
-			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+			ImGui::Text("Press F2 to take screenshot.");
+			ImGui::Text("FPS: %.1f", m_AvgFPS);
+			ImGui::Text("Frame Time: %.1f", m_AvgFrameTime);
 			ImGui::Text("Autosave in %.1f seconds", m_AutoSaveTimer);
 			if (m_Player != Craft::NULL_ENTITY &&
 				m_EntityWorld->HasEntityID(m_Player) &&
@@ -1181,6 +1210,27 @@ void GameLayer::SetupShadowMap()
 		std::cerr << "Failed to link post-processing shader program!" << std::endl;
 		return;
 	}
+}
+
+void GameLayer::Screenshot(const int& w, const int& h)
+{
+	// first write the file name with curernt time
+	auto currentTime = std::chrono::system_clock::now();
+	auto inTimeT = std::chrono::system_clock::to_time_t(currentTime);
+
+	std::stringstream ss;
+	ss << std::put_time(std::localtime(&inTimeT), "%Y-%m-%d_%H-%M-%S");
+	std::string folderPath = "screenshots/";
+	std::filesystem::create_directories(folderPath);
+	std::string filename = folderPath + "MagmaCraft_" + ss.str() + ".png";
+
+	std::vector<unsigned char> pixels(w * h * 3);
+
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+	stbi_flip_vertically_on_write(true); // opengl 0,0 is bottom left, png is top left
+
+	if (stbi_write_png(filename.c_str(), w, h, 3, pixels.data(), w * 3)) { std::cout << "Screenshot saved! " << filename << std::endl; }
 }
 
 void GameLayer::CreateScreenQuad(unsigned int& vao, unsigned int& vbo)

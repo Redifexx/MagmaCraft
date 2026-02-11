@@ -98,6 +98,7 @@ namespace Magma
 			void WorldShutdown();
 			void RenderUI(const int& w, const int& h, float dt);
 			void SetupShadowMap();
+			void Screenshot(const int& w, const int& h);
 
 
 			std::vector<Model*> m_Models;
@@ -124,6 +125,13 @@ namespace Magma
 			float m_NetworkTickRate = 1.0f / 20.0f;
 			float m_ConnectionFailTimer = 0.0f;
 			float m_ConnectionFailRate = 3.0f;
+
+			// Framerate stuff
+			float m_TotalFPS = 0.0f;
+			int m_FrameCount = 0;
+			float m_TotalFrameTime = 0.0f;
+			float m_AvgFPS = 0.0f;
+			float m_AvgFrameTime = 0.0f;
 
 			// IMGui Options
 			bool m_AutoConnect = true;

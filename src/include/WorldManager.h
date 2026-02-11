@@ -116,7 +116,7 @@ namespace Craft
 		private:
 			std::unique_ptr<WorldGenerator> m_WorldGenerator;
 			std::string m_WorldName = "New World";
-			uint8_t m_ServerRenderDistance = 8; // allocated for each client in the server
+			uint8_t m_ServerRenderDistance = 16; // allocated for each client in the server
 			std::unordered_map<glm::ivec2, std::shared_ptr<Chunk>> m_ChunkBuffer;
 
 			std::weak_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap;

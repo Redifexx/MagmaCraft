@@ -29,7 +29,7 @@ WorldManager::WorldManager()
 		GL_RGBA,
 		GL_UNSIGNED_BYTE
 	);
-
+	
 	//m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 	m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

@@ -41,7 +41,7 @@ void BlockLibrary::Initialize()
 	blockTypes[8] = { "WoodenPlanks", false, false, 26, 26, 26, 26, 26, 26 };
 
 	// ID 9: Leaves
-	blockTypes[9] = { "Leaves", false, false, 23, 23, 23, 23, 23, 23 };
+	blockTypes[9] = { "Leaves", true, false, 23, 23, 23, 23, 23, 23 };
 	
 	// ID 10: Brick
 	blockTypes[10] = { "Bricks", false, false, 1, 1, 1, 1, 1, 1 };
@@ -59,7 +59,7 @@ void BlockLibrary::Initialize()
 	blockTypes[14] = { "DiamondBlock", false, false, 15, 15, 15, 15, 15, 15 };
 
 	// ID 15: Glass
-	blockTypes[15] = { "Glass", false, false, 17, 17, 17, 17, 17, 17 };
+	blockTypes[15] = { "Glass", true, false, 17, 17, 17, 17, 17, 17 };
 
 	// ID 16: Glowstone
 	blockTypes[16] = { "Glowstone", false, false, 18, 18, 18, 18, 18, 18 };
