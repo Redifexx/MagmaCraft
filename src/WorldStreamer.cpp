@@ -56,9 +56,9 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
     }
 
 	// Current Chunks
-	int chunkX, chunkZ;
-	GetPlayerChunkCoords(playerPosition, chunkX, chunkZ);
-	glm::ivec2 curChunkPos = glm::ivec2(chunkX, chunkZ);
+	int chunkX, chunkY, chunkZ;
+	GetPlayerChunkCoords(playerPosition, chunkX, chunkY, chunkZ);
+	glm::ivec3 curChunkPos = glm::ivec3(chunkX, chunkY, chunkZ);
 
 	if (m_FirstFrame)
 	{
@@ -66,7 +66,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 		m_FirstFrame = false;
 	}
 
-	glm::ivec2 chunkDelta = curChunkPos - m_LastChunkPos;
+	glm::ivec3 chunkDelta = curChunkPos - m_LastChunkPos;
 
 	int chunkRequestsSentThisFrame = 0;
 
@@ -76,10 +76,10 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 
 	// Remove chunks outside of render distance from local and remote chunk buffer
 
-	if (chunkDelta.x != 0 || chunkDelta.y != 0)
+	if (chunkDelta.x != 0 || chunkDelta.y != 0 || chunkDelta.z != 0)
 	{
 		// handle lag/teleport
-		if (glm::length(glm::vec2(chunkDelta)) > 2.0f)
+		if (glm::length(glm::vec3(chunkDelta)) > 2.0f)
 		{
 			// handle eventaully
 		}
@@ -106,7 +106,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 		for (auto& batch : cookedChunks)
 		{
 			// check if order is still wanted (player went away)
-			glm::ivec2 key = { batch.x, batch.z };
+			glm::ivec3 key = { batch.x, batch.y, batch.z };
 			if (m_ChunkBuffer.find(key) == m_ChunkBuffer.end()) continue;
 
 
@@ -143,8 +143,9 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 		if (chunkRequestsSentThisFrame >= MAX_CHUNK_REQUESTS_PER_FRAME) break;
 
 		int curChunkX = chunkX + chunkOffset.x;
-		int curChunkZ = chunkZ + chunkOffset.y;
-		glm::ivec2 chunkKey = { curChunkX, curChunkZ };
+		int curChunkY = chunkY + chunkOffset.y;
+		int curChunkZ = chunkZ + chunkOffset.z;
+		glm::ivec3 chunkKey = { curChunkX, curChunkY, curChunkZ };
 
 		if (m_ChunkBuffer.find(chunkKey) == m_ChunkBuffer.end())
 		{
@@ -156,14 +157,14 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 		// if it's already loaded skip
 		if (renderChunk->isLoaded || renderChunk->isCooking) continue;
 
-		if (worldManager->HasChunkInBuffer(curChunkX, curChunkZ))
+		if (worldManager->HasChunkInBuffer(curChunkX, curChunkY, curChunkZ))
 		{
 			renderChunk->isPending = false;
 
 			// send to worker thread
 			{
 				std::lock_guard<std::mutex> lock(m_QueueMutex);
-				m_JobQueue.push({ curChunkX, curChunkZ });
+				m_JobQueue.push({ curChunkX, curChunkY, curChunkZ });
 			}
 			m_ConditionVar.notify_one();
 
@@ -174,6 +175,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 			networkManager.get()->RequestChunkData(
 				networkManager.get()->GetClient()->GetENetPeer(),
 				curChunkX,
+				curChunkY,
 				curChunkZ);
 
 			// mark as pending
@@ -185,7 +187,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 }
 
 
-void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunkPos, glm::ivec2 chunkDelta)
+void WorldStreamer::RemoveOldChunks(glm::ivec3 curChunkPos, glm::ivec3 lastChunkPos, glm::ivec3 chunkDelta)
 {
 	std::shared_ptr<WorldManager> worldManager = GetWorldManager();
 	std::shared_ptr<NetworkManager> networkManager = GetNetworkManager();
@@ -196,30 +198,55 @@ void WorldStreamer::RemoveOldChunks(glm::ivec2 curChunkPos, glm::ivec2 lastChunk
 	{
 		// if we move east, remove previous western most chunks
 		int staleX = (chunkDelta.x > 0) ? (lastChunkPos.x - m_ChunkRenderDistance) : (lastChunkPos.x + m_ChunkRenderDistance);
-		for (int z = lastChunkPos.y - m_ChunkRenderDistance; z <= lastChunkPos.y + m_ChunkRenderDistance; z++)
+		for (int y = lastChunkPos.y - m_ChunkRenderDistance; y <= lastChunkPos.y + m_ChunkRenderDistance; y++)
 		{
-			glm::ivec2 key = { staleX, z };
+			for (int z = lastChunkPos.z - m_ChunkRenderDistance; z <= lastChunkPos.z + m_ChunkRenderDistance; z++)
+			{
+				glm::ivec3 key = { staleX, y, z };
 
-			m_ChunkBuffer.erase(key);
-			
-			worldManager->RemoveChunkFromBuffer(key.x, key.y);
-			m_WorldRenderer->RemoveFromDrawPool(glm::ivec2(key.x, key.y));
+				m_ChunkBuffer.erase(key);
+
+				worldManager->RemoveChunkFromBuffer(key.x, key.y, key.z);
+				m_WorldRenderer->RemoveFromDrawPool(glm::ivec3(key.x, key.y, key.z));
+			}
+		}
+	}
+
+	// check delta Y
+	if (chunkDelta.y != 0)
+	{
+		// if we move east, remove previous western most chunks
+		int staleY = (chunkDelta.y > 0) ? (lastChunkPos.y - m_ChunkRenderDistance) : (lastChunkPos.y + m_ChunkRenderDistance);
+		for (int x = lastChunkPos.x - m_ChunkRenderDistance; x <= lastChunkPos.x + m_ChunkRenderDistance; x++)
+		{
+			for (int z = lastChunkPos.z - m_ChunkRenderDistance; z <= lastChunkPos.z + m_ChunkRenderDistance; z++)
+			{
+				glm::ivec3 key = { x, staleY, z };
+
+				m_ChunkBuffer.erase(key);
+
+				worldManager->RemoveChunkFromBuffer(key.x, key.y, key.z);
+				m_WorldRenderer->RemoveFromDrawPool(glm::ivec3(key.x, key.y, key.z));
+			}
 		}
 	}
 
 	// check delta Z
-	if (chunkDelta.y != 0)
+	if (chunkDelta.z != 0)
 	{
 		// if we move east, remove previous western most chunks
-		int staleZ = (chunkDelta.y > 0) ? (lastChunkPos.y - m_ChunkRenderDistance) : (lastChunkPos.y + m_ChunkRenderDistance);
-		for (int x = lastChunkPos.x - m_ChunkRenderDistance; x <= lastChunkPos.x + m_ChunkRenderDistance; x++)
+		int staleZ = (chunkDelta.z > 0) ? (lastChunkPos.z - m_ChunkRenderDistance) : (lastChunkPos.z + m_ChunkRenderDistance);
+		for (int y = lastChunkPos.y - m_ChunkRenderDistance; y <= lastChunkPos.y + m_ChunkRenderDistance; y++)
 		{
-			glm::ivec2 key = { x, staleZ };
+			for (int x = lastChunkPos.x - m_ChunkRenderDistance; x <= lastChunkPos.x + m_ChunkRenderDistance; x++)
+			{
+				glm::ivec3 key = { x, y, staleZ };
 
-			m_ChunkBuffer.erase(key);
+				m_ChunkBuffer.erase(key);
 
-			worldManager->RemoveChunkFromBuffer(key.x, key.y);
-			m_WorldRenderer->RemoveFromDrawPool(glm::ivec2(key.x, key.y));
+				worldManager->RemoveChunkFromBuffer(key.x, key.y, key.z);
+				m_WorldRenderer->RemoveFromDrawPool(glm::ivec3(key.x, key.y, key.z));
+			}
 		}
 	}
 }
@@ -235,19 +262,20 @@ void WorldStreamer::UnloadAllChunks()
 		m_WorldRenderer->RemoveFromDrawPool(coord);
 
 		// remove chunk from world manager buffer
-		worldManager->RemoveChunkFromBuffer(coord.x, coord.y);
+		worldManager->RemoveChunkFromBuffer(coord.x, coord.y, coord.z);
 	}
 
 	m_ChunkBuffer.clear();
 
 	// reset flags
 	m_FirstFrame = true;
-	m_LastChunkPos = glm::ivec2(0, 0);
+	m_LastChunkPos = glm::ivec3(0, 0, 0);
 }
 
-void WorldStreamer::GetPlayerChunkCoords(const glm::vec3& playerPosition, int& chunkX, int& chunkZ)
+void WorldStreamer::GetPlayerChunkCoords(const glm::vec3& playerPosition, int& chunkX, int& chunkY, int& chunkZ)
 {
 	chunkX = WorldToChunkPos(static_cast<int>(playerPosition.x));
+	chunkY = WorldToChunkPos(static_cast<int>(playerPosition.y));
 	chunkZ = WorldToChunkPos(static_cast<int>(playerPosition.z));
 }
 
@@ -257,16 +285,19 @@ void WorldStreamer::RebuildChunkOffsets()
 
 	for (int x = -m_ChunkRenderDistance; x <= m_ChunkRenderDistance; x++)
 	{
-		for (int z = -m_ChunkRenderDistance; z <= m_ChunkRenderDistance; z++)
+		for (int y = -m_ChunkRenderDistance; y <= m_ChunkRenderDistance; y++)
 		{
-			m_SortedChunkOffsets.push_back({ x, z });
+			for (int z = -m_ChunkRenderDistance; z <= m_ChunkRenderDistance; z++)
+			{
+				m_SortedChunkOffsets.push_back({ x, y, z });
+			}
 		}
 	}
 
 	// sort once here
 	std::sort(m_SortedChunkOffsets.begin(), m_SortedChunkOffsets.end(),
-	[](const glm::ivec2& a, const glm::ivec2& b) {
-		return (a.x * a.x + a.y * a.y) < (b.x * b.x + b.y * b.y);
+	[](const glm::ivec3& a, const glm::ivec3& b) {
+		return (a.x * a.x + a.y * a.y + a.z * a.z) < (b.x * b.x + b.y * b.y + b.z * b.z);
 	});
 }
 
@@ -275,7 +306,7 @@ void WorldStreamer::WorkerThread()
 {
 	while (m_IsRunning)
 	{
-		glm::ivec2 chunkCoord;
+		glm::ivec3 chunkCoord;
 
 		// wait for an order
 		{
@@ -293,19 +324,20 @@ void WorldStreamer::WorkerThread()
 
 		// the cooking
 		auto worldManager = GetWorldManager();
-		if (!worldManager || !worldManager->HasChunkInBuffer(chunkCoord.x, chunkCoord.y))
+		if (!worldManager || !worldManager->HasChunkInBuffer(chunkCoord.x, chunkCoord.y, chunkCoord.z))
 		{
 			// if an order was forgotten while taking too long skip it (bad customer service)
 			continue;
 		}
 
-		std::shared_ptr<Chunk> chunkPtr = worldManager->GetChunkFromBuffer(chunkCoord.x, chunkCoord.y);
+		std::shared_ptr<Chunk> chunkPtr = worldManager->GetChunkFromBuffer(chunkCoord.x, chunkCoord.y, chunkCoord.z);
 
 		if (!chunkPtr) continue;
 
 		CookedChunk cookedChunk;
 		cookedChunk.x = chunkCoord.x;
-		cookedChunk.z = chunkCoord.y;
+		cookedChunk.y = chunkCoord.y;
+		cookedChunk.z = chunkCoord.z;
 
 		// keep an eye our for raw chunk
 		m_WorldRenderer->GenerateMesh(cookedChunk.vertices, cookedChunk.indices, chunkPtr.get(), chunkCoord);

@@ -21,16 +21,16 @@ namespace Craft
 	class WorldRenderer
 	{
 		public:
-			void GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec2 chunkPos);
+			void GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec3 chunkPos);
 
-			bool AddMeshToDrawPool(std::unique_ptr<Magma::Mesh> mesh, glm::ivec2 chunkPos);
-			void RemoveFromDrawPool(glm::ivec2 chunkPos);
+			bool AddMeshToDrawPool(std::unique_ptr<Magma::Mesh> mesh, glm::ivec3 chunkPos);
+			void RemoveFromDrawPool(glm::ivec3 chunkPos);
 
 			void DrawWorld();
 
 			// temporary 
 			std::weak_ptr<WorldManager> m_WorldManager;
 		private:
-			std::unordered_map<glm::ivec2, std::unique_ptr<Magma::Mesh>> m_DrawPool;
+			std::unordered_map<glm::ivec3, std::unique_ptr<Magma::Mesh>> m_DrawPool;
 	};
 };

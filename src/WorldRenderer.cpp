@@ -6,7 +6,7 @@
 using namespace Craft;
 
 
-void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec2 chunkPos)
+void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec3 chunkPos)
 {
 	BlockID* blocks = chunk->blocks;
 	uint32_t indexOffset = 0;
@@ -20,8 +20,8 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 			const Craft::BlockData& curBlockData = Craft::BlockLibrary::GetBlockData(blocks[i]);
 
 			float x = (chunkPos.x * Craft::CHUNK_WIDTH) + chunk->GetBlockX(i);
-			float y = chunk->GetBlockY(i);
-			float z = (chunkPos.y * Craft::CHUNK_WIDTH) + chunk->GetBlockZ(i);
+			float y = (chunkPos.y * Craft::CHUNK_WIDTH) + chunk->GetBlockY(i);
+			float z = (chunkPos.z * Craft::CHUNK_WIDTH) + chunk->GetBlockZ(i);
 			glm::vec2 uv;
 
 			// index = x + (z * CHUNK_WIDTH) + (y * CHUNK_WIDTH * CHUNK_WIDTH);
@@ -338,7 +338,7 @@ void WorldRenderer::GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vect
 	}
 }
 
-bool WorldRenderer::AddMeshToDrawPool(std::unique_ptr<Magma::Mesh> mesh, glm::ivec2 chunkPos)
+bool WorldRenderer::AddMeshToDrawPool(std::unique_ptr<Magma::Mesh> mesh, glm::ivec3 chunkPos)
 {
 	// if already in draw pool
 	if (m_DrawPool.contains(chunkPos)) return false;
@@ -347,7 +347,7 @@ bool WorldRenderer::AddMeshToDrawPool(std::unique_ptr<Magma::Mesh> mesh, glm::iv
 	return true;
 }
 
-void WorldRenderer::RemoveFromDrawPool(glm::ivec2 chunkPos)
+void WorldRenderer::RemoveFromDrawPool(glm::ivec3 chunkPos)
 {
 	m_DrawPool.erase(chunkPos);
 }

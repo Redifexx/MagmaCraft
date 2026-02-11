@@ -57,15 +57,16 @@ void NetworkManager::End()
 
 // Can only be called from a packet
 // only from server to client
-void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkZ)
+void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkY, int chunkZ)
 {
 	// get compressed chunk data
-	std::vector<uint8_t> chunkData = m_WorldManager->GetChunkDataCompressed(chunkX, chunkZ);
+	std::vector<uint8_t> chunkData = m_WorldManager->GetChunkDataCompressed(chunkX, chunkY, chunkZ);
 
 	// write to packet
 	PacketWriter writer;
 	writer.WriteByte(static_cast<uint8_t>(PacketType::CHUNK_DATA));
 	writer.WriteInt(chunkX);
+	writer.WriteInt(chunkY);
 	writer.WriteInt(chunkZ);
 	writer.WriteData(chunkData.data(), chunkData.size());
 
@@ -80,12 +81,13 @@ void NetworkManager::SendChunkData(ENetPeer* peer, int chunkX, int chunkZ)
 	enet_peer_send(peer, 0, packet);
 }
 
-void NetworkManager::RequestChunkData(ENetPeer* peer, int chunkX, int chunkZ)
+void NetworkManager::RequestChunkData(ENetPeer* peer, int chunkX, int chunkY, int chunkZ)
 {
 	// write to packet
 	PacketWriter writer;
 	writer.WriteByte(static_cast<uint8_t>(PacketType::CHUNK_REQUEST));
 	writer.WriteInt(chunkX);
+	writer.WriteInt(chunkY);
 	writer.WriteInt(chunkZ);
 
 	// create ENet packet
@@ -681,13 +683,15 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			if (itr == m_PeerToEntityMap.end()) return;
 
 			// SERVER
-			if (length < 9) break; // not enough data (type, int, int)
+			if (length < 13) break; // not enough data (type, int, int, int)
 
 			int chunkX = 0;
+			int chunkY = 0;
 			int chunkZ = 0;
 
 			std::memcpy(&chunkX, &data[1], sizeof(int));
-			std::memcpy(&chunkZ, &data[5], sizeof(int));
+			std::memcpy(&chunkY, &data[5], sizeof(int));
+			std::memcpy(&chunkZ, &data[9], sizeof(int));
 
 			auto eWorld = m_EntityWorld.lock();
 			if (!eWorld) return;
@@ -696,15 +700,21 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			auto& transformRef = eWorld->GetComponent<TransformComponent>(itr->second);
 
 			int playerChunkX = WorldToChunkPos(static_cast<int>(transformRef.localPosition.x));
+			int playerChunkY = WorldToChunkPos(static_cast<int>(transformRef.localPosition.y));
 			int playerChunkZ = WorldToChunkPos(static_cast<int>(transformRef.localPosition.z));
 
 			// using chessboard / chebyshev distance algo here
-			int dist = std::max(std::abs(chunkX - playerChunkX), std::abs(chunkZ - playerChunkZ));
+
+			int dx = std::abs(chunkX - playerChunkX);
+			int dy = std::abs(chunkY - playerChunkY);
+			int dz = std::abs(chunkZ - playerChunkZ);
+
+			int dist = std::max({ dx, dy, dz });
 
 			// added a small buffer
 			if (dist > (m_WorldManager->GetServerRenderDistance() + 2)) return;
 
-			SendChunkData(peer, chunkX, chunkZ);
+			SendChunkData(peer, chunkX, chunkY, chunkZ);
 			break;
 		}
 
@@ -712,27 +722,31 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 		{
 			// CLIENT
 
-			if (length < 13)
+			if (length < 17)
 			{
 				std::cout << "Recieved Bad Chunk Data." << std::endl;
 				break;
 			}
 
 			int chunkX = 0;
+			int chunkY = 0;
 			int chunkZ = 0;
 			size_t dataSize = length;
 
 			std::memcpy(&chunkX, &data[1], sizeof(int));
 			dataSize -= sizeof(int);
-			std::memcpy(&chunkZ, &data[5], sizeof(int));
+			std::memcpy(&chunkY, &data[5], sizeof(int));
+			dataSize -= sizeof(int);
+			std::memcpy(&chunkZ, &data[9], sizeof(int));
 			dataSize -= sizeof(int);
 
-			if (data + 9 > data + length) break;
-			std::vector<uint8_t> chunkData(data + 9, data + length);
+
+			if (data + 13 > data + length) break;
+			std::vector<uint8_t> chunkData(data + 13, data + length);
 			if (chunkData.size() < 4) break;
 			std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
 			m_WorldManager->DecompressChunkData(chunkData, *chunk);
-			m_WorldManager->AddChunkDataToBuffer(std::move(chunk), chunkX, chunkZ);
+			m_WorldManager->AddChunkDataToBuffer(std::move(chunk), chunkX, chunkY, chunkZ);
 			// Handle chunk data logic
 			break;
 		}

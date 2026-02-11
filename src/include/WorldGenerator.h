@@ -11,7 +11,7 @@ namespace Craft
 	{
 		public:
 			WorldGenerator(int seed);
-			void GenerateChunk(Chunk& chunk, int chunkX, int chunkZ);
+			void GenerateChunk(Chunk& chunk, int chunkX, int chunkY, int chunkZ);
 		private:
 			FastNoiseLite m_Noise;
 			FastNoiseLite m_Continentalness;
