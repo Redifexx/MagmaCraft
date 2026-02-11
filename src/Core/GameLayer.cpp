@@ -16,6 +16,7 @@
 #include "Core/AudioEngine.h"
 
 #include "WorldManager.h"
+#include "WorldSelector.h"
 #include "NetworkManager.h"
 #include "BlockLibrary.h"
 #include "Primitives.h"
@@ -31,7 +32,7 @@
 
 #include "Scripts/PlayerController.h"
 
-
+// refactor needed, this file has become a monolith
 
 using namespace Magma;
 
@@ -59,6 +60,7 @@ void GameLayer::OnAttach()
 	m_NetworkManager = std::make_shared<Craft::NetworkManager>();
 	m_WorldStreamer = std::make_unique<Craft::WorldStreamer>(m_NetworkManager);
 	m_NetworkManager->SetEntityWorld(m_EntityWorld);
+	m_WorldSelector = std::make_unique<Craft::WorldSelector>();
 
 	Craft::BlockLibrary::Initialize();
 
@@ -248,14 +250,17 @@ void GameLayer::OnAttach()
 // ---- GAME UPDATE LOGIC ----
 void GameLayer::OnUpdate(float dt)
 {
+	float realDT = dt;
 	if (dt > 0.1f) dt = 0.1f; // safaty
 
-	auto startTime = std::chrono::high_resolution_clock::now();
-
-	double fps = 1.0f / dt;
+	double fps = 1.0f / realDT;
 	m_TotalFPS += fps;
+
+	double frameTimeMS = realDT * 1000.0;
+	m_TotalFrameTime += frameTimeMS;
+
 	m_FrameCount++;
-	if (m_FrameCount >= 30)
+	if (m_FrameCount >= 60)
 	{
 		m_AvgFPS = m_TotalFPS / m_FrameCount;
 		m_AvgFrameTime = m_TotalFrameTime / m_FrameCount;
@@ -513,10 +518,6 @@ void GameLayer::OnUpdate(float dt)
 	{
 		m_NetworkManager->Update(dt);
 	}
-
-	auto endTime = std::chrono::high_resolution_clock::now();
-	double frameTime = std::chrono::duration<double, std::micro>(endTime - startTime).count();
-	m_TotalFrameTime += frameTime;
 }
 
 void GameLayer::OnDetach()
@@ -572,6 +573,9 @@ void GameLayer::OnImGuiRender(float dt)
 	{
 		ImGui::Text("MagmaCraft by Gio Perez Colon");
 	}
+	ImGui::Separator();
+	ImGui::Separator();
+	ImGui::Separator();
 
 	switch (m_MenuState)
 	{
@@ -735,42 +739,28 @@ void GameLayer::OnImGuiRender(float dt)
 		{
 			if (m_NetworkManager->GetClient()->GetConnectionState() == ConnectionState::DISCONNECTED)
 			{
-				ImGui::InputText("World Path", m_WorldPathBuf, IM_ARRAYSIZE(m_WorldPathBuf));
-				if (ImGui::Button("Browse"))
+				std::string worldPath;
+				if (m_WorldSelector->OnImGuiRender(worldPath))
 				{
-					m_FileBrowser.Open();
-				}
-
-				m_FileBrowser.Display();
-
-				if (m_FileBrowser.HasSelected())
-				{
-					std::memset(m_WorldPathBuf, 0, sizeof(m_WorldPathBuf));
-					std::strncpy(m_WorldPathBuf, m_FileBrowser.GetSelected().string().c_str(), sizeof(m_WorldPathBuf));
-					m_FileBrowser.ClearSelected();
-				}
-
-				if (strlen(m_WorldPathBuf) > 0)
-				{
-					if (ImGui::Button("Join"))
+					auto fullPath = std::filesystem::absolute(worldPath);
+					fullPath.make_preferred();
+					if (!m_NetworkManager->GetWorldManager().get()->LoadWorld(fullPath.string().c_str()))
 					{
-						if (!m_NetworkManager->GetWorldManager().get()->LoadWorld(m_WorldPathBuf))
-						{
-							ImGui::Text("Invalid file path.");
-							return;
-						}
-
-						// Connect to ourselves
-						strcpy_s(m_ServerAddressBuf, "localhost");
-						strcpy_s(m_ServerportBuf, "1233");
-
-						std::string address = std::string(m_ServerAddressBuf);
-						enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
-						m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
-						m_NetworkManager->GetClient()->ConnectToServer();
-
-						m_ConnectionFailTimer = m_ConnectionFailRate;
+						ImGui::Text("Invalid file path.");
+						m_NetworkManager->End();
+						m_MenuState = MenuState::MAIN_MENU;
 					}
+
+					// Connect to ourselves
+					strcpy_s(m_ServerAddressBuf, "localhost");
+					strcpy_s(m_ServerportBuf, "1233");
+
+					std::string address = std::string(m_ServerAddressBuf);
+					enet_uint16 port = static_cast<enet_uint16>(std::stoi(std::string(m_ServerportBuf)));
+					m_NetworkManager->GetClient()->SetServerHint(address.c_str(), port);
+					m_NetworkManager->GetClient()->ConnectToServer();
+
+					m_ConnectionFailTimer = m_ConnectionFailRate;
 				}
 
 				if (ImGui::Button("Back"))
@@ -902,8 +892,14 @@ void GameLayer::OnImGuiRender(float dt)
 			ImGui::Text("Press ESCAPE to toggle menu control.");
 			ImGui::Text("Press F2 to take screenshot.");
 			ImGui::Text("FPS: %.1f", m_AvgFPS);
-			ImGui::Text("Frame Time: %.1f", m_AvgFrameTime);
+			ImGui::Text("Frame Time: %.3f", m_AvgFrameTime);
 			ImGui::Text("Autosave in %.1f seconds", m_AutoSaveTimer);
+
+			ImGui::BeginDisabled();
+			ImGui::Checkbox("VSync", &m_VSyncEnabled); // read only
+			ImGui::EndDisabled();
+
+			if (ImGui::Button("Toggle VSync")) { ToggleVSync(); }
 			if (m_Player != Craft::NULL_ENTITY &&
 				m_EntityWorld->HasEntityID(m_Player) &&
 				m_EntityWorld->Contains<Craft::TransformComponent>(m_Player))
@@ -1231,6 +1227,20 @@ void GameLayer::Screenshot(const int& w, const int& h)
 	stbi_flip_vertically_on_write(true); // opengl 0,0 is bottom left, png is top left
 
 	if (stbi_write_png(filename.c_str(), w, h, 3, pixels.data(), w * 3)) { std::cout << "Screenshot saved! " << filename << std::endl; }
+}
+
+// move to window class or something
+void GameLayer::ToggleVSync()
+{
+	if (m_VSyncEnabled)
+	{
+		SDL_GL_SetSwapInterval(0);
+	}
+	else
+	{
+		SDL_GL_SetSwapInterval(1);
+	}
+	m_VSyncEnabled = !m_VSyncEnabled;
 }
 
 void GameLayer::CreateScreenQuad(unsigned int& vao, unsigned int& vbo)

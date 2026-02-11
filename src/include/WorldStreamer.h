@@ -92,6 +92,5 @@ namespace Craft
 			std::atomic<bool> m_IsRunning = true;
 			std::mutex m_ResultMutex; // servers waiting for orders to be cooked
 			std::vector<CookedChunk> m_CookedChunks; 
-
 	};
 }

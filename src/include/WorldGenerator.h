@@ -14,5 +14,6 @@ namespace Craft
 			void GenerateChunk(Chunk& chunk, int chunkX, int chunkZ);
 		private:
 			FastNoiseLite m_Noise;
+			FastNoiseLite m_Continentalness;
 	};
 }

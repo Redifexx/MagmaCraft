@@ -19,7 +19,7 @@ namespace Craft
 	};
 
 	const int CHUNK_WIDTH = 16;
-	const int CHUNK_HEIGHT = 256;
+	const int CHUNK_HEIGHT = 16;
 	const int CHUNK_VOLUME = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH;
 
 	class Chunk

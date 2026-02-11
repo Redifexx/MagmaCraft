@@ -52,6 +52,8 @@ int main(int argc, char* argv[])
 	// Audio
 	Magma::AudioEngine::Init();
 
+	SDL_GL_SetSwapInterval(1);
+
     // Main Loop
     bool isRunning = true;
     while (isRunning)

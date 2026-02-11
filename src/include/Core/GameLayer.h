@@ -29,6 +29,7 @@
 #include <Datatypes/Components/CameraComponent.h>
 #include <glui/glui.h>
 #include "gl2d/gl2d.h"
+#include "WorldSelector.h"
 
 namespace Magma
 {
@@ -99,7 +100,9 @@ namespace Magma
 			void RenderUI(const int& w, const int& h, float dt);
 			void SetupShadowMap();
 			void Screenshot(const int& w, const int& h);
+			void ToggleVSync();
 
+			bool m_VSyncEnabled = true;
 
 			std::vector<Model*> m_Models;
 			std::unique_ptr<ShaderProgram> m_ShaderProgram = nullptr;
@@ -109,6 +112,7 @@ namespace Magma
 			std::unique_ptr<Craft::WorldStreamer> m_WorldStreamer = nullptr;
 
 			// Text Input Buffers
+			std::unique_ptr<Craft::WorldSelector> m_WorldSelector = nullptr;
 			char m_SeedBuf[32] = "";
 			char m_WorldNameBuf[32] = "";
 			char m_UserNameBuf[32] = "Redifexx";
