@@ -17,6 +17,9 @@ uniform float u_SunIntensity;
 uniform float u_ShadowBiasMin;
 uniform float u_ShadowBiasMax;
 uniform float u_ShadowFadeDistance;
+uniform float u_AmbientIntensity;
+
+const float PI = 3.14159265359;
 
 /*
 CURRENT TEXTURE MAPS
@@ -56,6 +59,54 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 norm, vec3 lightDir)
     return shadow;
 }
 
+// learn opengl's pbr
+// normal distribution function that approximates the relative suface area of
+// microfacets exactly aligned to the halfway vector
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float num = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+    return num / denom;
+}
+
+// geometry function that approximates the relative surface area where its micro
+// surface details overshadow each other, causing light rays to be occluded
+// using a combination of both schlick-ggx & smith's functions
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+
+    float num = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return num / denom;
+}
+
+//
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
+}
+
+// fresnel schlick approximation
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+
 void main()
 {
     // Deferred Lighting
@@ -63,14 +114,10 @@ void main()
     vec3 Normal = texture(u_GNormal, TexCoords).rgb;
     vec3 Albedo = texture(u_GAlbedo, TexCoords).rgb;
     float Transparency = texture(u_GAlbedo, TexCoords).a;
-
     float AmbientOcclusion = texture(u_GASME, TexCoords).r;
     float Smoothness = texture(u_GASME, TexCoords).g;
     float Metallic = texture(u_GASME, TexCoords).b;
     float Emissive = texture(u_GASME, TexCoords).a;
-
-    // Shadow map stuff
-    vec4 FragPosLightSpace = u_LightSpaceMatrix * vec4(FragPos, 1.0f);
 
     if (length(Normal) < 0.1) 
     {
@@ -79,33 +126,56 @@ void main()
     }
 
     vec3 norm = normalize(Normal);
+    vec3 viewDir = normalize(u_CameraPosition - FragPos);
+
+    // Shadow map stuff
+    vec4 FragPosLightSpace = u_LightSpaceMatrix * vec4(FragPos, 1.0f);
 
     // directional light
-    vec3 lightDirection = u_SunDirection;
+    vec3 lightDirection = -u_SunDirection; // to light
     vec3 lightColor = u_SunColor;
     float lightIntensity = u_SunIntensity;
 
-    float diff = max(dot(norm, -lightDirection), 0.0);
-    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0) * lightColor * Albedo;
+    vec3 F0 = vec3(0.04f); // base reflectivity
+    F0 = mix(F0, Albedo, Metallic);
 
-    vec3 viewDir = normalize(u_CameraPosition - FragPos);
+    vec3 Lo = vec3(0.0f);
 
-    vec3 halfwayDir = normalize(-lightDirection + viewDir);
+    // do for each light eventually
+    vec3 halfwayDir = normalize(lightDirection + viewDir);
+    vec3 radiance = lightColor * lightIntensity; // no attentuation here
+    float roughness = 1.0 - Smoothness;
 
-    float shininess = mix(2.0, 128.0, Smoothness);
-    float spec = pow(max(dot(norm, halfwayDir), 0.0), shininess);
-    vec3 specular = lightColor * spec * Smoothness;
+    // cook-torrance brdf
+    float NDF = DistributionGGX(norm, halfwayDir, roughness);
+    float G = GeometrySmith(norm, viewDir, lightDirection, roughness);
+    vec3 F = fresnelSchlick(max(dot(halfwayDir, viewDir), 0.0), F0);
 
-    vec3 emissiveLight = Albedo * Emissive * 3.0;
+    vec3 numerator = NDF * G * F;
+    float denominator = 4.0 * max(dot(norm, viewDir), 0.0) * max(dot(norm, lightDirection), 0.0) + 0.0001;
+    vec3 specular = numerator / denominator;
 
-    float shadow = ShadowCalculation(FragPosLightSpace, norm, lightDirection);
+    // energy conservation
+    vec3 kSpec = F;
+    vec3 kDiff = vec3(1.0) - kSpec;
+    kDiff *= 1.0 - Metallic;
+
+    float NdotL = max(dot(norm, lightDirection), 0.0);
+
+    // add to outgoing radiance
+    Lo += (kDiff * Albedo / PI + specular) * radiance * NdotL;
+
+    // shadows
+    float shadow = ShadowCalculation(FragPosLightSpace, norm, -lightDirection);
     float dist = length(FragPos - u_CameraPosition);
     float fade = smoothstep(u_ShadowFadeDistance * 0.8, u_ShadowFadeDistance, dist);
     shadow *= (1.0 - fade);
 
+    vec3 ambient = vec3(u_AmbientIntensity) * Albedo * AmbientOcclusion; // until IBL
 
-    vec3 finalLight = ((lightIntensity * (diffuse + specular)) * (1.0 - shadow) + (vec3(0.3) * Albedo) + emissiveLight);
+    vec3 emissiveLight = Albedo * Emissive * 3.0;
+    vec3 color = (Lo * (1.0 - shadow)) + ambient + emissiveLight;
 
-    FragColor = vec4(finalLight, 1.0);
+    FragColor = vec4(color, 1.0);
 
 }

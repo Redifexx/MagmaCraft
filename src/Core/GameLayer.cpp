@@ -471,6 +471,7 @@ void GameLayer::OnUpdate(float dt)
 	m_LightingShaderProgram->SetUniform("u_ShadowBiasMin", (float)m_ShadowBiasMin);
 	m_LightingShaderProgram->SetUniform("u_ShadowBiasMax", (float)m_ShadowBiasMax);
 	m_LightingShaderProgram->SetUniform("u_ShadowFadeDistance", (float)m_ShadowFadeDistance);
+	m_LightingShaderProgram->SetUniform("u_AmbientIntensity", (float)m_AmbientIntensity);
 
 
 	glBindVertexArray(m_ScreenVAO);
@@ -497,6 +498,9 @@ void GameLayer::OnUpdate(float dt)
 	m_ScreenShaderProgram->SetUniform("u_FogDensity", m_FogDensity);
 	m_ScreenShaderProgram->SetUniform("u_FogCurve", m_FogCurve);
 	m_ScreenShaderProgram->SetUniform("u_SkyColor", m_SkyColor);
+	m_ScreenShaderProgram->SetUniform("u_Exposure", m_Exposure);
+	m_ScreenShaderProgram->SetUniform("u_Saturation", m_Saturation);
+	m_ScreenShaderProgram->SetUniform("u_Gamma", m_Gamma);
 	
 
 	glBindVertexArray(m_ScreenVAO);
@@ -920,17 +924,14 @@ void GameLayer::OnImGuiRender(float dt)
 				ImGui::Text("%s", name.c_str());
 			}
 
-			if (ImGui::BeginMenu("Shader Debug"))
+			if (ImGui::BeginMenu("Lighting Settings"))
 			{
 				ImGui::ColorEdit3("Sky Color", glm::value_ptr(m_SkyColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-
-				ImGui::DragFloat("Fog Near", &m_FogNear, 0.1f, 0.0f, 1000.0f);
-				ImGui::DragFloat("Fog Far", &m_FogFar ,0.1f, 0.0f, 10000.0f);
-				ImGui::DragFloat("Fog Density", &m_FogDensity, 0.001f, 0.0f, 1.0f);
-				ImGui::DragFloat("Fog Curve", &m_FogCurve, 0.1f, 0.1f, 256.0f);
+				ImGui::DragFloat("Ambient Intensity", &m_AmbientIntensity, 0.01f, 0.0f, 1.0f);
 
 				ImGui::DragFloat("Sun Intensity", &m_SunIntensity, 0.1f, 0.0f, 100.0f);
 				ImGui::ColorEdit3("Sun Color", glm::value_ptr(m_SunColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
 
 				// Euler to sundirection
 
@@ -957,7 +958,44 @@ void GameLayer::OnImGuiRender(float dt)
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("Shadow Debug"))
+			if (ImGui::BeginMenu("Post Processing Settings"))
+			{
+				ImGui::DragFloat("Fog Near", &m_FogNear, 0.1f, 0.0f, 1000.0f);
+				ImGui::DragFloat("Fog Far", &m_FogFar, 0.1f, 0.0f, 10000.0f);
+				ImGui::DragFloat("Fog Density", &m_FogDensity, 0.001f, 0.0f, 1.0f);
+				ImGui::DragFloat("Fog Curve", &m_FogCurve, 0.1f, 0.1f, 256.0f);
+
+				ImGui::DragFloat("Exposure Level", &m_Exposure, 0.1f, 0.0f, 100.0f);
+				ImGui::DragFloat("Saturation", &m_Saturation, 0.1f, 0.0f, 10.0f);
+				ImGui::DragFloat("Gamma", &m_Gamma, 0.1f, 0.0f, 5.0f);
+
+
+				// Euler to sundirection
+
+				float pitch = glm::degrees(asin(m_SunDirection.y));
+				float yaw = glm::degrees(atan2(-m_SunDirection.x, -m_SunDirection.z));
+
+				bool changed = false;
+				ImGui::Text("Sun Direction");
+				changed |= ImGui::DragFloat("Sun Pitch", &pitch, 1.0f, -89.0f, 89.0f);
+				changed |= ImGui::DragFloat("Sun Yaw", &yaw, 1.0f, -180.0f, 180.0f);
+				if (changed)
+				{
+					float radPitch = glm::radians(pitch);
+					float radYaw = glm::radians(yaw);
+
+					glm::vec3 newDir;
+					newDir.y = sin(radPitch);
+					newDir.x = -sin(radYaw) * cos(radPitch);
+					newDir.z = -cos(radYaw) * cos(radPitch);
+
+					m_SunDirection = glm::normalize(newDir);
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Shadow Settings"))
 			{
 				bool changed = false;
 
@@ -1049,8 +1087,11 @@ void GameLayer::OnResize(int width, int height)
 
 
 	// Shadow map
-	glBindTexture(GL_TEXTURE_2D, m_ShadowMap->GetID());
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	if (m_ShadowMap)
+	{
+		glBindTexture(GL_TEXTURE_2D, m_ShadowMap->GetID());
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	}
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);

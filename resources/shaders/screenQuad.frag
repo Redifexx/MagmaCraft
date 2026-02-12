@@ -12,6 +12,10 @@ uniform float u_FogNear;
 uniform float u_FogDensity;
 uniform float u_FogCurve;
 
+uniform float u_Exposure;
+uniform float u_Saturation;
+uniform float u_Gamma;
+
 vec3 ACESFilm(vec3 x)
 {
     // ACES approximation by Narkowicz
@@ -33,7 +37,6 @@ float LinearizeDepth(float depth)
 void main()
 { 
     // post processing goes here :)))
-    const float gamma = 2.2;
     vec3 hdrColor = texture(u_ScreenTexture, TexCoords).rgb;
     float linearDepth = LinearizeDepth(texture(u_DepthTexture, TexCoords).r);
 
@@ -44,21 +47,17 @@ void main()
 
     vec3 foggedColor = mix(u_SkyColor, hdrColor, fogFactor);
 
-
-    vec3 exposed = foggedColor * 0.5f;
+    vec3 exposed = foggedColor * u_Exposure;
     
-    // reinhard tone mapping
-    //vec3 mapped = hdrColor / (hdrColor + vec3(1.0));
     vec3 mapped = ACESFilm(exposed);
-    float saturation = 1.0;
     float luma = dot(mapped, vec3(0.2126, 0.7152, 0.0722));
     
-    vec3 saturated = mix(vec3(luma), mapped, saturation);
+    vec3 saturated = mix(vec3(luma), mapped, u_Saturation);
 
   
 
     // gamma correction 
-    vec3 finalColor = pow(saturated, vec3(1.0 / gamma));
+    vec3 finalColor = pow(saturated, vec3(1.0 / u_Gamma));
 
     FragColor = vec4(finalColor, 1.0);
 }

@@ -194,6 +194,11 @@ namespace Magma
 			glm::vec3 m_SunColor = glm::vec3(1.0f);
 			glm::vec3 m_SunDirection = glm::vec3(-0.5f);
 
+			float m_AmbientIntensity = 0.3f;
+			float m_Exposure = 0.5f;
+			float m_Saturation = 1.0f;
+			float m_Gamma = 2.2f;
+
 			// Shadow Map stuff
 			unsigned int m_ShadowMapFBO = 0;
 			std::unique_ptr<Magma::Texture> m_ShadowMap = nullptr;
