@@ -166,7 +166,7 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 				std::lock_guard<std::mutex> lock(m_QueueMutex);
 				m_JobQueue.push({ curChunkX, curChunkY, curChunkZ });
 			}
-			m_ConditionVar.notify_one();
+			m_ConditionVar.notify_one(); // wakes up 1 worker
 
 			renderChunk->isCooking = true;
 		}
@@ -311,6 +311,7 @@ void WorldStreamer::WorkerThread()
 		// wait for an order
 		{
 			std::unique_lock<std::mutex> lock(m_QueueMutex);
+			// chef sleeps until bell wakes it up or kitchen is closing
 			m_ConditionVar.wait(lock, [this]
 			{
 				return !m_JobQueue.empty() || !m_IsRunning;

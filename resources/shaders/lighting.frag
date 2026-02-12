@@ -64,7 +64,6 @@ void main()
     vec3 Albedo = texture(u_GAlbedo, TexCoords).rgb;
     float Transparency = texture(u_GAlbedo, TexCoords).a;
 
-    // prepping for pbr later
     float AmbientOcclusion = texture(u_GASME, TexCoords).r;
     float Smoothness = texture(u_GASME, TexCoords).g;
     float Metallic = texture(u_GASME, TexCoords).b;
@@ -95,7 +94,7 @@ void main()
 
     float shininess = mix(2.0, 128.0, Smoothness);
     float spec = pow(max(dot(norm, halfwayDir), 0.0), shininess);
-    vec3 specularLight = lightColor * spec * Smoothness;
+    vec3 specular = lightColor * spec * Smoothness;
 
     vec3 emissiveLight = Albedo * Emissive * 3.0;
 
@@ -105,7 +104,7 @@ void main()
     shadow *= (1.0 - fade);
 
 
-    vec3 finalLight = ((lightIntensity * (diffuse + specularLight)) * (1.0 - shadow) + (vec3(0.3) * Albedo) + emissiveLight);
+    vec3 finalLight = ((lightIntensity * (diffuse + specular)) * (1.0 - shadow) + (vec3(0.3) * Albedo) + emissiveLight);
 
     FragColor = vec4(finalLight, 1.0);
 

@@ -69,6 +69,9 @@ void BlockLibrary::Initialize()
 
 	// ID 18: Pumpkin
 	blockTypes[18] = { "Pumpkin", false, false, 30, 27, 28, 28, 28, 30 }; 
+
+	// ID 18: Water
+	blockTypes[19] = { "Water", false, false, 39, 39, 39, 39, 39, 39 };
 }
 
 const glm::vec2 BlockLibrary::GetTexCoords(uint8_t texID)

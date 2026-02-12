@@ -88,7 +88,7 @@ namespace Craft
 			std::queue<glm::ivec3> m_JobQueue; // list of orders (coords) waiting to be cooked
 
 			std::mutex m_QueueMutex; // protects m_JobQueue
-			std::condition_variable m_ConditionVar; // calls on chef when order arrives
+			std::condition_variable m_ConditionVar; // calls on chef when order arrives (service bell)
 			std::atomic<bool> m_IsRunning = true;
 			std::mutex m_ResultMutex; // servers waiting for orders to be cooked
 			std::vector<CookedChunk> m_CookedChunks; 
