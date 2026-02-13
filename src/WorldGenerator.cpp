@@ -61,20 +61,20 @@ WorldGenerator::WorldGenerator(int seed)
 	m_Erosion.SetFractalWeightedStrength(-1.0f);
 
 	m_PV.SetSeed(seed);
-	m_PV.SetNoiseType(FastNoiseLite::NoiseType::NoiseType_OpenSimplex2S);
-	m_PV.SetFrequency(0.02f);
-	m_PV.SetFractalType(FastNoiseLite::FractalType_PingPong);
-	m_PV.SetFractalOctaves(2);
-	m_PV.SetFractalLacunarity(0.0f);
+	m_PV.SetNoiseType(FastNoiseLite::NoiseType::NoiseType_Perlin);
+	m_PV.SetFrequency(0.015f);
+	m_PV.SetFractalType(FastNoiseLite::FractalType_FBm);
+	m_PV.SetFractalOctaves(4);
+	m_PV.SetFractalLacunarity(2.0f);
 	m_PV.SetFractalGain(0.0f);
-	m_PV.SetFractalPingPongStrength(2.0);
+	m_PV.SetFractalWeightedStrength(1.0f);
 
 	// define splines - tweaks world gen outcome
 	m_ContinentalnessHeightSpline.AddPoint(-1.0f, 30.0f); // ocean
 	m_ContinentalnessHeightSpline.AddPoint(-0.2f, 55.0f); // shoreline
 	m_ContinentalnessHeightSpline.AddPoint(0.0f, 70.0f); // plains
 	m_ContinentalnessHeightSpline.AddPoint(0.5f, 100.0f); // highlands
-	m_ContinentalnessHeightSpline.AddPoint(1.0f, 180.0f); // big mountains
+	m_ContinentalnessHeightSpline.AddPoint(1.0f, 200.0f); // big mountains
 
 	m_ErosionMultiplierSpline.AddPoint(-1.0f, 0.0f); // flat
 	m_ErosionMultiplierSpline.AddPoint(-0.4f, 5.0f); // some hills
@@ -112,6 +112,8 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkY, int chu
 
 			for (int y = 0; y < CHUNK_WIDTH; y++)
 			{
+				uint32_t blockIndex = x + (z * CHUNK_WIDTH) + (y * CHUNK_WIDTH * CHUNK_WIDTH);
+
 				// Global Coords
 				float globalY = (float)startY + y;
 				BlockID currentBlock = 0; // Air by default
@@ -124,11 +126,18 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkY, int chu
 
 				float finalDensity = baseDensity + noise3D;
 
+
 				if (finalDensity > 0.0f)
 				{
+					// peek ahead for block above to detect air
+					float globalYAbove = globalY + 1.0f;
+					float baseDensityAbove = (targetHeight - globalYAbove);
+					float noise3DAbove = m_DensityNoise.GetNoise(globalX, globalYAbove, globalZ) * 20.0f;
+					float densityAbove = baseDensityAbove + noise3DAbove;
+
 					// biome logic
 					// for now, sand when high erosion
-					if (erosion > 0.3f && globalY < 75.0f)
+					if (erosion > 0.3f && globalY < 75.0f && globalY > 60.0f)
 					{
 						currentBlock = 5; // sand
 					}
@@ -136,9 +145,13 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkY, int chu
 					{
 						currentBlock = 1; // stone
 					}
-					else
+					else if (densityAbove <= 0.0f)
 					{
 						currentBlock = 4; // grass
+					}
+					else
+					{
+						currentBlock = 3; // dirt
 					}
 				}
 				else if (globalY < 64.0f)
@@ -151,5 +164,4 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkY, int chu
 			}
 		}
 	}
-	
 }

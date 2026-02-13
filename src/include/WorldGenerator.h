@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <FastNoiseLite.h>
 #include "Chunk.h"
 #include <vector>
