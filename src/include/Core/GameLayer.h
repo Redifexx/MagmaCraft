@@ -183,6 +183,9 @@ namespace Magma
 			std::unique_ptr<Magma::Texture> m_GDepth = nullptr;
 			std::unique_ptr<ShaderProgram> m_LightingShaderProgram = nullptr;
 
+			// Forward pass shader for transparent/translucent objects
+			std::unique_ptr<ShaderProgram> m_ForwardShaderProgram = nullptr;
+
 			// DEBUG MENU ITEMS
 			float m_FogNear = 0.1f;
 			float m_FogFar = 1000.0f;

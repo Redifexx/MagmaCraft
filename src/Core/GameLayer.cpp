@@ -158,6 +158,8 @@ void GameLayer::OnAttach()
 	m_GLightingPass->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_GLightingPass->GetID(), 0);
 
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_GDepth->GetID(), 0);
+
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) std::cout << "framebuffer error" << std::endl;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -225,6 +227,27 @@ void GameLayer::OnAttach()
 	if (!m_ScreenShaderProgram->Link())
 	{
 		std::cerr << "Failed to link post-processing shader program!" << std::endl;
+		return;
+	}
+
+	// forward pass pbr shader
+	vertpath = "resources/shaders/forwardPass.vert";
+	fragpath = "resources/shaders/forwardPass.frag";
+	#ifdef MAGMA_ROOT_DIR
+		vertpath = std::string(MAGMA_ROOT_DIR) + vertpath;
+		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
+	#endif
+
+	Shader forwardVertexShader(vertpath, GL_VERTEX_SHADER);
+	Shader forwardFragmentShader(fragpath, GL_FRAGMENT_SHADER);
+
+	m_ForwardShaderProgram = std::make_unique<ShaderProgram>();
+
+	m_ForwardShaderProgram->AttachShader(forwardVertexShader);
+	m_ForwardShaderProgram->AttachShader(forwardFragmentShader);
+	if (!m_ForwardShaderProgram->Link())
+	{
+		std::cerr << "Failed to link forward pass shader program!" << std::endl;
 		return;
 	}
 
@@ -408,10 +431,11 @@ void GameLayer::OnUpdate(float dt)
 	glViewport(0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowMapFBO);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 
 	glCullFace(GL_FRONT);
-	m_RenderSystem->Render(*m_EntityWorld, *m_ShadowMapShaderProgram, m_WorldStreamer.get(), m_Window, true);
+	m_RenderSystem->Render(*m_EntityWorld, *m_ShadowMapShaderProgram, m_WorldStreamer.get(), m_Window, true, false);
 	glCullFace(GL_BACK);
 
 	// 1 - geometry pass
@@ -420,11 +444,13 @@ void GameLayer::OnUpdate(float dt)
 	glBindFramebuffer(GL_FRAMEBUFFER, m_GBuffer);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 	//glEnable(GL_BLEND);
 	////glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-
-	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window, false);
+	m_ShaderProgram->Use();
+	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window, false, false);
 
 	//glDisable(GL_BLEND);
 	// 2 - lighting pass
@@ -478,6 +504,50 @@ void GameLayer::OnUpdate(float dt)
 	glDisable(GL_DEPTH_TEST);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
+	// 2.5 - forward pass
+	glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
+	if (m_IsLocalPlayerLoaded)
+	{
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDepthMask(GL_FALSE);
+
+		m_ForwardShaderProgram->Use();
+
+		// bind block texture atlasses
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_NetworkManager->GetWorldManager()->m_BlockAtlasTextureAlbedo->GetID());
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, m_NetworkManager->GetWorldManager()->m_BlockAtlasTextureNormal->GetID());
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_NetworkManager->GetWorldManager()->m_BlockAtlasTextureASME->GetID());
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, m_ShadowMap->GetID());
+
+		m_ForwardShaderProgram->SetUniform("u_AlbedoTexture", 0);
+		m_ForwardShaderProgram->SetUniform("u_NormalTexture", 1);
+		m_ForwardShaderProgram->SetUniform("u_ASMETexture", 2);
+		m_ForwardShaderProgram->SetUniform("u_ShadowMap", 3);
+		m_ForwardShaderProgram->SetUniform("u_LightSpaceMatrix", lightSpaceMatrix);
+		m_ForwardShaderProgram->SetUniform("u_SkyColor", m_SkyColor);
+		m_ForwardShaderProgram->SetUniform("u_SunColor", m_SunColor);
+		m_ForwardShaderProgram->SetUniform("u_SunIntensity", (float)m_SunIntensity);
+		m_ForwardShaderProgram->SetUniform("u_SunDirection", m_SunDirection);
+		m_ForwardShaderProgram->SetUniform("u_ShadowBiasMin", (float)m_ShadowBiasMin);
+		m_ForwardShaderProgram->SetUniform("u_ShadowBiasMax", (float)m_ShadowBiasMax);
+		m_ForwardShaderProgram->SetUniform("u_ShadowFadeDistance", (float)m_ShadowFadeDistance);
+		m_ForwardShaderProgram->SetUniform("u_AmbientIntensity", (float)m_AmbientIntensity);
+
+		m_RenderSystem->Render(*m_EntityWorld, *m_ForwardShaderProgram, m_WorldStreamer.get(), m_Window, false, true);
+		glDepthMask(GL_TRUE);
+		glDisable(GL_BLEND);
+	}
+	
 	// 3 - post processing pass
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

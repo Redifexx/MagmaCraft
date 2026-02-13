@@ -41,8 +41,10 @@ namespace Craft
 	{
 		int x, y, z;
 		std::unique_ptr<Chunk> chunkPtr = nullptr;
-		std::vector<Magma::Vertex> vertices;
-		std::vector<uint32_t> indices;
+		std::vector<Magma::Vertex> verticesD;
+		std::vector<uint32_t> indicesD;
+		std::vector<Magma::Vertex> verticesF;
+		std::vector<uint32_t> indicesF;
 	};
 
 	class WorldStreamer

@@ -148,6 +148,7 @@ void WorldGenerator::GenerateChunk(Chunk& chunk, int chunkX, int chunkY, int chu
 					else if (densityAbove <= 0.0f)
 					{
 						currentBlock = 4; // grass
+						//currentBlock = 15;
 					}
 					else
 					{

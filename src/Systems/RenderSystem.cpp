@@ -10,13 +10,23 @@
 using namespace Craft;
 
 // renders all
-void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shaderProgram, WorldStreamer* worldStreamer, SDL_Window* window, bool shadowPass)
+void RenderSystem::Render(
+	EntityWorld& world,
+	const Magma::ShaderProgram& shaderProgram,
+	WorldStreamer* worldStreamer,
+	SDL_Window* window,
+	bool shadowPass,
+	bool forwardPass)
 {
-
+	glm::vec3 camPos = glm::vec3(0.0f);
 	if (!shadowPass)
 	{
-		shaderProgram.Use();
-		SetupShaderUniforms(world, shaderProgram);
+		camPos = SetupShaderUniforms(world, shaderProgram);
+
+		if (forwardPass)
+		{
+			shaderProgram.SetUniform("u_CameraPosition", camPos);
+		}
 
 		shaderProgram.SetUniform("u_Model", glm::mat4(1.0f));
 		glm::mat3 normalMat = glm::transpose(glm::inverse(glm::mat4(1.0f)));
@@ -45,7 +55,14 @@ void RenderSystem::Render(EntityWorld& world, const Magma::ShaderProgram& shader
 
 	if (worldStreamer)
 	{
-		worldStreamer->GetWorldRenderer()->DrawWorld();
+		if (forwardPass)
+		{
+			worldStreamer->GetWorldRenderer()->DrawForwardWorld(camPos);
+		}
+		else
+		{
+			worldStreamer->GetWorldRenderer()->DrawDeferredWorld();
+		}
 	}
 
 	DrawEntities(world, shaderProgram, worldStreamer, shadowPass);
@@ -130,30 +147,31 @@ void RenderSystem::DrawEntities(EntityWorld& world, const Magma::ShaderProgram& 
 	}
 }
 
-void RenderSystem::SetupShaderUniforms(EntityWorld& world, const Magma::ShaderProgram& shaderProgram)
+// return camera pos for ease
+glm::vec3 RenderSystem::SetupShaderUniforms(EntityWorld& world, const Magma::ShaderProgram& shaderProgram)
 {
 	SparseSet<TransformComponent>* transformPool = world.GetComponentPool<TransformComponent>();
 	SparseSet<CameraComponent>* cameraPool = world.GetComponentPool<CameraComponent>();
-
+	if (!transformPool || !cameraPool) return glm::vec3(0.0f);
 	// find primary camera
 	const std::vector<uint32_t>& entities = cameraPool->GetAllEntities();
 	for (uint32_t entity : entities)
 	{
-		// gets cam reference
-		auto& camRef = cameraPool->Get(entity);
-
-		if (camRef.isPrimary)
+		if (transformPool->Contains(entity))
 		{
-			glm::mat4 viewProj = camRef.projectionMatrix * camRef.viewMatrix;
-
-			shaderProgram.SetUniform("u_ViewProjection", viewProj);
-
-			if (transformPool->Contains(entity))
+			auto& camRef = cameraPool->Get(entity);
+		
+			if (camRef.isPrimary)
 			{
-				// dont send cam pos until deferred rendering / view depending shading is added
-				//shaderProgram.SetUniform("u_CameraPosition", glm::vec3(transformPool->Get(entity).worldMatrix[3]));
+				auto& transformRef = transformPool->Get(entity);
+				glm::vec3 worldCamPos = transformRef.worldMatrix[3];
+
+				glm::mat4 viewProj = camRef.projectionMatrix * camRef.viewMatrix;
+
+				shaderProgram.SetUniform("u_ViewProjection", viewProj);
+				return worldCamPos;
 			}
-			break;
 		}
 	}
+	return glm::vec3(0.0f);
 }

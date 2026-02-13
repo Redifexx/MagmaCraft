@@ -21,16 +21,34 @@ namespace Craft
 	class WorldRenderer
 	{
 		public:
-			void GenerateMesh(std::vector<Magma::Vertex>& vertices, std::vector<uint32_t>& indices, Chunk* chunk, glm::ivec3 chunkPos);
+			// i have to generate seperate meshes for opaque and transparent objects
+			void GenerateMeshes(
+				std::vector<Magma::Vertex>& verticesD,
+				std::vector<uint32_t>& indicesD,
+				std::vector<Magma::Vertex>& verticesF,
+				std::vector<uint32_t>& indicesF,
+				Chunk* chunk,
+				glm::ivec3 chunkPos
+			);
 
-			bool AddMeshToDrawPool(std::unique_ptr<Magma::Mesh> mesh, glm::ivec3 chunkPos);
-			void RemoveFromDrawPool(glm::ivec3 chunkPos);
+			// normal meshes
+			bool AddMeshToDeferredDrawPool(std::unique_ptr<Magma::Mesh> mesh, glm::ivec3 chunkPos);
+			void RemoveFromDeferredDrawPool(glm::ivec3 chunkPos);
 
-			void DrawWorld();
+			// everything with transparency
+			bool AddMeshToForwardDrawPool(std::unique_ptr<Magma::Mesh> mesh, glm::ivec3 chunkPos);
+			void RemoveFromForwardDrawPool(glm::ivec3 chunkPos);
+
+			bool AddMeshesToDrawPool(std::unique_ptr<Magma::Mesh> dmesh, std::unique_ptr<Magma::Mesh> fmesh, glm::ivec3 chunkPos);
+			void RemoveFromDrawPools(glm::ivec3 chunkPos);
+
+			void DrawDeferredWorld();
+			void DrawForwardWorld(glm::vec3 camPos);
 
 			// temporary 
 			std::weak_ptr<WorldManager> m_WorldManager;
 		private:
-			std::unordered_map<glm::ivec3, std::unique_ptr<Magma::Mesh>> m_DrawPool;
+			std::unordered_map<glm::ivec3, std::unique_ptr<Magma::Mesh>> m_DeferredDrawPool;
+			std::unordered_map<glm::ivec3, std::unique_ptr<Magma::Mesh>> m_ForwardDrawPool;
 	};
 };

@@ -111,10 +111,16 @@ void WorldStreamer::Update(float dt, const glm::vec3& playerPosition)
 
 
 			// generate the mesh
-			if (!batch.vertices.empty())
+			if (!batch.verticesD.empty())
 			{
-				auto mesh = std::make_unique<Magma::Mesh>(std::move(batch.vertices), std::move(batch.indices));
-				m_WorldRenderer->AddMeshToDrawPool(std::move(mesh), key);
+				auto dmesh = std::make_unique<Magma::Mesh>(std::move(batch.verticesD), std::move(batch.indicesD));
+				m_WorldRenderer->AddMeshToDeferredDrawPool(std::move(dmesh), key);
+			}
+
+			if (!batch.verticesF.empty())
+			{
+				auto fmesh = std::make_unique<Magma::Mesh>(std::move(batch.verticesF), std::move(batch.indicesF));
+				m_WorldRenderer->AddMeshToForwardDrawPool(std::move(fmesh), key);
 			}
 
 			m_ChunkBuffer[key]->isLoaded = true;
@@ -207,7 +213,7 @@ void WorldStreamer::RemoveOldChunks(glm::ivec3 curChunkPos, glm::ivec3 lastChunk
 				m_ChunkBuffer.erase(key);
 
 				worldManager->RemoveChunkFromBuffer(key.x, key.y, key.z);
-				m_WorldRenderer->RemoveFromDrawPool(glm::ivec3(key.x, key.y, key.z));
+				m_WorldRenderer->RemoveFromDrawPools(glm::ivec3(key.x, key.y, key.z));
 			}
 		}
 	}
@@ -226,7 +232,7 @@ void WorldStreamer::RemoveOldChunks(glm::ivec3 curChunkPos, glm::ivec3 lastChunk
 				m_ChunkBuffer.erase(key);
 
 				worldManager->RemoveChunkFromBuffer(key.x, key.y, key.z);
-				m_WorldRenderer->RemoveFromDrawPool(glm::ivec3(key.x, key.y, key.z));
+				m_WorldRenderer->RemoveFromDrawPools(glm::ivec3(key.x, key.y, key.z));
 			}
 		}
 	}
@@ -245,7 +251,7 @@ void WorldStreamer::RemoveOldChunks(glm::ivec3 curChunkPos, glm::ivec3 lastChunk
 				m_ChunkBuffer.erase(key);
 
 				worldManager->RemoveChunkFromBuffer(key.x, key.y, key.z);
-				m_WorldRenderer->RemoveFromDrawPool(glm::ivec3(key.x, key.y, key.z));
+				m_WorldRenderer->RemoveFromDrawPools(glm::ivec3(key.x, key.y, key.z));
 			}
 		}
 	}
@@ -259,7 +265,7 @@ void WorldStreamer::UnloadAllChunks()
 	for (auto const& [coord, renderChunk] : m_ChunkBuffer)
 	{
 		// remove mesh from renderer
-		m_WorldRenderer->RemoveFromDrawPool(coord);
+		m_WorldRenderer->RemoveFromDrawPools(coord);
 
 		// remove chunk from world manager buffer
 		worldManager->RemoveChunkFromBuffer(coord.x, coord.y, coord.z);
@@ -341,7 +347,13 @@ void WorldStreamer::WorkerThread()
 		cookedChunk.z = chunkCoord.z;
 
 		// keep an eye our for raw chunk
-		m_WorldRenderer->GenerateMesh(cookedChunk.vertices, cookedChunk.indices, chunkPtr.get(), chunkCoord);
+		m_WorldRenderer->GenerateMeshes(
+			cookedChunk.verticesD,
+			cookedChunk.indicesD,
+			cookedChunk.verticesF,
+			cookedChunk.indicesF,
+			chunkPtr.get(),
+			chunkCoord);
 
 		// serve the order
 		{
