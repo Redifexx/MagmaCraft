@@ -5,6 +5,7 @@
 #include "Chunk.h"
 #include "WorldGenerator.h"
 #include "NetworkManager.h"
+#include "RegionFile.h"
 #include "Datatypes/EntityWorld.h"
 #include "Datatypes/Components/PlayerComponent.h"
 #include <glm/glm.hpp>
@@ -125,5 +126,9 @@ namespace Craft
 
 			// lock for m_ChunkBuffer
 			mutable std::shared_mutex m_MapMutex;
+
+			// chunk region file stuff
+			std::map<std::string, std::unique_ptr<RegionFile>> m_RegionCache;
+			RegionFile* GetRegion(int chunkX, int chunkY, int chunkZ);
 	};
 }
