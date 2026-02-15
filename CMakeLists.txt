@@ -10,7 +10,6 @@ find_package(fmt CONFIG REQUIRED)
 find_package(freetype CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 find_package(freeimage CONFIG REQUIRED)
-find_package(tracy CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 
 add_library(glad ALIAS glad::glad)
@@ -62,11 +61,12 @@ add_subdirectory("external/glui")
 
 # Executable
 file(GLOB_RECURSE MAGMA_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-file(GLOB_RECURSE EXTERN_SOURCES CONFIGURE_DEPENDS "external/*.cpp")
 file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS "resources/shaders/*.vert" "resources/shaders/*.frag")
+
+set(TRACY_SOURCE "${CMAKE_SOURCE_DIR}/external/tracy/public/TracyClient.cpp")
+
 add_executable(MagmaFramework
      ${MAGMA_SOURCES}
-     ${EXTERN_SOURCES}
      ${SHADER_SOURCES}
      "resources/app-icon.rc")
 
@@ -82,6 +82,24 @@ target_include_directories(MagmaFramework PUBLIC
 
 target_include_directories(MagmaFramework PRIVATE ${enet_SOURCE_DIR}/include)
 
+
+option(TRACY_ENABLE "Enable Tracy Profiler" ON)
+option(TRACY_ON_DEMAND "Enable profiling on demand" ON)
+target_include_directories(MagmaFramework PUBLIC 
+    "${CMAKE_SOURCE_DIR}/external/tracy/public"
+)
+
+target_sources(MagmaFramework PRIVATE 
+    "${CMAKE_SOURCE_DIR}/external/tracy/public/TracyClient.cpp"
+)
+
+if(TRACY_ENABLE)
+    target_compile_definitions(MagmaFramework PUBLIC TRACY_ENABLE)
+    if(TRACY_ON_DEMAND)
+        target_compile_definitions(MagmaFramework PUBLIC TRACY_ON_DEMAND)
+    endif()
+endif()
+
 # Link libraries
 target_link_libraries(MagmaFramework PUBLIC
     glm::glm                  # Math
@@ -92,12 +110,21 @@ target_link_libraries(MagmaFramework PUBLIC
     assimp::assimp            # 3D Model Loading
     freeimage::FreeImage      # Image Loading
     miniaudio::miniaudio      # Audio
-    Tracy::TracyClient        # CPU Profiling
+
     enet                      # Networking
     FastNoiseLite             # Noise Generation
     glui
     stb
+
+    ws2_32      # Required by Tracy
+    dbghelp     # Required by Tracy
+    advapi32    # Required by Tracy
+    user32      # Required by Tracy
 )
+
+find_package(Threads REQUIRED)
+target_link_libraries(MagmaFramework PUBLIC Threads::Threads)
+
 
 target_compile_features(MagmaFramework PRIVATE cxx_std_20)
 

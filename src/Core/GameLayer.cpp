@@ -32,6 +32,15 @@
 
 #include "Scripts/PlayerController.h"
 
+#include <tracy/Tracy.hpp>
+
+// Temporary debug check
+#ifdef TRACY_ENABLE
+#pragma message(">>> TRACY IS ENABLED - OK")
+#else
+#pragma message(">>> TRACY IS DISABLED - This will produce empty macros")
+#endif
+
 // refactor needed, this file has become a monolith
 
 using namespace Magma;
@@ -252,27 +261,12 @@ void GameLayer::OnAttach()
 	}
 
 	SetupShadowMap();
-
-	/*
-	// COMMENTED OUT BECAUSE IT HAS ISSUES WITH DEFERRED RENDERING
-	// WILL FIX EVENTUALLY
-	// MAYBE
-	// OR ILL JUST RENDER A QUAD IN THE CENTER OF THE SCREEN AND CALL IT A CROSSHAIR
-	// UITEST
-	gl2d::init();
-	m_UI = new glui::RendererUi();
-	m_UIRenderer = new gl2d::Renderer2D();
-	m_UIFont = new gl2d::Font();
-	m_UITexture = new gl2d::Texture();
-	m_UIRenderer->create();
-	m_UIFont->createFromFile("resources/font/ANDYB.TTF");
-	m_UITexture->loadFromFile("resources/textures/crosshair_shadow.png", true);
-	*/
 }
 
 // ---- GAME UPDATE LOGIC ----
 void GameLayer::OnUpdate(float dt)
 {
+	ZoneScoped;
 	float realDT = dt;
 	if (dt > 0.1f) dt = 0.1f; // safaty
 
@@ -446,13 +440,10 @@ void GameLayer::OnUpdate(float dt)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
-	//glEnable(GL_BLEND);
-	////glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	m_ShaderProgram->Use();
 	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window, false, false);
 
-	//glDisable(GL_BLEND);
 	// 2 - lighting pass
 	glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
 
@@ -592,6 +583,7 @@ void GameLayer::OnUpdate(float dt)
 	{
 		m_NetworkManager->Update(dt);
 	}
+	FrameMark;
 }
 
 void GameLayer::OnDetach()
