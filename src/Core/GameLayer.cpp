@@ -34,13 +34,6 @@
 
 #include <tracy/Tracy.hpp>
 
-// Temporary debug check
-#ifdef TRACY_ENABLE
-#pragma message(">>> TRACY IS ENABLED - OK")
-#else
-#pragma message(">>> TRACY IS DISABLED - This will produce empty macros")
-#endif
-
 // refactor needed, this file has become a monolith
 
 using namespace Magma;
