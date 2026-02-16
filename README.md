@@ -61,7 +61,7 @@ MagmaCraft uses **CMake** for cross-platform building.
 * **Shift**: Speed Up
 * **Mouse**: Look
 * **Esc**: Toggle Mouse Capture
-* * **F2**: Screenshot
+* **F2**: Screenshot
 
 ## 0.3.5 Changelog
 
