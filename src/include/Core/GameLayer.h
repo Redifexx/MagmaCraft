@@ -168,6 +168,7 @@ namespace Magma
 			unsigned int m_ScreenVAO, m_ScreenVBO;
 			// my mesh class doesnt support a lack of normals :(
 			void CreateScreenQuad(unsigned int& vao, unsigned int& vbo);
+			void RenderScreenQuad();
 			std::unique_ptr<Magma::Mesh> m_ScreenQuad = nullptr;
 			std::unique_ptr<ShaderProgram> m_ScreenShaderProgram = nullptr;
 
@@ -190,12 +191,12 @@ namespace Magma
 			float m_FogNear = 0.1f;
 			float m_FogFar = 1000.0f;
 			float m_FogDensity = 0.004f;
-			float m_FogCurve = 3.0f;
+			float m_FogCurve = 8.0f;
+			glm::vec3 m_FogColor = glm::vec3(0.3, 0.5, 1.0);
 
-			glm::vec3 m_SkyColor = glm::vec3(0.3, 0.5, 1.0);
 			float m_SunIntensity = 10.0f;
 			glm::vec3 m_SunColor = glm::vec3(1.0f);
-			glm::vec3 m_SunDirection = glm::vec3(-0.5f);
+			glm::vec3 m_SunDirection = normalize(glm::vec3(-0.5f));
 
 			float m_AmbientIntensity = 0.3f;
 			float m_Exposure = 0.5f;
@@ -217,6 +218,40 @@ namespace Magma
 			glm::mat4 m_LightProjMatrix = glm::mat4(1.0f);
 			glm::mat4 m_LightViewMatrix = glm::mat4(1.0f);
 			bool m_LightProjDirty = true;
+
+			// Bloom stuff
+			uint32_t m_BloomMipCount = 6;
+			std::vector<glm::ivec2> m_BloomMapTextureSizes;
+			std::vector<std::unique_ptr<Magma::Texture>> m_BloomMipTextures;
+			std::vector<float> m_BloomMipWeights;
+			unsigned int m_BloomFBO = -1; // null check
+			std::unique_ptr<ShaderProgram> m_DownsampleShaderProgram = nullptr;
+			std::unique_ptr<ShaderProgram> m_UpsampleShaderProgram = nullptr;
+			void SetupBloom(const int& w, const int& h);
+			void RenderBloom(unsigned int texID);
+			float m_BloomStrength = 0.1f;
+			float m_FilterRadius = 0.005f;
+			float m_BloomWeight = 0.4f;
+
+			// Skybox Settings
+			std::unique_ptr<ShaderProgram> m_SkyboxShaderProgram = nullptr;
+			glm::vec3 m_DayZenithColor = glm::vec3(0.0, 0.114, 0.431);
+			glm::vec3 m_DaySunColor = glm::vec3(1.0, 0.578, 0.157);
+			glm::vec3 m_DayHorizonColor = glm::vec3(0.288, 0.454, 0.784);
+			glm::vec3 m_SunsetZenithColor = glm::vec3(0.2, 0.2, 0.4);
+			glm::vec3 m_SunsetSunColor = glm::vec3(1.0, 0.059, 0.0);
+			glm::vec3 m_SunsetHorizonColor = glm::vec3(0.8, 0.3, 0.1);
+			glm::vec3 m_NightZenithColor = glm::vec3(0.01, 0.01, 0.02);
+			glm::vec3 m_NightSunColor = glm::vec3(0.0, 0.0, 0.0);
+			glm::vec3 m_NightHorizonColor = glm::vec3(0.02, 0.02, 0.05);
+			float m_SunBloomSize = 0.997f;
+			float m_SunRadius = 0.998f;
+			float m_StarSize = 70.0f;
+			float m_StarDensity = 0.99f;
+			glm::vec3 CalcHorizonColors(); // helper for matching fog color to horizon
+			unsigned int m_CubeVAO, m_CubeVBO, m_CubeEBO;
+			void CreateCube();
+			void RenderCube();
 
 
 			// Should later be moved to manager

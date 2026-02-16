@@ -104,3 +104,16 @@ void ShaderProgram::SetUniform(const std::string& name, const glm::vec3& vec) co
 
 	glUniform3f(location, vec[0], vec[1], vec[2]);
 }
+
+void ShaderProgram::SetUniform(const std::string& name, const glm::vec2& vec) const
+{
+	GLint location = glGetUniformLocation(m_ID, name.c_str());
+
+	if (location == -1)
+	{
+		std::cout << "WARNING::SHADER_PROGRAM::UNIFORM_NOT_FOUND: " << name << std::endl;
+		return;
+	}
+
+	glUniform2f(location, vec[0], vec[1]);
+}

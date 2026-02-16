@@ -12,7 +12,6 @@ uniform sampler2D u_ASMETexture;
 uniform sampler2D u_ShadowMap;
 uniform mat4 u_LightSpaceMatrix;
 uniform vec3 u_CameraPosition;
-uniform vec3 u_SkyColor;
 uniform vec3 u_SunColor;
 uniform vec3 u_SunDirection;
 uniform float u_SunIntensity;
@@ -132,8 +131,7 @@ void main()
 
     if (length(Normal) < 0.1) 
     {
-        FragColor = vec4(u_SkyColor, 1.0);
-        return;
+        discard;
     }
 
     vec3 viewDir = normalize(u_CameraPosition - FragPos);

@@ -6,7 +6,8 @@ in vec2 TexCoords;
 
 uniform sampler2D u_ScreenTexture;
 uniform sampler2D u_DepthTexture;
-uniform vec3 u_SkyColor;
+uniform sampler2D u_BloomTexture;
+uniform vec3 u_FogColor;
 uniform float u_FogFar;
 uniform float u_FogNear;
 uniform float u_FogDensity;
@@ -15,6 +16,7 @@ uniform float u_FogCurve;
 uniform float u_Exposure;
 uniform float u_Saturation;
 uniform float u_Gamma;
+uniform float u_BloomStrength;
 
 vec3 ACESFilm(vec3 x)
 {
@@ -38,6 +40,8 @@ void main()
 { 
     // post processing goes here :)))
     vec3 hdrColor = texture(u_ScreenTexture, TexCoords).rgb;
+    vec3 bloom = texture(u_BloomTexture, TexCoords).rgb; 
+    float rawDepth = texture(u_DepthTexture, TexCoords).r;
     float linearDepth = LinearizeDepth(texture(u_DepthTexture, TexCoords).r);
 
     float density = u_FogDensity;
@@ -45,9 +49,16 @@ void main()
     float fogFactor = exp(-pow(fogDistance * density, u_FogCurve));
     fogFactor = clamp(fogFactor, 0.0, 1.0); // 1.0 is clear and 0.0 is fog
 
-    vec3 foggedColor = mix(u_SkyColor, hdrColor, fogFactor);
+    if (rawDepth >= 0.9999) 
+    {
+        fogFactor = 1.0;
+    }
 
-    vec3 exposed = foggedColor * u_Exposure;
+    vec3 foggedColor = mix(u_FogColor, hdrColor, fogFactor);
+
+    vec3 inputColor = foggedColor + (bloom * u_BloomStrength);
+
+    vec3 exposed = inputColor * u_Exposure;
     
     vec3 mapped = ACESFilm(exposed);
     float luma = dot(mapped, vec3(0.2126, 0.7152, 0.0722));

@@ -73,7 +73,9 @@ void GameLayer::OnAttach()
 	// Setup Framebuffers & Renderbuffers
 	// resuing code from lava engine
 
+	CreateCube();
 	CreateScreenQuad(m_ScreenVAO, m_ScreenVBO);
+	
 
 	glGenFramebuffers(1, &m_ScreenFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
@@ -198,12 +200,12 @@ void GameLayer::OnAttach()
 		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
 	#endif
 
-	Shader lightingVertexShader(vertpath, GL_VERTEX_SHADER);
+	Shader quadVertexShader(vertpath, GL_VERTEX_SHADER);
 	Shader lightingFragmentShader(fragpath, GL_FRAGMENT_SHADER);
 
 	m_LightingShaderProgram = std::make_unique<ShaderProgram>();
 
-	m_LightingShaderProgram->AttachShader(lightingVertexShader);
+	m_LightingShaderProgram->AttachShader(quadVertexShader);
 	m_LightingShaderProgram->AttachShader(lightingFragmentShader);
 	if (!m_LightingShaderProgram->Link())
 	{
@@ -219,12 +221,11 @@ void GameLayer::OnAttach()
 		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
 	#endif
 
-	Shader screenVertexShader(vertpath, GL_VERTEX_SHADER);
 	Shader screenFragmentShader(fragpath, GL_FRAGMENT_SHADER);
 
 	m_ScreenShaderProgram = std::make_unique<ShaderProgram>();
 
-	m_ScreenShaderProgram->AttachShader(screenVertexShader);
+	m_ScreenShaderProgram->AttachShader(quadVertexShader);
 	m_ScreenShaderProgram->AttachShader(screenFragmentShader);
 	if (!m_ScreenShaderProgram->Link())
 	{
@@ -253,7 +254,66 @@ void GameLayer::OnAttach()
 		return;
 	}
 
+	// downsample pass pbr shader
+	fragpath = "resources/shaders/downsample.frag";
+	#ifdef MAGMA_ROOT_DIR
+		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
+	#endif
+
+	Shader downsampleFragmentShader(fragpath, GL_FRAGMENT_SHADER);
+
+	m_DownsampleShaderProgram = std::make_unique<ShaderProgram>();
+
+	m_DownsampleShaderProgram->AttachShader(quadVertexShader);
+	m_DownsampleShaderProgram->AttachShader(downsampleFragmentShader);
+	if (!m_DownsampleShaderProgram->Link())
+	{
+		std::cerr << "Failed to link forward pass shader program!" << std::endl;
+		return;
+	}
+
+	// downsample pass pbr shader
+	fragpath = "resources/shaders/upsample.frag";
+	#ifdef MAGMA_ROOT_DIR
+		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
+	#endif
+
+	Shader upsampleFragmentShader(fragpath, GL_FRAGMENT_SHADER);
+
+	m_UpsampleShaderProgram = std::make_unique<ShaderProgram>();
+
+	m_UpsampleShaderProgram->AttachShader(quadVertexShader);
+	m_UpsampleShaderProgram->AttachShader(upsampleFragmentShader);
+	if (!m_UpsampleShaderProgram->Link())
+	{
+		std::cerr << "Failed to link forward pass shader program!" << std::endl;
+		return;
+	}
+
+	// skybox shader
+	vertpath = "resources/shaders/skybox.vert";
+	fragpath = "resources/shaders/skybox.frag";
+	#ifdef MAGMA_ROOT_DIR
+		vertpath = std::string(MAGMA_ROOT_DIR) + vertpath;
+		fragpath = std::string(MAGMA_ROOT_DIR) + fragpath;
+	#endif
+
+	Shader skyboxVertexShader(vertpath, GL_VERTEX_SHADER);
+	Shader skyboxFragmentShader(fragpath, GL_FRAGMENT_SHADER);
+
+	m_SkyboxShaderProgram = std::make_unique<ShaderProgram>();
+
+	m_SkyboxShaderProgram->AttachShader(skyboxVertexShader);
+	m_SkyboxShaderProgram->AttachShader(skyboxFragmentShader);
+	if (!m_SkyboxShaderProgram->Link())
+	{
+		std::cerr << "Failed to link forward pass shader program!" << std::endl;
+		return;
+	}
+
+
 	SetupShadowMap();
+	SetupBloom(w, h);
 }
 
 // ---- GAME UPDATE LOGIC ----
@@ -420,15 +480,16 @@ void GameLayer::OnUpdate(float dt)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
-
-	glCullFace(GL_FRONT);
-	m_RenderSystem->Render(*m_EntityWorld, *m_ShadowMapShaderProgram, m_WorldStreamer.get(), m_Window, true, false);
 	glCullFace(GL_BACK);
+
+	m_RenderSystem->Render(*m_EntityWorld, *m_ShadowMapShaderProgram, m_WorldStreamer.get(), m_Window, true, false);
 
 	// 1 - geometry pass
 	// clear screen completely
 	glViewport(0, 0, w, h);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_GBuffer);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_CULL_FACE);
@@ -474,7 +535,6 @@ void GameLayer::OnUpdate(float dt)
 	m_LightingShaderProgram->SetUniform("u_GASME", 3);
 	m_LightingShaderProgram->SetUniform("u_ShadowMap", 4);
 	m_LightingShaderProgram->SetUniform("u_LightSpaceMatrix", lightSpaceMatrix);
-	m_LightingShaderProgram->SetUniform("u_SkyColor", m_SkyColor);
 	m_LightingShaderProgram->SetUniform("u_SunColor", m_SunColor);
 	m_LightingShaderProgram->SetUniform("u_SunIntensity", (float)m_SunIntensity);
 	m_LightingShaderProgram->SetUniform("u_SunDirection", m_SunDirection);
@@ -487,6 +547,41 @@ void GameLayer::OnUpdate(float dt)
 	glBindVertexArray(m_ScreenVAO);
 	glDisable(GL_DEPTH_TEST);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	if (m_IsLocalPlayerLoaded)
+	{
+		// Skybox pass
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+		glDepthMask(GL_FALSE);
+		glCullFace(GL_FRONT);
+		m_SkyboxShaderProgram->Use();
+		auto& camRef = m_EntityWorld->GetComponent<Craft::CameraComponent>(m_PrimaryCamera);
+		glm::mat4 view = glm::mat4(glm::mat3(camRef.viewMatrix));
+		glm::mat4 viewProj = camRef.projectionMatrix * view;
+		m_SkyboxShaderProgram->SetUniform("u_ViewProjection", viewProj);
+		m_SkyboxShaderProgram->SetUniform("u_SunDirection", m_SunDirection);
+		m_SkyboxShaderProgram->SetUniform("u_SunIntensity", (float)m_SunIntensity);
+		m_SkyboxShaderProgram->SetUniform("u_SunBloomSize", m_SunBloomSize);
+		m_SkyboxShaderProgram->SetUniform("u_SunRadius", m_SunRadius);
+		m_SkyboxShaderProgram->SetUniform("u_StarSize", m_StarSize);
+		m_SkyboxShaderProgram->SetUniform("u_StarDensity", m_StarDensity);
+
+		m_SkyboxShaderProgram->SetUniform("u_DayZenithColor", m_DayZenithColor);
+		m_SkyboxShaderProgram->SetUniform("u_DaySunColor", m_DaySunColor);
+		m_SkyboxShaderProgram->SetUniform("u_DayHorizonColor", m_DayHorizonColor);
+		m_SkyboxShaderProgram->SetUniform("u_SunsetZenithColor", m_SunsetZenithColor);
+		m_SkyboxShaderProgram->SetUniform("u_SunsetSunColor", m_SunsetSunColor);
+		m_SkyboxShaderProgram->SetUniform("u_SunsetHorizonColor", m_SunsetHorizonColor);
+		m_SkyboxShaderProgram->SetUniform("u_NightZenithColor", m_NightZenithColor);
+		m_SkyboxShaderProgram->SetUniform("u_NightSunColor", m_NightSunColor);
+		m_SkyboxShaderProgram->SetUniform("u_NightHorizonColor", m_NightHorizonColor);
+
+		RenderCube();
+		glDepthMask(GL_TRUE);
+		glDepthFunc(GL_LESS);
+		glCullFace(GL_BACK);
+	}
 
 	// 2.5 - forward pass
 	glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
@@ -518,7 +613,6 @@ void GameLayer::OnUpdate(float dt)
 		m_ForwardShaderProgram->SetUniform("u_ASMETexture", 2);
 		m_ForwardShaderProgram->SetUniform("u_ShadowMap", 3);
 		m_ForwardShaderProgram->SetUniform("u_LightSpaceMatrix", lightSpaceMatrix);
-		m_ForwardShaderProgram->SetUniform("u_SkyColor", m_SkyColor);
 		m_ForwardShaderProgram->SetUniform("u_SunColor", m_SunColor);
 		m_ForwardShaderProgram->SetUniform("u_SunIntensity", (float)m_SunIntensity);
 		m_ForwardShaderProgram->SetUniform("u_SunDirection", m_SunDirection);
@@ -531,9 +625,13 @@ void GameLayer::OnUpdate(float dt)
 		glDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
 	}
+
+	// BLOOM PASS
+	RenderBloom(m_GLightingPass->GetID());
 	
 	// 3 - post processing pass
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, w, h);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	m_ScreenShaderProgram->Use();
@@ -547,14 +645,22 @@ void GameLayer::OnUpdate(float dt)
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, m_GDepth->GetID());
 	m_ScreenShaderProgram->SetUniform("u_DepthTexture", 1);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, m_BloomMipTextures[0]->GetID());
+	m_ScreenShaderProgram->SetUniform("u_BloomTexture", 2);
+
 	m_ScreenShaderProgram->SetUniform("u_FogNear", m_FogNear); // update to make dependent on render distance
 	m_ScreenShaderProgram->SetUniform("u_FogFar", m_FogFar);
 	m_ScreenShaderProgram->SetUniform("u_FogDensity", m_FogDensity);
 	m_ScreenShaderProgram->SetUniform("u_FogCurve", m_FogCurve);
-	m_ScreenShaderProgram->SetUniform("u_SkyColor", m_SkyColor);
 	m_ScreenShaderProgram->SetUniform("u_Exposure", m_Exposure);
 	m_ScreenShaderProgram->SetUniform("u_Saturation", m_Saturation);
 	m_ScreenShaderProgram->SetUniform("u_Gamma", m_Gamma);
+	m_ScreenShaderProgram->SetUniform("u_BloomStrength", m_BloomStrength);
+
+	m_FogColor = CalcHorizonColors();
+	m_ScreenShaderProgram->SetUniform("u_FogColor", m_FogColor);
 	
 
 	glBindVertexArray(m_ScreenVAO);
@@ -981,11 +1087,22 @@ void GameLayer::OnImGuiRender(float dt)
 
 			if (ImGui::BeginMenu("Lighting Settings"))
 			{
-				ImGui::ColorEdit3("Sky Color", glm::value_ptr(m_SkyColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Ambient Intensity", &m_AmbientIntensity, 0.01f, 0.0f, 1.0f);
 
 				ImGui::DragFloat("Sun Intensity", &m_SunIntensity, 0.1f, 0.0f, 100.0f);
 				ImGui::ColorEdit3("Sun Color", glm::value_ptr(m_SunColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::DragFloat("Sun Radius", &m_SunRadius, 0.1f, 0.0f, 100.0f);
+				ImGui::DragFloat("Sun Bloom Size", &m_SunBloomSize, 0.1f, 0.0f, 10.0f);
+
+				ImGui::DragFloat("Star Size", &m_StarSize, 0.1f, 0.0f, 5000.0f);
+				ImGui::DragFloat("Star Density", &m_StarDensity, 0.01f, 0.0f, 10.0f);
+
+				ImGui::ColorEdit3("Day Zenith Color", glm::value_ptr(m_DayZenithColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit3("Day Horizon Color", glm::value_ptr(m_DayHorizonColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit3("Sunset Zenith Color", glm::value_ptr(m_SunsetZenithColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit3("Sunset Horizon Color", glm::value_ptr(m_SunsetHorizonColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit3("Night Zenith Color", glm::value_ptr(m_NightZenithColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit3("Night Horizon Color", glm::value_ptr(m_NightHorizonColor), ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
 
 				// Euler to sundirection
@@ -1023,29 +1140,9 @@ void GameLayer::OnImGuiRender(float dt)
 				ImGui::DragFloat("Exposure Level", &m_Exposure, 0.1f, 0.0f, 100.0f);
 				ImGui::DragFloat("Saturation", &m_Saturation, 0.1f, 0.0f, 10.0f);
 				ImGui::DragFloat("Gamma", &m_Gamma, 0.1f, 0.0f, 5.0f);
-
-
-				// Euler to sundirection
-
-				float pitch = glm::degrees(asin(m_SunDirection.y));
-				float yaw = glm::degrees(atan2(-m_SunDirection.x, -m_SunDirection.z));
-
-				bool changed = false;
-				ImGui::Text("Sun Direction");
-				changed |= ImGui::DragFloat("Sun Pitch", &pitch, 1.0f, -89.0f, 89.0f);
-				changed |= ImGui::DragFloat("Sun Yaw", &yaw, 1.0f, -180.0f, 180.0f);
-				if (changed)
-				{
-					float radPitch = glm::radians(pitch);
-					float radYaw = glm::radians(yaw);
-
-					glm::vec3 newDir;
-					newDir.y = sin(radPitch);
-					newDir.x = -sin(radYaw) * cos(radPitch);
-					newDir.z = -cos(radYaw) * cos(radPitch);
-
-					m_SunDirection = glm::normalize(newDir);
-				}
+				ImGui::DragFloat("Bloom Strength", &m_BloomStrength, 0.01f, 0.0f, 5.0f);
+				ImGui::DragFloat("Bloom Radius", &m_FilterRadius, 0.001f, 0.0f, 5.0f);
+				ImGui::DragFloat("Bloom Weight", &m_BloomWeight, 0.1f, 0.0f, 1.0f);
 
 				ImGui::EndMenu();
 			}
@@ -1354,4 +1451,173 @@ void GameLayer::CreateScreenQuad(unsigned int& vao, unsigned int& vbo)
 
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void GameLayer::RenderScreenQuad()
+{
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glBindVertexArray(m_ScreenVAO);
+	glDisable(GL_DEPTH_TEST);
+
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+
+void GameLayer::SetupBloom(const int& w, const int& h)
+{
+	if (m_BloomFBO != -1)
+	{
+		glDeleteFramebuffers(1, &m_BloomFBO);
+	}
+
+	glGenFramebuffers(1, &m_BloomFBO);
+
+	m_BloomMapTextureSizes.clear();
+	m_BloomMipTextures.clear();
+	m_BloomMipWeights.clear();
+
+	m_BloomMapTextureSizes.resize(m_BloomMipCount);
+	m_BloomMipTextures.resize(m_BloomMipCount);
+	m_BloomMipWeights.resize(m_BloomMipCount);
+
+	int w_ = w;
+	int h_ = h;
+
+	float initialWeight = 1.0f;
+	for (int i = 0; i < m_BloomMipCount; i++)
+	{
+		m_BloomMapTextureSizes[i] = glm::ivec2(w_, h_);
+		m_BloomMipWeights[i] = initialWeight;
+		m_BloomMipTextures[i] = std::make_unique<Magma::Texture>(
+			std::max(1, w_),
+			std::max(1, h_),
+			GL_TEXTURE_2D,
+			GL_RGBA16F,
+			GL_RGBA,
+			GL_FLOAT,
+			nullptr
+		);
+		m_BloomMipTextures[i]->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		m_BloomMipTextures[i]->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		m_BloomMipTextures[i]->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		m_BloomMipTextures[i]->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		w_ = std::max(1, w_ >> 1);
+		h_ = std::max(1, h_ >> 1);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+		initialWeight *= m_BloomWeight;
+	}
+}
+
+void GameLayer::RenderBloom(unsigned int texID)
+{
+	bool karisAvg = true;
+	glBindFramebuffer(GL_FRAMEBUFFER, m_BloomFBO);
+
+	m_DownsampleShaderProgram->Use();
+	if (karisAvg)
+	{
+		m_DownsampleShaderProgram->SetUniform("u_MipLevel", 0);
+	}
+
+	// for each mip level
+	unsigned int curTexID = texID;
+	for (int level = 0; level < m_BloomMipCount; level++)
+	{
+		const unsigned int w = m_BloomMapTextureSizes[level].x;
+		const unsigned int h = m_BloomMapTextureSizes[level].y;
+
+		// downsample the current mip level
+		glViewport(0, 0, w, h);
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_BloomMipTextures[level]->GetID(), 0);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, curTexID);
+		m_DownsampleShaderProgram->SetUniform("u_Input", 0);
+		m_DownsampleShaderProgram->SetUniform("u_Gamma", m_Gamma);
+		m_DownsampleShaderProgram->SetUniform("u_TexelSize", glm::vec2(1.0 / w, 1.0 / h));
+
+		RenderScreenQuad();
+
+		curTexID = m_BloomMipTextures[level]->GetID();
+
+		if (level == 0)
+		{
+			m_DownsampleShaderProgram->SetUniform("u_MipLevel", 1);
+		}
+	}
+
+	// upsample
+	m_UpsampleShaderProgram->Use();
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE);
+	glBlendEquation(GL_FUNC_ADD);
+
+	for (int level = m_BloomMipCount - 1; level > 0; level--)
+	{
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_BloomMipTextures[level]->GetID());
+
+		m_UpsampleShaderProgram->SetUniform("u_Input", 0);
+		m_UpsampleShaderProgram->SetUniform("u_FilterRadius", m_FilterRadius);
+		glViewport(0, 0, m_BloomMapTextureSizes[level - 1].x, m_BloomMapTextureSizes[level - 1].y);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_BloomMipTextures[level - 1]->GetID(), 0);
+
+		RenderScreenQuad();
+	}
+
+	glDisable(GL_BLEND);
+}
+
+glm::vec3 GameLayer::CalcHorizonColors()
+{
+	float sunHeight = -m_SunDirection.y;
+
+	float sunsetMix = glm::smoothstep(-0.1f, 0.2f, sunHeight) * (1.0f - glm::smoothstep(0.2f, 0.5f, sunHeight));
+	float dayMix = glm::smoothstep(0.2f, 0.4f, sunHeight);
+	float nightMix = 1.0f - glm::smoothstep(-0.2f, 0.1f, sunHeight);
+
+	glm::vec3 finalColor = m_DayHorizonColor * dayMix + m_SunsetHorizonColor * sunsetMix + m_NightHorizonColor * nightMix;
+
+	return glm::clamp(finalColor, 0.0f, 1.0f);
+}
+
+void GameLayer::CreateCube()
+{
+	glGenVertexArrays(1, &m_CubeVAO);
+	glGenBuffers(1, &m_CubeVBO);
+	glGenBuffers(1, &m_CubeEBO);
+
+	glBindVertexArray(m_CubeVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, m_CubeVBO);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Magma::cubeVertices), Magma::cubeVertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_CubeEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Magma::cubeIndices), Magma::cubeIndices, GL_STATIC_DRAW);
+
+	// Vertex Positions
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void GameLayer::RenderCube()
+{
+	glBindVertexArray(m_CubeVAO);
+	GLsizei indexCount = sizeof(Magma::cubeIndices) / sizeof(Magma::cubeIndices[0]);
+	glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
 }
