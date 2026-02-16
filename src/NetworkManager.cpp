@@ -201,7 +201,7 @@ void NetworkManager::ShutdownServer()
 // Writes a packet to the server with username
 void NetworkManager::LoginRequestPacket(const std::string& username)
 {
-
+	std::cout << "Sending Login Request Packet..." << std::endl;
 	m_Client->SetConnectionState(Magma::ConnectionState::AUTHENTICATING);
 
 	PacketWriter writer;
@@ -220,11 +220,13 @@ void NetworkManager::LoginRequestPacket(const std::string& username)
 
 	// send
 	enet_peer_send(m_Client->GetENetPeer(), 0, packet);
+	std::cout << "Login Request Packet Sent." << std::endl;
 }
 
 // Sends Incoming Player assigned network ID
 void NetworkManager::LoginSuccessPacket(ENetPeer* peer, uint8_t networkID)
 {
+	std::cout << "Sending Login Success Packet..." << std::endl;
 	auto eWorld = m_EntityWorld.lock();
 	if (!eWorld) return;
 
@@ -241,7 +243,6 @@ void NetworkManager::LoginSuccessPacket(ENetPeer* peer, uint8_t networkID)
 	pData.sequenceID = 0; // sending once
 	pData.networkID = playerRef.networkID;
 
-	if (playerRef.networkID != m_NetworkID) std::cout << "login SENDING WRONG DATA" << std::endl; // sending our own data
 
 	pData.playerData = {};
 
@@ -273,6 +274,8 @@ void NetworkManager::LoginSuccessPacket(ENetPeer* peer, uint8_t networkID)
 
 	// send back to player
 	enet_peer_send(peer, 0, packet);
+
+	std::cout << "Login Success Packet Sent." << std::endl;
 }
 
 uint8_t NetworkManager::GetAvailableNetworkID()
@@ -619,12 +622,13 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 				);
 				enet_peer_send(peer, 0, jPacket);
 			}
-
+			std::cout << "Login Request Packet Processed." << std::endl;
 			break;
 		}
 
 		case static_cast<uint8_t>(PacketType::LOGIN_SUCCESS):
 		{
+			std::cout << "Received Login Success Packet..." << std::endl;
 			// CLIENT
 			uint8_t networkID = 0;
 
@@ -658,6 +662,11 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 				transformRef.localPosition.y = pData.playerData.posY;
 				transformRef.localPosition.z = pData.playerData.posZ;
 
+				std::cout << "Spawning at...";
+				std::cout << transformRef.localPosition.x << " ";
+				std::cout << transformRef.localPosition.y << " ";
+				std::cout << transformRef.localPosition.z << std::endl;
+
 				transformRef.localRotation.w = pData.playerData.rotW;
 				transformRef.localRotation.x = pData.playerData.rotX;
 				transformRef.localRotation.y = pData.playerData.rotY;
@@ -672,7 +681,7 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 				physicsRef.velocity.z = pData.playerData.velZ;
 			}
 			m_Client->SetConnectionState(Magma::ConnectionState::LOGGED_IN);
-
+			std::cout << "Login Success Packet Processed." << std::endl;
 			break;
 		}
 
@@ -713,6 +722,11 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 			// added a small buffer
 			if (dist > (m_WorldManager->GetServerRenderDistance() + 2)) return;
+
+			if (chunkY < 0 || chunkY > 15)
+			{
+				return; // prevents the server from crashing sending chunks from all directions
+			}
 
 			SendChunkData(peer, chunkX, chunkY, chunkZ);
 			break;
@@ -759,8 +773,8 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 
 		case static_cast<uint8_t>(PacketType::PLAYER_JOIN):
 		{
+			std::cout << "Received Player Join Packet..." << std::endl;
 			// CLIENT
-			
 			if (length < sizeof(PlayerJoinPacket)) return;
 
 			// read packet
@@ -810,6 +824,11 @@ void NetworkManager::HandlePacket(ENetPacket* packet, ENetPeer* peer)
 			physicsRef.velocity.x = jData.playerData.velX;
 			physicsRef.velocity.y = jData.playerData.velY;
 			physicsRef.velocity.z = jData.playerData.velZ;
+
+			std::cout << "Player Join Packet Processed. Welcome " << username << " at ";
+			std::cout << transformRef.localPosition.x << " ";
+			std::cout << transformRef.localPosition.y << " ";
+			std::cout << transformRef.localPosition.z << std::endl;
 
 			break;
 		}

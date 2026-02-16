@@ -65,7 +65,7 @@ file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS "resources/shaders/*.vert" "r
 
 set(TRACY_SOURCE "${CMAKE_SOURCE_DIR}/external/tracy/public/TracyClient.cpp")
 
-add_executable(MagmaFramework
+add_executable(MagmaCraft
      ${MAGMA_SOURCES}
      ${SHADER_SOURCES}
      "resources/app-icon.rc")
@@ -73,35 +73,35 @@ add_executable(MagmaFramework
 add_compile_definitions(WIN32_LEAN_AND_MEAN)
 
 # Inject the project root directory as a definition named "MAGMA_ROOT_DIR"
-target_compile_definitions(MagmaFramework PUBLIC "MAGMA_ROOT_DIR=\"${CMAKE_SOURCE_DIR}/\"")
+target_compile_definitions(MagmaCraft PUBLIC "MAGMA_ROOT_DIR=\"${CMAKE_SOURCE_DIR}/\"")
 
-target_include_directories(MagmaFramework PUBLIC
+target_include_directories(MagmaCraft PUBLIC
     "src/include"
     "external/imgui"
 )
 
-target_include_directories(MagmaFramework PRIVATE ${enet_SOURCE_DIR}/include)
+target_include_directories(MagmaCraft PRIVATE ${enet_SOURCE_DIR}/include)
 
 
-option(TRACY_ENABLE "Enable Tracy Profiler" ON)
-option(TRACY_ON_DEMAND "Enable profiling on demand" ON)
-target_include_directories(MagmaFramework PUBLIC 
-    "${CMAKE_SOURCE_DIR}/external/tracy/public"
-)
+#option(TRACY_ENABLE "Enable Tracy Profiler" OFF)
+#option(TRACY_ON_DEMAND "Enable profiling on demand" OFF)
+#target_include_directories(MagmaCraft PUBLIC 
+#    "${CMAKE_SOURCE_DIR}/external/tracy/public"
+#)
 
-target_sources(MagmaFramework PRIVATE 
-    "${CMAKE_SOURCE_DIR}/external/tracy/public/TracyClient.cpp"
-)
+#target_sources(MagmaCraft PRIVATE 
+#    "${CMAKE_SOURCE_DIR}/external/tracy/public/TracyClient.cpp"
+#)
 
-if(TRACY_ENABLE)
-    target_compile_definitions(MagmaFramework PUBLIC TRACY_ENABLE)
-    if(TRACY_ON_DEMAND)
-        target_compile_definitions(MagmaFramework PUBLIC TRACY_ON_DEMAND)
-    endif()
-endif()
+#if(TRACY_ENABLE)
+#    target_compile_definitions(MagmaCraft PUBLIC TRACY_ENABLE)
+#    if(TRACY_ON_DEMAND)
+#        target_compile_definitions(MagmaCraft PUBLIC TRACY_ON_DEMAND)
+#    endif()
+#endif()
 
 # Link libraries
-target_link_libraries(MagmaFramework PUBLIC
+target_link_libraries(MagmaCraft PUBLIC
     glm::glm                  # Math
     SDL3::SDL3                # Windowing/Input
     glad::glad                # OpenGL Loader
@@ -116,20 +116,20 @@ target_link_libraries(MagmaFramework PUBLIC
     glui
     stb
 
-    ws2_32      # Required by Tracy
-    dbghelp     # Required by Tracy
-    advapi32    # Required by Tracy
-    user32      # Required by Tracy
+    #ws2_32      # Required by Tracy
+    #dbghelp     # Required by Tracy
+    #advapi32    # Required by Tracy
+    #user32      # Required by Tracy
 )
 
 find_package(Threads REQUIRED)
-target_link_libraries(MagmaFramework PUBLIC Threads::Threads)
+target_link_libraries(MagmaCraft PUBLIC Threads::Threads)
 
 
-target_compile_features(MagmaFramework PRIVATE cxx_std_20)
+target_compile_features(MagmaCraft PRIVATE cxx_std_20)
 
-add_custom_command(TARGET MagmaFramework POST_BUILD
+add_custom_command(TARGET MagmaCraft POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_SOURCE_DIR}/resources"
-    "$<TARGET_FILE_DIR:MagmaFramework>/resources"
+    "$<TARGET_FILE_DIR:MagmaCraft>/resources"
 )

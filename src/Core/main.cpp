@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 {
     // Window Creation
 	Magma::Window window;
-	if (!window.Init(1280, 720, "Magma Framework")) { return -1; }
+	if (!window.Init(1280, 720, "MagmaCraft 0.3.5-dev")) { return -1; }
 	window.SetVSync(0);
 
     // Layers

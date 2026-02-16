@@ -32,7 +32,7 @@
 
 #include "Scripts/PlayerController.h"
 
-#include <tracy/Tracy.hpp>
+//#include <tracy/Tracy.hpp>
 
 // refactor needed, this file has become a monolith
 
@@ -319,7 +319,7 @@ void GameLayer::OnAttach()
 // ---- GAME UPDATE LOGIC ----
 void GameLayer::OnUpdate(float dt)
 {
-	ZoneScoped;
+	//ZoneScoped;
 	float realDT = dt;
 	if (dt > 0.1f) dt = 0.1f; // safaty
 
@@ -461,95 +461,88 @@ void GameLayer::OnUpdate(float dt)
 	{
 		auto& transformRef = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
 		playerPos = transformRef.worldMatrix[3];
-	}
 
-	m_LightViewMatrix = glm::lookAt(
-		(m_SunDirection * -m_SunDistanceMultiplier) + playerPos, // place sun pos somehwere along it's view direction and follow player
-		playerPos, // look at player
-		glm::vec3(0.0f, 1.0f, 0.0f) // up
-	);
 
-	glm::mat4 lightSpaceMatrix = m_LightProjMatrix * m_LightViewMatrix;
+		m_LightViewMatrix = glm::lookAt(
+			(m_SunDirection * -m_SunDistanceMultiplier) + playerPos, // place sun pos somehwere along it's view direction and follow player
+			playerPos, // look at player
+			glm::vec3(0.0f, 1.0f, 0.0f) // up
+		);
 
-	m_ShadowMapShaderProgram->Use(); // use the shadow shader outside render function for the uniforms
+		glm::mat4 lightSpaceMatrix = m_LightProjMatrix * m_LightViewMatrix;
 
-	m_ShadowMapShaderProgram->SetUniform("u_LightSpaceMatrix", lightSpaceMatrix);
+		m_ShadowMapShaderProgram->Use(); // use the shadow shader outside render function for the uniforms
 
-	glViewport(0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowMapFBO);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
-	glCullFace(GL_BACK);
+		m_ShadowMapShaderProgram->SetUniform("u_LightSpaceMatrix", lightSpaceMatrix);
 
-	m_RenderSystem->Render(*m_EntityWorld, *m_ShadowMapShaderProgram, m_WorldStreamer.get(), m_Window, true, false);
+		glViewport(0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowMapFBO);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_DEPTH_TEST);
+		glCullFace(GL_BACK);
 
-	// 1 - geometry pass
-	// clear screen completely
-	glViewport(0, 0, w, h);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_GBuffer);
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
+		m_RenderSystem->Render(*m_EntityWorld, *m_ShadowMapShaderProgram, m_WorldStreamer.get(), m_Window, true, false);
 
-	m_ShaderProgram->Use();
-	m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window, false, false);
+		// 1 - geometry pass
+		// clear screen completely
+		glViewport(0, 0, w, h);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_GBuffer);
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
 
-	// 2 - lighting pass
-	glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
+		m_ShaderProgram->Use();
+		m_RenderSystem->Render(*m_EntityWorld, *m_ShaderProgram, m_WorldStreamer.get(), m_Window, false, false);
 
-	m_LightingShaderProgram->Use();
+		// 2 - lighting pass
+		glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
 
-	// bind g textures
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_GPosition->GetID());
+		m_LightingShaderProgram->Use();
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, m_GNormal->GetID());
+		// bind g textures
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_GPosition->GetID());
 
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, m_GAlbedo->GetID());
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, m_GNormal->GetID());
 
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, m_GMatData->GetID());
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_GAlbedo->GetID());
 
-	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, m_ShadowMap->GetID());
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, m_GMatData->GetID());
 
-	if (m_IsLocalPlayerLoaded)
-	{
-		auto& transformRef = m_EntityWorld->GetComponent<Craft::TransformComponent>(m_PrimaryCamera);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, m_ShadowMap->GetID());
+
 		m_LightingShaderProgram->SetUniform("u_CameraPosition", glm::vec3(transformRef.worldMatrix[3]));
-	}
-	else
-	{
-		m_LightingShaderProgram->SetUniform("u_CameraPosition", glm::vec3(0.0f));
-	}
-
-	m_LightingShaderProgram->SetUniform("u_GPosition", 0);
-	m_LightingShaderProgram->SetUniform("u_GNormal", 1);
-	m_LightingShaderProgram->SetUniform("u_GAlbedo", 2);
-	m_LightingShaderProgram->SetUniform("u_GASME", 3);
-	m_LightingShaderProgram->SetUniform("u_ShadowMap", 4);
-	m_LightingShaderProgram->SetUniform("u_LightSpaceMatrix", lightSpaceMatrix);
-	m_LightingShaderProgram->SetUniform("u_SunColor", m_SunColor);
-	m_LightingShaderProgram->SetUniform("u_SunIntensity", (float)m_SunIntensity);
-	m_LightingShaderProgram->SetUniform("u_SunDirection", m_SunDirection);
-	m_LightingShaderProgram->SetUniform("u_ShadowBiasMin", (float)m_ShadowBiasMin);
-	m_LightingShaderProgram->SetUniform("u_ShadowBiasMax", (float)m_ShadowBiasMax);
-	m_LightingShaderProgram->SetUniform("u_ShadowFadeDistance", (float)m_ShadowFadeDistance);
-	m_LightingShaderProgram->SetUniform("u_AmbientIntensity", (float)m_AmbientIntensity);
 
 
-	glBindVertexArray(m_ScreenVAO);
-	glDisable(GL_DEPTH_TEST);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
+		//m_LightingShaderProgram->SetUniform("u_CameraPosition", glm::vec3(0.0f));
 
-	if (m_IsLocalPlayerLoaded)
-	{
+		m_LightingShaderProgram->SetUniform("u_GPosition", 0);
+		m_LightingShaderProgram->SetUniform("u_GNormal", 1);
+		m_LightingShaderProgram->SetUniform("u_GAlbedo", 2);
+		m_LightingShaderProgram->SetUniform("u_GASME", 3);
+		m_LightingShaderProgram->SetUniform("u_ShadowMap", 4);
+		m_LightingShaderProgram->SetUniform("u_LightSpaceMatrix", lightSpaceMatrix);
+		m_LightingShaderProgram->SetUniform("u_SunColor", m_SunColor);
+		m_LightingShaderProgram->SetUniform("u_SunIntensity", (float)m_SunIntensity);
+		m_LightingShaderProgram->SetUniform("u_SunDirection", m_SunDirection);
+		m_LightingShaderProgram->SetUniform("u_ShadowBiasMin", (float)m_ShadowBiasMin);
+		m_LightingShaderProgram->SetUniform("u_ShadowBiasMax", (float)m_ShadowBiasMax);
+		m_LightingShaderProgram->SetUniform("u_ShadowFadeDistance", (float)m_ShadowFadeDistance);
+		m_LightingShaderProgram->SetUniform("u_AmbientIntensity", (float)m_AmbientIntensity);
+
+
+		glBindVertexArray(m_ScreenVAO);
+		glDisable(GL_DEPTH_TEST);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
 		// Skybox pass
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
@@ -581,12 +574,10 @@ void GameLayer::OnUpdate(float dt)
 		glDepthMask(GL_TRUE);
 		glDepthFunc(GL_LESS);
 		glCullFace(GL_BACK);
-	}
 
-	// 2.5 - forward pass
-	glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
-	if (m_IsLocalPlayerLoaded)
-	{
+		// 2.5 - forward pass
+		glBindFramebuffer(GL_FRAMEBUFFER, m_GLightingPassFBO);
+
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 		glEnable(GL_BLEND);
@@ -624,51 +615,56 @@ void GameLayer::OnUpdate(float dt)
 		m_RenderSystem->Render(*m_EntityWorld, *m_ForwardShaderProgram, m_WorldStreamer.get(), m_Window, false, true);
 		glDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
+
+		// BLOOM PASS
+		RenderBloom(m_GLightingPass->GetID());
+
+		// 3 - post processing pass
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, w, h);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		m_ScreenShaderProgram->Use();
+
+		// bind gbuffer textures for reading
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_GLightingPass->GetID());
+		m_ScreenShaderProgram->SetUniform("u_ScreenTexture", 0);
+
+		// depth uniforms
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, m_GDepth->GetID());
+		m_ScreenShaderProgram->SetUniform("u_DepthTexture", 1);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_BloomMipTextures[0]->GetID());
+		m_ScreenShaderProgram->SetUniform("u_BloomTexture", 2);
+
+		m_ScreenShaderProgram->SetUniform("u_FogNear", m_FogNear); // update to make dependent on render distance
+		m_ScreenShaderProgram->SetUniform("u_FogFar", m_FogFar);
+		m_ScreenShaderProgram->SetUniform("u_FogDensity", m_FogDensity);
+		m_ScreenShaderProgram->SetUniform("u_FogCurve", m_FogCurve);
+		m_ScreenShaderProgram->SetUniform("u_Exposure", m_Exposure);
+		m_ScreenShaderProgram->SetUniform("u_Saturation", m_Saturation);
+		m_ScreenShaderProgram->SetUniform("u_Gamma", m_Gamma);
+		m_ScreenShaderProgram->SetUniform("u_BloomStrength", m_BloomStrength);
+
+		m_FogColor = CalcHorizonColors();
+		m_ScreenShaderProgram->SetUniform("u_FogColor", m_FogColor);
+
+
+		glBindVertexArray(m_ScreenVAO);
+		glDisable(GL_DEPTH_TEST);
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
-
-	// BLOOM PASS
-	RenderBloom(m_GLightingPass->GetID());
-	
-	// 3 - post processing pass
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, w, h);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	m_ScreenShaderProgram->Use();
-
-	// bind gbuffer textures for reading
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_GLightingPass->GetID());
-	m_ScreenShaderProgram->SetUniform("u_ScreenTexture", 0);
-
-	// depth uniforms
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, m_GDepth->GetID());
-	m_ScreenShaderProgram->SetUniform("u_DepthTexture", 1);
-
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, m_BloomMipTextures[0]->GetID());
-	m_ScreenShaderProgram->SetUniform("u_BloomTexture", 2);
-
-	m_ScreenShaderProgram->SetUniform("u_FogNear", m_FogNear); // update to make dependent on render distance
-	m_ScreenShaderProgram->SetUniform("u_FogFar", m_FogFar);
-	m_ScreenShaderProgram->SetUniform("u_FogDensity", m_FogDensity);
-	m_ScreenShaderProgram->SetUniform("u_FogCurve", m_FogCurve);
-	m_ScreenShaderProgram->SetUniform("u_Exposure", m_Exposure);
-	m_ScreenShaderProgram->SetUniform("u_Saturation", m_Saturation);
-	m_ScreenShaderProgram->SetUniform("u_Gamma", m_Gamma);
-	m_ScreenShaderProgram->SetUniform("u_BloomStrength", m_BloomStrength);
-
-	m_FogColor = CalcHorizonColors();
-	m_ScreenShaderProgram->SetUniform("u_FogColor", m_FogColor);
-	
-
-	glBindVertexArray(m_ScreenVAO);
-	glDisable(GL_DEPTH_TEST);
-
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	
-	//RenderUI(w, h, dt);
+	else
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, w, h);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
 
 	// screenshot 
 	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_F2)) { Screenshot(w, h); }
@@ -682,7 +678,7 @@ void GameLayer::OnUpdate(float dt)
 	{
 		m_NetworkManager->Update(dt);
 	}
-	FrameMark;
+	//FrameMark;
 }
 
 void GameLayer::OnDetach()
@@ -1313,6 +1309,7 @@ void GameLayer::SpawnLocalPlayer()
 
 void GameLayer::CleanupLocalPlayer()
 {
+	std::cout << "Cleaning up local player..." << std::endl;
 	if (m_Player != Craft::NULL_ENTITY && m_EntityWorld->HasEntityID(m_Player))
 	{
 		m_EntityWorld->RemoveEntity(m_Player);
@@ -1322,6 +1319,7 @@ void GameLayer::CleanupLocalPlayer()
 	m_EntityWorld->SetLocalPlayerID(Craft::NULL_ENTITY);
 	m_IsLocalPlayerLoaded = false;
 	m_AutoSaveTimer = 0.0f;
+	std::cout << "Local player cleaned." << std::endl;
 }
 
 void GameLayer::WorldShutdown()

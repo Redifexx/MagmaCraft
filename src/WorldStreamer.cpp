@@ -259,6 +259,7 @@ void WorldStreamer::RemoveOldChunks(glm::ivec3 curChunkPos, glm::ivec3 lastChunk
 
 void WorldStreamer::UnloadAllChunks()
 {
+	std::cout << "Unloading all chunks..." << std::endl;
 	std::shared_ptr<WorldManager> worldManager = GetWorldManager();
 	if (!worldManager) return;
 
@@ -276,6 +277,7 @@ void WorldStreamer::UnloadAllChunks()
 	// reset flags
 	m_FirstFrame = true;
 	m_LastChunkPos = glm::ivec3(0, 0, 0);
+	std::cout << "All chunks unloaded." << std::endl;
 }
 
 void WorldStreamer::GetPlayerChunkCoords(const glm::vec3& playerPosition, int& chunkX, int& chunkY, int& chunkZ)

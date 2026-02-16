@@ -30,7 +30,7 @@ WorldManager::WorldManager()
 		GL_UNSIGNED_BYTE
 	);
 	
-	//m_BlockAtlasTextureDiffSpec->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	//m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 	m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -54,7 +54,7 @@ WorldManager::WorldManager()
 		GL_RGBA,
 		GL_UNSIGNED_BYTE
 	);
-	//m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	//m_BlockAtlasTextureASME->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 	m_BlockAtlasTextureASME->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	m_BlockAtlasTextureASME->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
@@ -391,20 +391,6 @@ void WorldManager::CreateChunk(Chunk& chunk, int chunkX, int chunkY, int chunkZ)
 // Each Chunk will be its own file until worlds become bigger
 void WorldManager::SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkY, int chunkZ)
 {
-	/*
-	std::string folderPath = "saves/" + m_WorldName;
-	std::string filename = folderPath + "/chunk_" + std::to_string(chunkX) + "_" + std::to_string(chunkY) + "_" + std::to_string(chunkZ) + ".dat";
-
-	std::ofstream outfile(filename, std::ios::binary);
-	if (!outfile.is_open()) return; // should prob throw an error
-
-	// Header
-	ChunkFileHeader header;
-	header.chunkX = chunkX;
-	header.chunkY = chunkY;
-	header.chunkZ = chunkZ;
-	outfile.write((char*)&header, sizeof(ChunkFileHeader));
-	*/
 
 	// Compress
 	std::vector<uint8_t> compressedData;
@@ -414,51 +400,10 @@ void WorldManager::SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkY, i
 	RegionFile* region = GetRegion(chunkX, chunkY, chunkZ);
 
 	region->WriteChunk(chunkX, chunkY, chunkZ, compressedData);
-
-	/*
-	// Write Data Size
-	uint32_t dataSize = compressedData.size();
-	outfile.write((char*)&dataSize, sizeof(uint32_t));
-
-	// Write Data
-	outfile.write((char*)compressedData.data(), dataSize);
-
-	outfile.close();
-	*/
 }
 
 bool WorldManager::LoadChunkFromFile(std::vector<uint8_t>& compressedData, int chunkX, int chunkY, int chunkZ)
 {
-	/*
-	std::string filename = "saves/" + m_WorldName + "/chunk_" + std::to_string(chunkX) + "_" + std::to_string(chunkY) + "_" + std::to_string(chunkZ) + ".dat";
-	std::ifstream infile(filename, std::ios::binary);
-	if (!infile.is_open()) return false;
-
-	// Read Header
-	ChunkFileHeader header;
-	infile.read((char*)&header, sizeof(ChunkFileHeader));
-	if (header.magic != 0X4D43484B)
-	{
-		infile.close();
-		return false; // Invalid file
-	}
-
-	// Read Data Size
-	uint32_t dataSize;
-	infile.read((char*)&dataSize, sizeof(uint32_t));
-
-	if (dataSize > 200000)
-	{
-		infile.close();
-		return false; // Corrupt file
-	}
-
-	// Read Compressed Data
-	compressedData.resize(dataSize);
-	infile.read((char*)compressedData.data(), dataSize);
-	infile.close();
-
-	*/
 	RegionFile* region = GetRegion(chunkX, chunkY, chunkZ);
 	return region->ReadChunk(chunkX, chunkY, chunkZ, compressedData);
 }
