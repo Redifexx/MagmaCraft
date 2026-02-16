@@ -724,7 +724,7 @@ void GameLayer::OnImGuiRender(float dt)
 	static char buf[256] = "";
 	ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
-	ImGui::Begin("MagmaCraft");
+	ImGui::Begin("MagmaCraft by Gio Perez Colon");
 	if (m_MenuState != MenuState::IN_GAME)
 	{
 		ImGui::TextUnformatted(logoArt);
@@ -732,7 +732,7 @@ void GameLayer::OnImGuiRender(float dt)
 	}
 	else
 	{
-		ImGui::Text("MagmaCraft by Gio Perez Colon");
+		ImGui::Text("---Double click Escape when in game to gain control---");
 	}
 	ImGui::Separator();
 	ImGui::Separator();

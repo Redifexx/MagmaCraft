@@ -191,7 +191,7 @@ namespace Magma
 			float m_FogNear = 0.1f;
 			float m_FogFar = 1000.0f;
 			float m_FogDensity = 0.004f;
-			float m_FogCurve = 8.0f;
+			float m_FogCurve = 2.0f;
 			glm::vec3 m_FogColor = glm::vec3(0.3, 0.5, 1.0);
 
 			float m_SunIntensity = 10.0f;
