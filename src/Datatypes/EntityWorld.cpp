@@ -1,4 +1,5 @@
 #include "Datatypes/EntityWorld.h"
+#include <iostream>
 
 using namespace Craft;
 
@@ -122,6 +123,7 @@ void EntityWorld::RemoveEntity(uint32_t entityID)
 
 void EntityWorld::ClearAllEntities()
 {
+	std::cout << "Clearing all entities..." << std::endl;
 	for (ISparseSet* pool : m_ComponentPools)
 	{
 		if (pool) pool->Clear();
@@ -131,6 +133,7 @@ void EntityWorld::ClearAllEntities()
 	m_FreeEntityIDs.clear();
 	m_LocalPlayerID = NULL_ENTITY;
 	m_NextEntityID = 0;
+	std::cout << "All entities cleared." << std::endl;
 }
 
 bool EntityWorld::HasEntityID(uint32_t entityID)

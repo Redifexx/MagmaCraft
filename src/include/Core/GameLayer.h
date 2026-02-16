@@ -29,6 +29,7 @@
 #include <Datatypes/Components/CameraComponent.h>
 #include <glui/glui.h>
 #include "gl2d/gl2d.h"
+#include "WorldSelector.h"
 
 namespace Magma
 {
@@ -97,7 +98,11 @@ namespace Magma
 			void CleanupLocalPlayer();
 			void WorldShutdown();
 			void RenderUI(const int& w, const int& h, float dt);
+			void SetupShadowMap();
+			void Screenshot(const int& w, const int& h);
+			void ToggleVSync();
 
+			bool m_VSyncEnabled = true;
 
 			std::vector<Model*> m_Models;
 			std::unique_ptr<ShaderProgram> m_ShaderProgram = nullptr;
@@ -107,6 +112,7 @@ namespace Magma
 			std::unique_ptr<Craft::WorldStreamer> m_WorldStreamer = nullptr;
 
 			// Text Input Buffers
+			std::unique_ptr<Craft::WorldSelector> m_WorldSelector = nullptr;
 			char m_SeedBuf[32] = "";
 			char m_WorldNameBuf[32] = "";
 			char m_UserNameBuf[32] = "Redifexx";
@@ -124,6 +130,13 @@ namespace Magma
 			float m_ConnectionFailTimer = 0.0f;
 			float m_ConnectionFailRate = 3.0f;
 
+			// Framerate stuff
+			float m_TotalFPS = 0.0f;
+			int m_FrameCount = 0;
+			float m_TotalFrameTime = 0.0f;
+			float m_AvgFPS = 0.0f;
+			float m_AvgFrameTime = 0.0f;
+
 			// IMGui Options
 			bool m_AutoConnect = true;
 			bool m_AutoSeed = true;
@@ -133,7 +146,6 @@ namespace Magma
 			// These should ideally be part of another class or system
 			glm::mat4 m_ModelMatrix;
 			std::unique_ptr<Camera> m_Camera = nullptr;
-			std::unique_ptr<Texture> m_Texture = nullptr;
 			Model* pModel = nullptr;
 			SDL_Window* m_Window = nullptr; // make shared
 
@@ -152,18 +164,100 @@ namespace Magma
 			// here for now because i dont have a resource manager YET
 			unsigned int m_ScreenFBO;
 			unsigned int m_ScreenRBO;
-			unsigned int m_ScreenTextureColorBuffer;
+			std::unique_ptr<Magma::Texture> m_ScreenTextureColorBuffer = nullptr;
 			unsigned int m_ScreenVAO, m_ScreenVBO;
 			// my mesh class doesnt support a lack of normals :(
 			void CreateScreenQuad(unsigned int& vao, unsigned int& vbo);
+			void RenderScreenQuad();
 			std::unique_ptr<Magma::Mesh> m_ScreenQuad = nullptr;
 			std::unique_ptr<ShaderProgram> m_ScreenShaderProgram = nullptr;
 
+			// Deferred rendering stuff (learn open gl)
+			unsigned int m_GBuffer;
+			std::unique_ptr<Magma::Texture> m_GPosition = nullptr;
+			std::unique_ptr<Magma::Texture> m_GNormal = nullptr;
+			std::unique_ptr<Magma::Texture> m_GAlbedo = nullptr;
+			std::unique_ptr<Magma::Texture> m_GMatData = nullptr;
+
+			unsigned int m_GLightingPassFBO;
+			std::unique_ptr<Magma::Texture> m_GLightingPass = nullptr;
+			std::unique_ptr<Magma::Texture> m_GDepth = nullptr;
+			std::unique_ptr<ShaderProgram> m_LightingShaderProgram = nullptr;
+
+			// Forward pass shader for transparent/translucent objects
+			std::unique_ptr<ShaderProgram> m_ForwardShaderProgram = nullptr;
+
+			// DEBUG MENU ITEMS
+			float m_FogNear = 0.1f;
+			float m_FogFar = 1000.0f;
+			float m_FogDensity = 0.004f;
+			float m_FogCurve = 8.0f;
+			glm::vec3 m_FogColor = glm::vec3(0.3, 0.5, 1.0);
+
+			float m_SunIntensity = 10.0f;
+			glm::vec3 m_SunColor = glm::vec3(1.0f);
+			glm::vec3 m_SunDirection = normalize(glm::vec3(-0.5f));
+
+			float m_AmbientIntensity = 0.3f;
+			float m_Exposure = 0.5f;
+			float m_Saturation = 1.0f;
+			float m_Gamma = 2.2f;
+
+			// Shadow Map stuff
+			unsigned int m_ShadowMapFBO = 0;
+			std::unique_ptr<Magma::Texture> m_ShadowMap = nullptr;
+			const int SHADOW_MAP_RESOLUTION = 2048;
+			std::unique_ptr<ShaderProgram> m_ShadowMapShaderProgram = nullptr;
+			float m_SunShadowNearPlane = 3.0f;
+			float m_SunShadowFarPlane = 400.0f;
+			float m_SunShadowOrthoSize = 50.0f;
+			float m_SunDistanceMultiplier = 350.0f;
+			float m_ShadowBiasMin = 0.0001f;
+			float m_ShadowBiasMax = 0.0001f;
+			float m_ShadowFadeDistance = 50.0f;
+			glm::mat4 m_LightProjMatrix = glm::mat4(1.0f);
+			glm::mat4 m_LightViewMatrix = glm::mat4(1.0f);
+			bool m_LightProjDirty = true;
+
+			// Bloom stuff
+			uint32_t m_BloomMipCount = 6;
+			std::vector<glm::ivec2> m_BloomMapTextureSizes;
+			std::vector<std::unique_ptr<Magma::Texture>> m_BloomMipTextures;
+			std::vector<float> m_BloomMipWeights;
+			unsigned int m_BloomFBO = -1; // null check
+			std::unique_ptr<ShaderProgram> m_DownsampleShaderProgram = nullptr;
+			std::unique_ptr<ShaderProgram> m_UpsampleShaderProgram = nullptr;
+			void SetupBloom(const int& w, const int& h);
+			void RenderBloom(unsigned int texID);
+			float m_BloomStrength = 0.1f;
+			float m_FilterRadius = 0.005f;
+			float m_BloomWeight = 0.4f;
+
+			// Skybox Settings
+			std::unique_ptr<ShaderProgram> m_SkyboxShaderProgram = nullptr;
+			glm::vec3 m_DayZenithColor = glm::vec3(0.0, 0.114, 0.431);
+			glm::vec3 m_DaySunColor = glm::vec3(1.0, 0.578, 0.157);
+			glm::vec3 m_DayHorizonColor = glm::vec3(0.288, 0.454, 0.784);
+			glm::vec3 m_SunsetZenithColor = glm::vec3(0.2, 0.2, 0.4);
+			glm::vec3 m_SunsetSunColor = glm::vec3(1.0, 0.059, 0.0);
+			glm::vec3 m_SunsetHorizonColor = glm::vec3(0.8, 0.3, 0.1);
+			glm::vec3 m_NightZenithColor = glm::vec3(0.01, 0.01, 0.02);
+			glm::vec3 m_NightSunColor = glm::vec3(0.0, 0.0, 0.0);
+			glm::vec3 m_NightHorizonColor = glm::vec3(0.02, 0.02, 0.05);
+			float m_SunBloomSize = 0.997f;
+			float m_SunRadius = 0.998f;
+			float m_StarSize = 70.0f;
+			float m_StarDensity = 0.99f;
+			glm::vec3 CalcHorizonColors(); // helper for matching fog color to horizon
+			unsigned int m_CubeVAO, m_CubeVBO, m_CubeEBO;
+			void CreateCube();
+			void RenderCube();
+
 
 			// Should later be moved to manager
-			glui::RendererUi* m_UI;
-			gl2d::Renderer2D* m_UIRenderer;
-			gl2d::Font* m_UIFont;
-			gl2d::Texture* m_UITexture;
+			glui::RendererUi* m_UI = nullptr;
+			gl2d::Renderer2D* m_UIRenderer = nullptr;
+			gl2d::Font* m_UIFont = nullptr;
+			gl2d::Texture* m_UITexture = nullptr;
 	};
 }

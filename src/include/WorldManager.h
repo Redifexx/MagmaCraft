@@ -5,6 +5,7 @@
 #include "Chunk.h"
 #include "WorldGenerator.h"
 #include "NetworkManager.h"
+#include "RegionFile.h"
 #include "Datatypes/EntityWorld.h"
 #include "Datatypes/Components/PlayerComponent.h"
 #include <glm/glm.hpp>
@@ -26,6 +27,7 @@ namespace Craft
 	{
 		const uint32_t magic = 0X4D43484B; // Magma Chunk 'MCHK' Magic Number
 		int32_t chunkX;
+		int32_t chunkY;
 		int32_t chunkZ;
 	};
 	#pragma pack(pop)
@@ -51,12 +53,16 @@ namespace Craft
 	inline int WorldToChunkPos(int coord)
 	{
 		// maps negative chunks correctly
+		// works while width is the same as the height
 		return (coord >= 0) ? (coord / CHUNK_WIDTH) : ((coord - CHUNK_WIDTH + 1) / CHUNK_WIDTH);
 	}
 
 	class WorldManager
 	{
 		public:
+			WorldManager();
+			~WorldManager();
+
 			// --- WORLD CREATION/INITIALIZATION ---
 			// Sets up a new world generator & world folder
 			// Only ever called if server
@@ -78,42 +84,51 @@ namespace Craft
 			void CompressChunkData(const Chunk& chunk, std::vector<uint8_t>& compressedData);
 			void DecompressChunkData(const std::vector<uint8_t>& compressedData, Chunk& chunk);
 			
-			std::vector<uint8_t> GetChunkDataCompressed(int chunkX, int chunkZ);
+			std::vector<uint8_t> GetChunkDataCompressed(int chunkX, int chunkY, int chunkZ);
 
 			// Calls on world generator to create a chunk, then saves to file
-			void CreateChunk(Chunk& chunk, int chunkX, int chunkZ);
-			void SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ);
+			void CreateChunk(Chunk& chunk, int chunkX, int chunkY, int chunkZ);
+			void SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkY, int chunkZ);
 
-			bool LoadChunkFromFile(std::vector<uint8_t>& compressedData, int chunkX, int chunkZ);
-			bool LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int chunkZ);
+			bool LoadChunkFromFile(std::vector<uint8_t>& compressedData, int chunkX, int chunkY, int chunkZ);
+			bool LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int chunkY, int chunkZ);
 
 			// Server function to delete the chunks that no one is around
 			void UnloadStaleChunks(const std::vector<glm::vec3>& playerPositions, uint32_t serverRenderDistance);
 
 			// --- CHUNK BUFFER ---
-			bool HasChunkInBuffer(int chunkX, int chunkZ);
-			std::shared_ptr<Chunk> GetChunkFromBuffer(int chunkX, int chunkZ);
-			void RemoveChunkFromBuffer(int chunkX, int chunkZ);
+			bool HasChunkInBuffer(int chunkX, int chunkY, int chunkZ);
+			std::shared_ptr<Chunk> GetChunkFromBuffer(int chunkX, int chunkY, int chunkZ);
+			void RemoveChunkFromBuffer(int chunkX, int chunkY, int chunkZ);
 
 			// data packets
-			void AddChunkDataToBuffer(std::unique_ptr<Chunk> chunk, int chunkX, int chunkZ);
+			void AddChunkDataToBuffer(std::unique_ptr<Chunk> chunk, int chunkX, int chunkY, int chunkZ);
 
 			// Returns block type
-			const uint32_t GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec2 chunkPos, Direction direction);
+			const uint32_t GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec3 chunkPos, Direction direction);
 			
 			void SetNetworkIDToNameMap(std::shared_ptr<std::unordered_map <uint8_t, std::string>> map) { m_NetworkIDToNameMap = map; }
 
 			const uint8_t GetServerRenderDistance() { return m_ServerRenderDistance; }
+
+			// make getters and setters for these later
+			std::unique_ptr<Magma::Texture> m_BlockAtlasTextureAlbedo;
+			std::unique_ptr<Magma::Texture> m_BlockAtlasTextureNormal;
+			std::unique_ptr<Magma::Texture> m_BlockAtlasTextureASME; // AO, Smoothness, Metallic, Emissive
 			
 		private:
 			std::unique_ptr<WorldGenerator> m_WorldGenerator;
 			std::string m_WorldName = "New World";
-			uint8_t m_ServerRenderDistance = 8; // allocated for each client in the server
-			std::unordered_map<glm::ivec2, std::shared_ptr<Chunk>> m_ChunkBuffer;
+			uint8_t m_ServerRenderDistance = 16; // allocated for each client in the server
+			std::unordered_map<glm::ivec3, std::shared_ptr<Chunk>> m_ChunkBuffer;
 
 			std::weak_ptr<std::unordered_map <uint8_t, std::string>> m_NetworkIDToNameMap;
 
 			// lock for m_ChunkBuffer
 			mutable std::shared_mutex m_MapMutex;
+
+			// chunk region file stuff
+			std::map<std::string, std::unique_ptr<RegionFile>> m_RegionCache;
+			RegionFile* GetRegion(int chunkX, int chunkY, int chunkZ);
 	};
 }

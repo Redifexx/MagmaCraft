@@ -6,7 +6,6 @@ layout (location = 2) in vec2 aTexCoords;
 layout (location = 3) in vec3 aTangent;
 layout (location = 4) in vec3 aBitangent;
 
-
 layout (location = 0) uniform mat4 u_ViewProjection;
 layout (location = 1) uniform mat4 u_Model;       
 layout (location = 2) uniform mat3 u_NormalMatrix;       

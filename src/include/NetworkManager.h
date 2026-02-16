@@ -86,8 +86,8 @@ namespace Craft
 			void End();
 
 			// Send
-			void SendChunkData(ENetPeer* peer, int chunkX, int chunkZ);
-			void RequestChunkData(ENetPeer* peer, int chunkX, int chunkZ);
+			void SendChunkData(ENetPeer* peer, int chunkX, int chunkY, int chunkZ);
+			void RequestChunkData(ENetPeer* peer, int chunkX, int chunkY, int chunkZ);
 
 			void SendPlayerData(EntityWorld& eWorld, uint32_t entityID);
 			void SendPlayerDisconnect(uint8_t networkID);

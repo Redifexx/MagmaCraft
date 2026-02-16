@@ -13,6 +13,56 @@
 #undef max
 
 using namespace Craft;
+
+WorldManager::WorldManager()
+{
+	// World Texture setup
+	std::string albedoPath = "resources/textures/atlas_albedo.png";
+	std::string normalPath = "resources/textures/atlas_normal.png";
+	std::string asmePath = "resources/textures/atlas_asme.png";
+
+	// Albedo, Alpha
+	m_BlockAtlasTextureAlbedo = std::make_unique<Magma::Texture>(
+		albedoPath.c_str(),
+		false,
+		GL_SRGB_ALPHA,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+	
+	//m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_BlockAtlasTextureAlbedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	// Normal +Y
+	m_BlockAtlasTextureNormal = std::make_unique<Magma::Texture>(
+		normalPath.c_str(),
+		false,
+		GL_RGB,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+	//m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_BlockAtlasTextureNormal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	// AO, Smoothness, Metallic, Emissive
+	m_BlockAtlasTextureASME = std::make_unique<Magma::Texture>(
+		asmePath.c_str(),
+		false,
+		GL_RGBA,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+	//m_BlockAtlasTextureASME->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	m_BlockAtlasTextureASME->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	m_BlockAtlasTextureASME->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
+WorldManager::~WorldManager()
+{
+
+}
  
 void WorldManager::CreateWorld(std::string& worldName, int seed, EntityWorld& eWorld)
 {
@@ -194,9 +244,34 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 
 	// Add Components (Local + Remote)
 
-	Magma::Texture* skin = new Magma::Texture("resources/textures/player_skin.png");
-	skin->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	skin->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	Magma::Texture* skin_albedo = new Magma::Texture(
+		"resources/textures/player_skin_albedo.png",
+		false,
+		GL_SRGB_ALPHA,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+	skin_albedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	skin_albedo->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	Magma::Texture* skin_normal = new Magma::Texture(
+		"resources/textures/player_skin_normal.png",
+		false,
+		GL_RGB,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+
+	skin_normal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	skin_normal->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	Magma::Texture* skin_asme = new Magma::Texture("resources/textures/player_skin_asme.png", false,
+		GL_RGBA,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE
+	);
+	skin_asme->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	skin_asme->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	eWorld.AddComponent<TransformComponent>(playerEntity, { spawnPosition, spawnRotation, glm::vec3(1.0f) }); // scale down for model testing
 	
@@ -204,7 +279,9 @@ uint32_t WorldManager::CreatePlayerEntity(EntityWorld& eWorld, uint8_t networkID
 		networkID,
 		false,
 		0,
-		std::move(skin) // ensure no mem leak on destruction
+		std::move(skin_albedo),
+		std::move(skin_normal),
+		std::move(skin_asme)
 	});
 
 	eWorld.AddComponent<HealthComponent>(playerEntity, { spawnHealth, 20.0f });
@@ -232,18 +309,22 @@ void WorldManager::InitializeWorld(glm::vec3 spawnPoint)
 {
 	// Implementation for generating initial world data around player spawn
 	int spawnChunkX = WorldToChunkPos(static_cast<int>(spawnPoint.x));
+	int spawnChunkY = WorldToChunkPos(static_cast<int>(spawnPoint.y));
 	int spawnChunkZ = WorldToChunkPos(static_cast<int>(spawnPoint.z));
 
 	// Generate chunks around spawn point
 	for (int x = -2; x <= 2; x++)
 	{
-		for (int z = -2; z <= 2; z++)
+		for (int y = -2; y <= 2; y++)
 		{
-			std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
+			for (int z = -2; z <= 2; z++)
+			{
+				std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
 
-			m_WorldGenerator->GenerateChunk(*chunk, spawnChunkX + x, spawnChunkZ + z);
-			SaveChunkToFile(*chunk, spawnChunkX + x, spawnChunkZ + z);
-			m_ChunkBuffer[{spawnChunkX + x, spawnChunkZ + z}] = std::move(chunk);
+				m_WorldGenerator->GenerateChunk(*chunk, spawnChunkX + x, spawnChunkX + y, spawnChunkZ + z);
+				SaveChunkToFile(*chunk, spawnChunkX + x, spawnChunkX + y, spawnChunkZ + z);
+				m_ChunkBuffer[{spawnChunkX + x, spawnChunkX + y, spawnChunkZ + z}] = std::move(chunk);
+			}
 		}
 	}
 }
@@ -288,92 +369,49 @@ void WorldManager::DecompressChunkData(const std::vector<uint8_t>& compressedDat
 	}
 }
 
-std::vector<uint8_t> WorldManager::GetChunkDataCompressed(int chunkX, int chunkZ)
+std::vector<uint8_t> WorldManager::GetChunkDataCompressed(int chunkX, int chunkY, int chunkZ)
 {
 	std::vector<uint8_t> chunkData;
-	if (LoadChunkFromFile(chunkData, chunkX, chunkZ)) return chunkData;
+	if (LoadChunkFromFile(chunkData, chunkX, chunkY, chunkZ)) return chunkData;
 
 	// if chunk not found, generate new chunk
 	Chunk chunk;
-	m_WorldGenerator->GenerateChunk(chunk, chunkX, chunkZ);
+	m_WorldGenerator->GenerateChunk(chunk, chunkX, chunkY, chunkZ);
 	std::vector<uint8_t> buffer;
 	CompressChunkData(chunk, buffer);
 	return buffer;
 }
 
-void WorldManager::CreateChunk(Chunk& chunk, int chunkX, int chunkZ)
+void WorldManager::CreateChunk(Chunk& chunk, int chunkX, int chunkY, int chunkZ)
 {
-	m_WorldGenerator->GenerateChunk(chunk, chunkX, chunkZ);
-	SaveChunkToFile(chunk, chunkX, chunkZ);
+	m_WorldGenerator->GenerateChunk(chunk, chunkX, chunkY, chunkZ);
+	SaveChunkToFile(chunk, chunkX, chunkY, chunkZ);
 }
 
 // Each Chunk will be its own file until worlds become bigger
-void WorldManager::SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkZ)
+void WorldManager::SaveChunkToFile(const Chunk& chunk, int chunkX, int chunkY, int chunkZ)
 {
-
-	std::string folderPath = "saves/" + m_WorldName;
-	std::string filename = folderPath + "/chunk_" + std::to_string(chunkX) + "_" + std::to_string(chunkZ) + ".dat";
-
-	std::ofstream outfile(filename, std::ios::binary);
-	if (!outfile.is_open()) return; // should prob throw an error
-
-	// Header
-	ChunkFileHeader header;
-	header.chunkX = chunkX;
-	header.chunkZ = chunkZ;
-	outfile.write((char*)&header, sizeof(ChunkFileHeader));
 
 	// Compress
 	std::vector<uint8_t> compressedData;
 	CompressChunkData(chunk, compressedData);
 
-	// Write Data Size
-	uint32_t dataSize = compressedData.size();
-	outfile.write((char*)&dataSize, sizeof(uint32_t));
+	// Get region
+	RegionFile* region = GetRegion(chunkX, chunkY, chunkZ);
 
-	// Write Data
-	outfile.write((char*)compressedData.data(), dataSize);
-
-	outfile.close();
+	region->WriteChunk(chunkX, chunkY, chunkZ, compressedData);
 }
 
-bool WorldManager::LoadChunkFromFile(std::vector<uint8_t>& compressedData, int chunkX, int chunkZ)
+bool WorldManager::LoadChunkFromFile(std::vector<uint8_t>& compressedData, int chunkX, int chunkY, int chunkZ)
 {
-	std::string filename = "saves/" + m_WorldName + "/chunk_" + std::to_string(chunkX) + "_" + std::to_string(chunkZ) + ".dat";
-	std::ifstream infile(filename, std::ios::binary);
-	if (!infile.is_open()) return false;
-
-	// Read Header
-	ChunkFileHeader header;
-	infile.read((char*)&header, sizeof(ChunkFileHeader));
-	if (header.magic != 0X4D43484B)
-	{
-		infile.close();
-		return false; // Invalid file
-	}
-
-	// Read Data Size
-	uint32_t dataSize;
-	infile.read((char*)&dataSize, sizeof(uint32_t));
-
-	if (dataSize > 200000)
-	{
-		infile.close();
-		return false; // Corrupt file
-	}
-
-	// Read Compressed Data
-	compressedData.resize(dataSize);
-	infile.read((char*)compressedData.data(), dataSize);
-	infile.close();
-
-	return true;
+	RegionFile* region = GetRegion(chunkX, chunkY, chunkZ);
+	return region->ReadChunk(chunkX, chunkY, chunkZ, compressedData);
 }
 
-bool WorldManager::LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int chunkZ)
+bool WorldManager::LoadChunkFromFileDecompressed(Chunk& chunk, int chunkX, int chunkY, int chunkZ)
 {
 	std::vector<uint8_t> compressedData;
-	if (!LoadChunkFromFile(compressedData, chunkX, chunkZ)) return false;
+	if (!LoadChunkFromFile(compressedData, chunkX, chunkY, chunkZ)) return false;
 
 	DecompressChunkData(compressedData, chunk);
 	return true;
@@ -389,16 +427,21 @@ void WorldManager::UnloadStaleChunks(const std::vector<glm::vec3>& playerPositio
 
 	for (auto itr = m_ChunkBuffer.begin(); itr != m_ChunkBuffer.end();)
 	{
-		glm::ivec2 chunkPos = itr->first;
+		glm::ivec3 chunkPos = itr->first;
 		bool isStale = true;
 
 		for (const auto& curPos : playerPositions)
 		{
 			int pChunkX = WorldToChunkPos(static_cast<int>(curPos.x));
+			int pChunkY = WorldToChunkPos(static_cast<int>(curPos.y));
 			int pChunkZ = WorldToChunkPos(static_cast<int>(curPos.z));
 
 			// using chessboard / chebyshev distance algo here
-			int dist = std::max(std::abs(chunkPos.x - pChunkX), std::abs(chunkPos.y - pChunkZ));
+			int dx = std::abs(chunkPos.x - pChunkX);
+			int dy = std::abs(chunkPos.y - pChunkY);
+			int dz = std::abs(chunkPos.z - pChunkZ);
+
+			int dist = std::max({ dx, dy, dz });
 
 			if (dist <= unloadDistance)
 			{
@@ -413,7 +456,7 @@ void WorldManager::UnloadStaleChunks(const std::vector<glm::vec3>& playerPositio
 			Chunk* chunk = itr->second.get();
 			if (chunk->m_IsModified)
 			{
-				SaveChunkToFile(*chunk, chunkPos.x, chunkPos.y);
+				SaveChunkToFile(*chunk, chunkPos.x, chunkPos.y, chunkPos.z);
 			}
 
 			itr = m_ChunkBuffer.erase(itr);
@@ -431,19 +474,19 @@ void WorldManager::UnloadStaleChunks(const std::vector<glm::vec3>& playerPositio
 	}
 }
 
-bool WorldManager::HasChunkInBuffer(int chunkX, int chunkZ)
+bool WorldManager::HasChunkInBuffer(int chunkX, int chunkY, int chunkZ)
 {
 	// makes this read only
 	std::shared_lock<std::shared_mutex> lock(m_MapMutex);
-	return m_ChunkBuffer.count({ chunkX, chunkZ });
+	return m_ChunkBuffer.count({ chunkX, chunkY, chunkZ });
 }
 
-std::shared_ptr<Chunk> WorldManager::GetChunkFromBuffer(int chunkX, int chunkZ)
+std::shared_ptr<Chunk> WorldManager::GetChunkFromBuffer(int chunkX, int chunkY, int chunkZ)
 {
 	// shared lock, read only for everyone else
 	std::shared_lock<std::shared_mutex> lock(m_MapMutex);
 
-	auto itr = m_ChunkBuffer.find({ chunkX, chunkZ });
+	auto itr = m_ChunkBuffer.find({ chunkX, chunkY, chunkZ });
 	if (itr != m_ChunkBuffer.end())
 	{
 		return itr->second;
@@ -452,13 +495,13 @@ std::shared_ptr<Chunk> WorldManager::GetChunkFromBuffer(int chunkX, int chunkZ)
 	return nullptr;
 }
 
-void WorldManager::RemoveChunkFromBuffer(int chunkX, int chunkZ)
+void WorldManager::RemoveChunkFromBuffer(int chunkX, int chunkY, int chunkZ)
 {
 	// lock and give exclusive write access
 	std::unique_lock<std::shared_mutex> lock(m_MapMutex);
 
 	// First check if it's in buffer
-	auto itr = m_ChunkBuffer.find({ chunkX, chunkZ });
+	auto itr = m_ChunkBuffer.find({ chunkX, chunkY, chunkZ });
 	if (itr == m_ChunkBuffer.end()) return;
 
 	// gets pointer
@@ -466,20 +509,20 @@ void WorldManager::RemoveChunkFromBuffer(int chunkX, int chunkZ)
 
 	if (chunk->m_IsModified)
 	{
-		SaveChunkToFile(*chunk, chunkX, chunkZ);
+		SaveChunkToFile(*chunk, chunkX, chunkY, chunkZ);
 	}
 
 	m_ChunkBuffer.erase(itr);
 }
 
-void WorldManager::AddChunkDataToBuffer(std::unique_ptr<Chunk> chunk, int chunkX, int chunkZ)
+void WorldManager::AddChunkDataToBuffer(std::unique_ptr<Chunk> chunk, int chunkX, int chunkY, int chunkZ)
 {
 	// lock and give exclusive write access
     std::unique_lock<std::shared_mutex> lock(m_MapMutex);
-    m_ChunkBuffer[{ chunkX, chunkZ }] = std::move(chunk);
+    m_ChunkBuffer[{ chunkX, chunkY, chunkZ }] = std::move(chunk);
 }
 
-const uint32_t WorldManager::GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec2 chunkPos, Direction direction)
+const uint32_t WorldManager::GetBlockNeighborData(uint32_t id, Chunk* chunk, glm::ivec3 chunkPos, Direction direction)
 {
 	// First check if neighbor is within chunk
 	int32_t blockNeighbor = chunk->GetLocalBlockNeighbor(id, direction);
@@ -488,8 +531,9 @@ const uint32_t WorldManager::GetBlockNeighborData(uint32_t id, Chunk* chunk, glm
 	// if out of bounds, get adjacent chunk
 	// not handling up and down
 	glm::ivec3 localBlockCoords = chunk->GetBlockXYZ(id);
-	glm::ivec2 adjacentChunkPos = chunkPos;
+	glm::ivec3 adjacentChunkPos = chunkPos;
 	int newLocalX = localBlockCoords.x;
+	int newLocalY = localBlockCoords.y;
 	int newLocalZ = localBlockCoords.z;
 
 	switch (direction)
@@ -502,24 +546,61 @@ const uint32_t WorldManager::GetBlockNeighborData(uint32_t id, Chunk* chunk, glm
 			adjacentChunkPos.x--;
 			newLocalX = CHUNK_WIDTH - 1; // 0 <- 15
 			break;
-		case (Direction::SOUTH):
+		case (Direction::UP):
 			adjacentChunkPos.y++;
+			newLocalY = 0;
+			break;
+		case (Direction::DOWN):
+			adjacentChunkPos.y--;
+			newLocalY = CHUNK_WIDTH - 1; // use width
+			break;
+		case (Direction::SOUTH):
+			adjacentChunkPos.z++;
 			newLocalZ = 0;
 			break;
 		case (Direction::NORTH):
-			adjacentChunkPos.y--;
+			adjacentChunkPos.z--;
 			newLocalZ = CHUNK_WIDTH - 1;
 			break;
 		default:
 			return 0;
 	}
 	
-	std::shared_ptr<Chunk> adjacentChunk = GetChunkFromBuffer(adjacentChunkPos.x, adjacentChunkPos.y);
+	std::shared_ptr<Chunk> adjacentChunk = GetChunkFromBuffer(adjacentChunkPos.x, adjacentChunkPos.y, adjacentChunkPos.z);
 
 	if (adjacentChunk)
 	{
-		return adjacentChunk->GetBlockData(newLocalX, localBlockCoords.y, newLocalZ);
+		return adjacentChunk->GetBlockData(newLocalX, newLocalY, newLocalZ);
 	}
 
 	return 0; // return air
 }
+
+RegionFile* WorldManager::GetRegion(int chunkX, int chunkY, int chunkZ)
+{
+	// calc region coords
+	int regionX = chunkX >> REGION_SHIFT;
+	int regionY = chunkY >> REGION_SHIFT;
+	int regionZ = chunkZ >> REGION_SHIFT;
+
+	// filename  is r.x.y.z.mcr3
+	std::string filename = "r." + std::to_string(regionX) +
+		"." + std::to_string(regionY) +
+		"." + std::to_string(regionZ) + ".mcr3";
+
+	// check cache
+	if (m_RegionCache.find(filename) == m_RegionCache.end())
+	{
+		// load file if not cached
+		if (m_RegionCache.size() > 8) { m_RegionCache.clear(); }
+
+		std::string folderPath = "saves/" + m_WorldName + "/regions/";
+		std::string filePath = folderPath + filename;
+		std::filesystem::create_directories(folderPath);
+
+		m_RegionCache[filename] = std::make_unique<RegionFile>(filePath);
+	}
+
+	return m_RegionCache[filename].get();
+}
+

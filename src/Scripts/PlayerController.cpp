@@ -25,8 +25,16 @@ void PlayerController::OnAttach()
 
 void PlayerController::OnUpdate(float dt)
 {
-	HandleMovement(dt);
-	HandleMouseLook(dt);
+	if (Magma::Input::IsKeyPressed(SDL_SCANCODE_ESCAPE))
+	{
+		m_IsMouseLocked = !m_IsMouseLocked;
+		SDL_SetWindowRelativeMouseMode(m_Window, m_IsMouseLocked);
+	}
+	if (m_IsMouseLocked)
+	{
+		HandleMovement(dt);
+		HandleMouseLook(dt);
+	}
 }
 
 void PlayerController::HandleMovement(float dt)
@@ -66,9 +74,15 @@ void PlayerController::HandleMovement(float dt)
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_E)) moveDir += up;
 	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_Q)) moveDir -= up;
 
+	float speedMultiplier = 1.0f;
+	if (Magma::Input::IsKeyHeld(SDL_SCANCODE_LSHIFT))
+	{
+		speedMultiplier = 2.0f;
+	}
+
 	if (glm::length(moveDir) > 0.0f)
 	{
-		transform.localPosition += glm::normalize(moveDir) * m_MoveSpeed * dt;
+		transform.localPosition += glm::normalize(moveDir) * m_MoveSpeed * speedMultiplier * dt;
 		transform.isDirty = true;
 	}
 }

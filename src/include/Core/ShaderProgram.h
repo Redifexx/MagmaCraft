@@ -19,8 +19,10 @@ namespace Magma
 
 			void SetUniform(const std::string& name, int value) const;
 			void SetUniform(const std::string& name, float value) const;
+			void SetUniform(const std::string& name, const glm::mat3& mat) const;
 			void SetUniform(const std::string& name, const glm::mat4& mat) const;
 			void SetUniform(const std::string& name, const glm::vec3& vec) const;
+			void SetUniform(const std::string& name, const glm::vec2& vec) const;
 		private:
 			GLuint m_ID;
 	};

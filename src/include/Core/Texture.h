@@ -11,11 +11,22 @@ namespace Magma
 	class Texture
 	{
 		public:
-			Texture(const char* filepath, bool mipmaps = true);
+			// for normal image textures
+			Texture(const char* filepath, 
+				bool mipmaps = true,
+				GLint internalFormat = GL_SRGB_ALPHA,
+				GLenum format = GL_RGB,
+				GLenum type = GL_UNSIGNED_BYTE
+			);
+
+			// for data
+			Texture(int width, int height, GLenum target, GLint internalFormat, GLenum format, GLenum type, const void* data);
+
 			~Texture();
 			GLuint GetID() const { return m_TextureID; }
 			void TexParameteri(GLenum target, GLenum pname, GLint param);
+			void TexParameterfv(GLenum target, GLenum pname, const GLfloat* param);
         private:
-            GLuint m_TextureID;
+            GLuint m_TextureID = -1; // let wrap around
 	};
 }

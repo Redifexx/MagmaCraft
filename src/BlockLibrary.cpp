@@ -17,7 +17,7 @@ void BlockLibrary::Initialize()
 	blockTypes[0] = { "Air", true, false, -1, -1, -1, -1, -1, -1 };
 
 	// ID 1: Stone
-	blockTypes[1] = { "Stone", false, false, 31, 31, 31, 31, 31, 31 };
+	blockTypes[1] = { "Stone", false, false, 32, 32, 32, 32, 32, 32 };
 
 	// ID 2: Cobblestone
 	blockTypes[2] = { "Cobblestone", false, false, 2, 2, 2, 2, 2, 2 };
@@ -29,21 +29,49 @@ void BlockLibrary::Initialize()
 	blockTypes[4] = { "Grass", false, false, 19, 20, 20, 20, 20, 16 };
 
 	// ID 5: Sand
-	blockTypes[5] = { "Sand", false, true, 30, 30, 30, 30, 30, 30 };
+	blockTypes[5] = { "Sand", false, true, 31, 31, 31, 31, 31, 31 };
 
 	// ID 6: Gravel
 	blockTypes[6] = { "Gravel", false, true, 21, 21, 21, 21, 21, 21 };
 
 	// ID 7: Wood
-	blockTypes[7] = { "Wood", false, false, 24, 23, 23, 23, 23, 24 };
+	blockTypes[7] = { "Wood", false, false, 25, 24, 24, 24, 24, 25 };
 
 	// ID 8: Wooden Planks
-	blockTypes[8] = { "WoodenPlanks", false, false, 25, 25, 25, 25, 25, 25 };
+	blockTypes[8] = { "WoodenPlanks", false, false, 26, 26, 26, 26, 26, 26 };
 
 	// ID 9: Leaves
+	blockTypes[9] = { "Leaves", true, false, 23, 23, 23, 23, 23, 23 };
+	
 	// ID 10: Brick
+	blockTypes[10] = { "Bricks", false, false, 1, 1, 1, 1, 1, 1 };
+
 	// ID 11: Bedrock
-	// ID 12: Diamond Ore
+	blockTypes[11] = { "Bedrock", false, false, 0, 0, 0, 0, 0, 0 };
+
+	// ID 12: Mossy Cobblestone
+	blockTypes[12] = { "MossyCobblestone", false, false, 3, 3, 3, 3, 3, 3 };
+
+	// ID 13: Diamond
+	blockTypes[13] = { "DiamondBlock", false, false, 14, 14, 14, 14, 14, 14 };
+
+	// ID 14: Diamond Ore
+	blockTypes[14] = { "DiamondBlock", false, false, 15, 15, 15, 15, 15, 15 };
+
+	// ID 15: Glass
+	blockTypes[15] = { "Glass", true, false, 17, 17, 17, 17, 17, 17 };
+
+	// ID 16: Glowstone
+	blockTypes[16] = { "Glowstone", false, false, 18, 18, 18, 18, 18, 18 };
+
+	// ID 17: Lava
+	blockTypes[17] = { "Lava", false, false, 22, 22, 22, 22, 22, 22 };
+
+	// ID 18: Pumpkin
+	blockTypes[18] = { "Pumpkin", false, false, 30, 27, 28, 28, 28, 30 }; 
+
+	// ID 18: Water
+	blockTypes[19] = { "Water", true, false, 39, 39, 39, 39, 39, 39 };
 }
 
 const glm::vec2 BlockLibrary::GetTexCoords(uint8_t texID)
