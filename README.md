@@ -40,7 +40,7 @@ MagmaCraft uses **CMake** for cross-platform building.
 2. Open Visual Studio and select **File -> Open -> CMake Project**.
 3. Navigate to the repository folder and select `CMakeLists.txt`.
 4. Allow CMake to configure the project (dependencies are managed via Vcpkg or submodules where applicable).
-5. Select `MagmaCraft.exe` as the startup item and run!
+5. Select `MagmaFramework.exe` as the startup item and run!
 
 **Note:** Ensure the `resources` folder is in your working directory or next to the executable for textures and models to load correctly.
 
